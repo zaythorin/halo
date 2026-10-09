@@ -4009,7 +4009,7 @@ function mpTick(dt){
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
-    mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:slots[sel],rl:reloading?1:0,og:p.onGround?1:0});
+    mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:slots[sel],rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0});
   }
   if(mp.host&&mp.mode==='ff'){
     mp.enT-=dt; if(mp.enT<=0){ mp.enT=0.09; mpSend({t:'en',a:mpSnapshot()}); }
@@ -4024,8 +4024,9 @@ function mpTick(dt){
     var ox=R.x, oz=R.z;
     R.x+=(R.tx-R.x)*k; R.y+=(R.ty-R.y)*k; R.z+=(R.tz-R.z)*k; R.yaw+=angDiff(R.tyaw-R.yaw)*k;
     var au=a.userData, spd=R.sp||0; if(performance.now()-(R.lt||0)>400) spd=0; R.sp=spd;
+    var sB=Math.hypot(R.x-ox,R.z-oz)/Math.max(dt,0.001); au.sB=(au.sB||0)+(Math.min(12,sB)-(au.sB||0))*Math.min(1,dt*8); if(au.sB>spd) spd=au.sB; if(spd<0.4) spd=0;
     au.mk=(au.mk||0)+((Math.min(1,spd/2.2))-(au.mk||0))*Math.min(1,dt*10); au.ph+=dt*Math.min(spd,9)*1.25;
-    au.air=R.og?0:1; au.rl=(au.rl||0)+(((R.rl|0)?1:0)-(au.rl||0))*Math.min(1,dt*8);
+    au.airT=R.og?0:(au.airT||0)+dt; au.air=au.airT>0.25?1:0; au.rl=(au.rl||0)+(((R.rl|0)?1:0)-(au.rl||0))*Math.min(1,dt*8);
     au.pit+=((R.pit||0)-au.pit)*Math.min(1,dt*12); au.kick=Math.max(0,(au.kick||0)-dt*8);
     if((R.w|0)!==au.w){ au.w=R.w|0; au.wg.forEach(function(g,gi){ g.visible=gi===au.w; }); }
     var bobW=Math.sin(au.ph*2)*0.018*au.mk, swayW=Math.sin(au.ph)*0.03*au.mk, rt=tAcc*13;
