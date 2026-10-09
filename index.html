@@ -3818,7 +3818,8 @@ function poseAvatar(av,ph,mk){
   var u=av.userData, S=u.S, R=u.R, P={}, sw=Math.sin(ph)*mk;
   CH_NAMES.forEach(function(n){ P[n]=S[n].slice(); });
   [['R',1],['L',-1]].forEach(function(sd){
-    var s=sd[0], sg=sd[1], a=sw*0.75*sg, hp=P['hp'+s], knee=Math.max(0,-Math.sin(ph+(sg>0?0:Math.PI)))*0.7*mk;
+    var s=sd[0], sg=sd[1], a=sw*0.95*sg, hp=P['hp'+s], knee=Math.max(0,-Math.sin(ph+(sg>0?0:Math.PI)))*0.7*mk;
+    if(u.air){ a=sg>0?0.5:-0.2; knee=0.9; }
     P['k'+s]=rotX(P['k'+s],hp,a); P['a'+s]=rotX(P['a'+s],hp,a); P['t'+s]=rotX(P['t'+s],hp,a);
     var kn=P['k'+s]; P['a'+s]=rotX(P['a'+s],kn,-knee); P['t'+s]=rotX(P['t'+s],kn,-knee);
     var sh=P['s'+s], armed=u.wg&&u.wg[u.w|0]&&u.wg[u.w|0].visible;
@@ -3828,7 +3829,7 @@ function poseAvatar(av,ph,mk){
         var l=Math.hypot.apply(null,vSub(R[pts[q]],R[q===0?'s'+s:pts[q-1]])), dd=vNorm(ds[q]);
         P[pts[q]]=[prev[0]+dd[0]*l,prev[1]+dd[1]*l,prev[2]+dd[2]*l]; prev=P[pts[q]];
       }
-      var pa=-(u.pit||0)*0.9-(u.kick||0)*0.12; pts.forEach(function(j){ P[j]=rotX(P[j],sh,pa); });
+      var pa=-(u.pit||0)*0.9-(u.kick||0)*0.12+(u.rl||0)*0.55+Math.sin(ph*2)*0.025*mk; pts.forEach(function(j){ P[j]=rotX(P[j],sh,pa); });
     }else{ var b=-sw*0.55*sg; ['e','w','f'].forEach(function(j){ P[j+s]=rotX(P[j+s],sh,b); }); }
   });
   var bob=Math.abs(Math.sin(ph))*0.035*mk;
@@ -3891,7 +3892,9 @@ function mpRecv(m){
   var R=mp.rem;
   switch(m.t){
     case 'start': mp.mode=m.mode; mpBegin(); break;
-    case 'st': R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; if(!R.has){ R.x=m.x; R.y=m.y; R.z=m.z; R.yaw=m.yaw; R.has=true; } break;
+    case 'st': R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0;
+      var nowt=performance.now(); if(R.lt){ var dtm=Math.max(0.02,(nowt-R.lt)/1000), sv=Math.hypot(m.x-R.sx,m.z-R.sz)/dtm; R.sp=(R.sp||0)*0.6+Math.min(12,sv)*0.4; } R.lt=nowt; R.sx=m.x; R.sz=m.z;
+      if(!R.has){ R.x=m.x; R.y=m.y; R.z=m.z; R.yaw=m.yaw; R.has=true; } break;
     case 'fx':
       if(state!=='play'&&state!=='dying') break;
       var fo=new V3(m.o[0],m.o[1],m.o[2]), fe=new V3(m.e[0],m.e[1],m.e[2]);
@@ -4006,7 +4009,7 @@ function mpTick(dt){
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
-    mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:slots[sel]});
+    mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:slots[sel],rl:reloading?1:0,og:p.onGround?1:0});
   }
   if(mp.host&&mp.mode==='ff'){
     mp.enT-=dt; if(mp.enT<=0){ mp.enT=0.09; mpSend({t:'en',a:mpSnapshot()}); }
@@ -4020,10 +4023,16 @@ function mpTick(dt){
     var k=Math.min(1,dt*14);
     var ox=R.x, oz=R.z;
     R.x+=(R.tx-R.x)*k; R.y+=(R.ty-R.y)*k; R.z+=(R.tz-R.z)*k; R.yaw+=angDiff(R.tyaw-R.yaw)*k;
-    var spd=Math.hypot(R.x-ox,R.z-oz)/Math.max(dt,0.001), au=a.userData; au.mk=(au.mk||0)+((Math.min(1,spd/3))-(au.mk||0))*Math.min(1,dt*10); au.ph+=dt*Math.min(spd,8)*1.1;
+    var au=a.userData, spd=R.sp||0; if(performance.now()-(R.lt||0)>400) spd=0; R.sp=spd;
+    au.mk=(au.mk||0)+((Math.min(1,spd/2.2))-(au.mk||0))*Math.min(1,dt*10); au.ph+=dt*Math.min(spd,9)*1.25;
+    au.air=R.og?0:1; au.rl=(au.rl||0)+(((R.rl|0)?1:0)-(au.rl||0))*Math.min(1,dt*8);
     au.pit+=((R.pit||0)-au.pit)*Math.min(1,dt*12); au.kick=Math.max(0,(au.kick||0)-dt*8);
     if((R.w|0)!==au.w){ au.w=R.w|0; au.wg.forEach(function(g,gi){ g.visible=gi===au.w; }); }
-    au.pv.rotation.x=-au.pit*0.9-au.kick*0.12; au.wr.position.z=0.42+au.kick*0.07; au.fl.visible=au.kick>0.75&&au.w!==5;
+    var bobW=Math.sin(au.ph*2)*0.018*au.mk, swayW=Math.sin(au.ph)*0.03*au.mk, rt=tAcc*13;
+    au.pv.rotation.x=-au.pit*0.9-au.kick*0.12+au.rl*0.55+Math.sin(au.ph*2)*0.02*au.mk;
+    au.wr.position.set(-0.1+swayW,-0.12+bobW-au.rl*0.14,0.42+au.kick*0.07-au.rl*0.1);
+    au.wr.rotation.z=swayW*0.8+Math.sin(rt)*0.10*au.rl; au.wr.rotation.x=Math.sin(rt*0.9)*0.07*au.rl;
+    au.fl.visible=au.kick>0.75&&au.w!==5;
     if(a.visible) poseAvatar(a,au.ph,au.mk);
     a.visible=R.al; a.position.set(R.x,R.y,R.z); a.rotation.y=R.yaw+Math.PI;
   }
