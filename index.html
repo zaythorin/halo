@@ -1380,7 +1380,7 @@ function makeHand(left,curl){
   [['ua'+s,'s'+s],['fa'+s,'e'+s],['h'+s,'w'+s]].forEach(function(pr){
     var pd=fpPart(pr[0]); if(!pd) return;
     pd.meshes.forEach(function(md,mi){
-      var key=pr[0]+mi+(curl&&pr[0]==='h'+s?'c'+curl:''), geo=fpGeo[key];
+      var key=pr[0]+mi+(curl&&pr[0]==='h'+s?'c'+curl:'')+(left&&curl&&pr[0]==='h'+s?'w6':''), geo=fpGeo[key];
       if(!geo){
         geo=new THREE.BufferGeometry();
         var gp=emBuf(md.p,Float32Array), gn=emBuf(md.n,Float32Array);
@@ -1396,6 +1396,17 @@ function makeHand(left,curl){
             gp[vi]=x*cc+(ax[1]*z-ax[2]*y)*sn+ax[0]*d1*(1-cc)+pvt[0]; gp[vi+1]=y*cc+(ax[2]*x-ax[0]*z)*sn+ax[1]*d1*(1-cc)+pvt[1]; gp[vi+2]=z*cc+(ax[0]*y-ax[1]*x)*sn+ax[2]*d1*(1-cc)+pvt[2];
             var nx=gn[vi],ny=gn[vi+1],nz=gn[vi+2], d2=ax[0]*nx+ax[1]*ny+ax[2]*nz;
             gn[vi]=nx*cc+(ax[1]*nz-ax[2]*ny)*sn+ax[0]*d2*(1-cc); gn[vi+1]=ny*cc+(ax[2]*nx-ax[0]*nz)*sn+ax[1]*d2*(1-cc); gn[vi+2]=nz*cc+(ax[0]*ny-ax[1]*nx)*sn+ax[2]*d2*(1-cc);
+          }
+        }
+        if(pr[0]==='h'+s&&left&&curl){
+          /* the hand mesh is modelled bent backwards at the wrist: rotate it about the wrist towards the palm so the wrist reads straight and slightly flexed */
+          gp=new Float32Array(gp); gn=new Float32Array(gn);
+          var wth=0.6, wc=Math.cos(wth), ws=Math.sin(wth), wx=c[0], wy=c[1], wz=c[2], wv, wX, wY, wZ, wd;
+          for(wv=0;wv<gp.length;wv+=3){
+            wX=gp[wv]; wY=gp[wv+1]; wZ=gp[wv+2]; wd=wx*wX+wy*wY+wz*wZ;
+            gp[wv]=wX*wc+(wy*wZ-wz*wY)*ws+wx*wd*(1-wc); gp[wv+1]=wY*wc+(wz*wX-wx*wZ)*ws+wy*wd*(1-wc); gp[wv+2]=wZ*wc+(wx*wY-wy*wX)*ws+wz*wd*(1-wc);
+            wX=gn[wv]; wY=gn[wv+1]; wZ=gn[wv+2]; wd=wx*wX+wy*wY+wz*wZ;
+            gn[wv]=wX*wc+(wy*wZ-wz*wY)*ws+wx*wd*(1-wc); gn[wv+1]=wY*wc+(wz*wX-wx*wZ)*ws+wy*wd*(1-wc); gn[wv+2]=wZ*wc+(wx*wY-wy*wX)*ws+wz*wd*(1-wc);
           }
         }
         geo.setAttribute('position',new THREE.BufferAttribute(gp,3));
@@ -1510,7 +1521,7 @@ function buildRocket(){
   /* forward grip bar under the tube (left hand) and a rear pistol grip (right hand), like the CE launcher */
   var dk=new THREE.MeshPhongMaterial({color:0x2a2e33,shininess:30,specular:0x333b42});
   var pg=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.2,0.07),dk); pg.position.set(0,-0.3,0.35); pg.rotation.x=-0.25; g.add(pg);
-  var lh=makeHand(true,1.7), rh=makeHand(false); lh.quaternion.set(-0.0286,0.117,0.5311,0.8387);
+  var lh=makeHand(true,2.2), rh=makeHand(false); lh.quaternion.set(0.3922,-0.501,-0.314,0.7047);
   lh.scale.setScalar(1.9); rh.scale.setScalar(1.9);
   g.add(lh); rh.position.set(0.0,-0.36,0.38); rh.rotation.set(0.6,0.3,0); g.add(rh);
   mag.visible=false;
@@ -1566,8 +1577,8 @@ weapons[0].anim=reloadAnim([-0.07,-0.2,0.0],weapons[0].group.userData.magCentre,
 weapons[0].anim.base=[0,0.06,0];
 weapons[1].anim=reloadAnim([-0.02,-0.14,-0.34],[0,-0.15,-0.13],[0.035,0.03,0],AR_ROT,false);
 weapons[2].anim=reloadAnim([-0.03,-0.08,-0.3],[0,-0.1,0.08],[0.04,0.03,0.07],SN_ROT,true);
-weapons[3].anim=reloadAnim([-0.0928,-0.0411,-0.6617],[0,0.14*2.6,-0.36*2.6],[0,0.06,0],AR_ROT,false);
-weapons[3].anim.base=[0.13,-0.2,-0.2]; weapons[3].anim.baseRot=[0.1,0.24,-0.1]; weapons[3].group.scale.setScalar(1.3);
+weapons[3].anim=reloadAnim([0.0725,0.1663,-0.4998],[0,0.14*2.6,-0.36*2.6],[0,0.06,0],AR_ROT,false);
+weapons[3].anim.base=[0.3,-0.36,-0.22]; weapons[3].anim.baseRot=[0.1,0.1,-0.1]; weapons[3].group.scale.setScalar(1.3);
 vm.add(weapons[0].group); vm.add(weapons[1].group); vm.add(weapons[2].group); vm.add(weapons[3].group);
 weapons[1].group.visible=false; weapons[2].group.visible=false; weapons[3].group.visible=false;
 weapons[4].anim={restHand:[-0.02,-0.125,-0.20],port:[0.03,0.02,0],events:[],mag:{attach:0,drop:0,reappear:0,insert:0},rot:[],base:[0,0.01,-0.08],slideOnFire:false};
@@ -3182,7 +3193,7 @@ function readMove(){
 function updateLook(){
   var k=camera.fov/75;
   swayIn.x+=lookDX*SENS*k; swayIn.y+=lookDY*SENS*k; p.yaw-=lookDX*SENS*k; p.pitch-=lookDY*SENS*k; lookDX=0; lookDY=0;
-  if(zoomed&&!p.inVeh&&weapons[cur].scope){ var sa=(zoomLvl>1?0.042:0.028)*(1+moveFrac*0.8); p.yaw+=(Math.cos(tAcc*1.3)*sa+Math.cos(tAcc*3.1+2)*sa*0.35)*frameDt; p.pitch+=(Math.cos(tAcc*0.9+1)*sa*0.8+Math.cos(tAcc*2.3)*sa*0.3)*frameDt; }
+  /* no zoom sway: the crosshair stays perfectly still when zoomed */
   p.pitch=Math.max(-1.45,Math.min(1.45,p.pitch));
 }
 function updateFov(dt){
@@ -3901,10 +3912,10 @@ function startReload(){
 }
 var zoomLvl=1;
 function zoomOff(){ zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); }
-/* scoped weapons zoom in two steps (2x, then double again); press again to leave the scope */
+/* the sniper zooms in two steps (2x, then double again); the rocket launcher scope is a single step; press again to leave the scope */
 function toggleZoom(){
   var w=weapons[cur];
-  if(zoomed&&w&&w.scope&&!p.inVeh&&zoomLvl<2){ zoomLvl=2; if(sample) tone(900,1300,0.06,'sine',0.05); return; }
+  if(zoomed&&w&&w.id==='sniper'&&!p.inVeh&&zoomLvl<2){ zoomLvl=2; if(sample) tone(900,1300,0.06,'sine',0.05); return; }
   zoomed=!zoomed; zoomLvl=1; $('bZoom').classList.toggle('on',zoomed);
 }
 
