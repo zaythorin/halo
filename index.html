@@ -356,7 +356,7 @@ body{letter-spacing:.02em}
   <button type="button" class="btn" id="bSwap">SWAP</button>
   <button type="button" class="btn" id="bZoom">ZOOM</button>
   <button type="button" class="btn" id="bSprint">SPRINT</button>
-  <button type="button" class="btn" id="bDual">DUAL</button>
+  <button type="button" class="btn" id="bDual">DROP 1</button>
   <button type="button" class="btn" id="bMelee">MELEE</button>
   <button type="button" class="btn" id="bMsl">MISSILE</button>
   <button type="button" class="btn" id="bFrag">FRAG</button>
@@ -480,7 +480,8 @@ var SKY=0xb3bfcc;
 var scene=new THREE.Scene();
 scene.background=new THREE.Color(SKY);
 scene.fog=new THREE.Fog(SKY,85,760);
-var camera=new THREE.PerspectiveCamera(75,1,0.05,2000);
+var BASE_FOV=62;
+var camera=new THREE.PerspectiveCamera(BASE_FOV,1,0.05,2000);
 camera.rotation.order='YXZ';
 scene.add(camera);
 var hemi=new THREE.HemisphereLight(0xd0dae6,0x7d6e54,0.72); scene.add(hemi);
@@ -1846,8 +1847,8 @@ function hud(){
   setText('left',String(mp.on&&!mp.host?mp.left:alive+wave.toSpawn+pendingDrop));
   setText('score',String(score));
   setText('wname',w.name);
-  setText('mag',w.inf?'∞':(dwOn(w)?w.mag+'|'+w.mag2:String(w.mag)));
-  setText('res',p.air?'MSL '+jet.msl:(w.inf?'\u221e':String(w.reserve)));
+  setText('mag',w.inf?'∞':(dwOn(w)?dwG[0].mag+'|'+dwG[1].mag:String(w.mag)));
+  setText('res',p.air?'MSL '+jet.msl:(w.inf?'\u221e':(dwOn(w)?dwW(0).reserve+'|'+dwW(1).reserve:String(w.reserve))));
   magStripes(w);
   var sd=p.shield<=0&&!p.inVeh; if(hudCache.sd!==sd){ hudCache.sd=sd; els.status.classList.toggle('sdown',sd); }
   if(sd&&p.health>0){ shBeepT-=frameDt; if(shBeepT<=0){ shBeepT=0.7; tone(1250,1250,0.07,'square',0.045); } } else shBeepT=0;
@@ -3284,7 +3285,7 @@ function updateLook(){
   p.pitch=Math.max(-1.45,Math.min(1.45,p.pitch));
 }
 function updateFov(dt){
-  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?(zoomLvl>1?12:30):(weapons[cur].zoomFov||42))):75;
+  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?(zoomLvl>1?12:30):(weapons[cur].zoomFov||42))):BASE_FOV;
   if(Math.abs(camera.fov-ft)>0.05){ camera.fov+=(ft-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); }
 }
 function regen(dt){
@@ -3924,6 +3925,7 @@ function swapWeapon(to){
   if(swapT>0||meleeT>0||throwT>0||state!=='play'||p.inVeh) return;
   if(typeof to!=='number') to=1-sel;
   if(to===sel) return;
+  if(dwOnF){ var dY=dwG[1].wi; dwEnd(); dwDropGun(dY); showToast('DROPPED'); }
   sel=to; pendingW=slots[sel]; swapT=0.4; reloading=false; boltT=0; sfx.click();
   if(zoomed) zoomOff();
 }
@@ -3936,7 +3938,7 @@ function buildRackTpl(){
     var m=bs[i](); m.remove(m.userData.leftHand); m.remove(m.userData.rightHand);
     m.rotation.set(0,Math.PI/2,0); m.scale.setScalar(sc[i]); m.userData={};
     var h=new THREE.Group(); h.add(m); h.updateMatrixWorld(true);
-    var c=new THREE.Box3().setFromObject(h).getCenter(new V3()); m.position.sub(c);
+    var bb=new THREE.Box3().setFromObject(h), c=bb.getCenter(new V3()); m.position.sub(c); h.userData.sz=bb.getSize(new V3());
     rackTpl.push(h);
   }
 }
@@ -3954,7 +3956,7 @@ function spawnRacks(){
       g.position.set(x,y,z); scene.add(g);
       wpicks.push({wi:L[0],g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0});
     }
-    tmLooseWeapon(rk.x-1.9,rk.z+rk.f*1.9,6,rk.y+0.5); tmLooseWeapon(rk.x+1.9,rk.z+rk.f*1.9,7,rk.y+0.5);
+    tmLooseWeapon(rk.x-1.9,rk.z+rk.f*1.9,6,rk.y); tmLooseWeapon(rk.x+1.9,rk.z+rk.f*1.9,7,rk.y);
   }
 }
 function updateWpicks(dt){
@@ -3963,8 +3965,16 @@ function updateWpicks(dt){
   for(i=0;i<wpicks.length;i++){
     var k=wpicks[i];
     k.hl.visible=false;
-    if(k.taken){ if(k.rt>0){ k.rt-=dt; if(k.rt<=0){ k.taken=false; k.g.visible=true; } } continue; }
-    k.t+=dt; k.m.position.y=Math.sin(k.t*1.6)*0.01;
+    if(k.fall&&!k.taken){
+      var F=k.fall; F.vy-=16*dt; k.x+=F.vx*dt; k.z+=F.vz*dt; k.y+=F.vy*dt; var fr=Math.max(0,1-dt*1.5); F.vx*=fr; F.vz*=fr;
+      var gy=lyH(k.x,k.z,k.y+0.4)+k.hz+0.07;
+      if(k.y<=gy){ k.y=gy; if(F.vy<-2.5){ F.vy=-F.vy*0.25; F.vx*=0.5; F.vz*=0.5; } else { k.fall=null; k.m.rotation.z=0; } }
+      else k.m.rotation.z+=dt*9;
+      k.g.position.set(k.x,k.y,k.z);
+    }
+    if(k.taken){ if(k.rt>0){ k.rt-=dt; if(k.rt<=0){ if(k.once) k.rt=-1; else { k.taken=false; k.g.visible=true; } } } continue; }
+    k.t+=dt; if(!k.fl) k.m.position.y=Math.sin(k.t*1.6)*0.01;
+    if(k.ign>0) k.ign-=dt;
     if(p.inVeh) continue;
     var dx=k.x-_wpE.x, dy=k.y-_wpE.y, dz=k.z-_wpE.z, d=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.001;
     if(d>4.8) continue;
@@ -3972,12 +3982,20 @@ function updateWpicks(dt){
     if(c>best){ best=c; near=i; }
   }
   if(near>=0) wpicks[near].hl.visible=true;
-  if(near!==wpNear && near>=0) showToast('E  TAKE '+weapons[wpicks[near].wi].name);
+  if(near!==wpNear && near>=0){ var nwi=wpicks[near].wi, cw0=slots[sel]; showToast(dwElig(nwi)?'E  TAKE '+weapons[nwi].name+'   T  DUAL WIELD':'E  TAKE '+weapons[nwi].name); }
   wpNear=near;
 }
-function takeWeapon(i){
+function takeWeapon(i,dual){
   var pk=wpicks[i]; if(!pk||pk.taken||swapT>0||meleeT>0||throwT>0) return;
-  var wi=pk.wi, j;
+  var wi=pk.wi, j, cw=slots[sel];
+  if(dual&&dwElig(wi)){
+    pk.taken=true; pk.rt=25; pk.g.visible=false; pk.hl.visible=false; wpNear=-1;
+    dwStart(cw,wi); showToast('DUAL WIELD'); sfx.pickup(); return;
+  }
+  if(dwOnF&&(wi===0||wi===6)){
+    weapons[wi].reserve=Math.min(weapons[wi].maxRes,weapons[wi].reserve+AMMO_PK[wi]);
+    pk.taken=true; pk.rt=25; pk.g.visible=false; pk.hl.visible=false; wpNear=-1; showToast('AMMO'); sfx.pickup(); return;
+  }
   if(slots.indexOf(wi)>=0){
     weapons[wi].reserve=Math.min(weapons[wi].maxRes,weapons[wi].reserve+AMMO_PK[wi]);
     pk.taken=true; pk.rt=25; pk.g.visible=false; pk.hl.visible=false; wpNear=-1; showToast('AMMO'); sfx.pickup(); return;
@@ -3985,13 +4003,14 @@ function takeWeapon(i){
   var old=slots[sel];
   pk.taken=true; pk.rt=-1; pk.g.visible=false; pk.hl.visible=false; wpNear=-1;
   for(j=0;j<wpicks.length;j++) if(wpicks[j].wi===old && wpicks[j].taken && wpicks[j].rt<0){ wpicks[j].taken=false; wpicks[j].g.visible=true; }
-  dwDrop(weapons[old]); slots[sel]=wi; pendingW=wi; swapT=0.4; reloading=false; boltT=0;
+  if(dwOnF){ var dY=dwG[1].wi; dwEnd(); dwDropGun(dY); }
+  slots[sel]=wi; pendingW=wi; swapT=0.4; reloading=false; boltT=0;
   if(zoomed) zoomOff();
   sfx.pickup(); showToast(weapons[wi].name);
 }
 function startReload(){
   var w=weapons[cur];
-  if(dwOn(w)){ if(state==='play'&&!p.inVeh&&swapT<=0&&meleeT<=0&&throwT<=0){ var q=(w.mag2<w.mag)?1:0; if(!dwReload(w,q)) dwReload(w,1-q); } return; }
+  if(dwOn(w)){ if(state==='play'&&!p.inVeh&&swapT<=0&&meleeT<=0&&throwT<=0){ var q=(dwG[1].mag/dwW(1).magSize<dwG[0].mag/dwW(0).magSize)?1:0; if(!dwReload(q)) dwReload(1-q); } return; }
   if(state!=='play'||p.inVeh||reloading||swapT>0||meleeT>0||throwT>0||w.mag>=w.magSize||w.reserve<=0) return;
   if(zoomed&&(w.scope||w.lscope)) zoomOff();
   burstLeft=0; reloading=true; reloadT=0; reloadEmpty=(w.mag===0);
@@ -4361,69 +4380,85 @@ function animateWeaponParts(w){
   if(ud.mover) ud.mover.position.z=ud.moverBase+sv;
 }
 
-/* ---------- dual wield: Magnum and SMG, one in each hand. A gun that runs dry drops out of view to reload while the other keeps firing ---------- */
-var dwHand=0, dwT=[0,0], dwDn=[0,0], dwApplied=[false,false];
+/* ---------- dual wield: Magnum or SMG in each hand (any mix). Stand next to a second Magnum or SMG and press E or T. A gun that runs dry drops out of view to reload while the other keeps firing ---------- */
+var dwOnF=false, dwG=[{wi:0,mag:0},{wi:6,mag:0}], dwCd=[0,0], dwT=[0,0], dwDn=[0,0], dwApplied=[false,false];
 function dwCan(w){ return w===weapons[0]||w===weapons[6]; }
-function dwOn(w){ return !!w.dual&&dwCan(w); }
+function dwOn(w){ return dwOnF&&w===weapons[dwG[0].wi]; }
+function dwW(h){ return weapons[dwG[h].wi]; }
+function dwElig(wi){ var cw=slots[sel]; return !dwOnF&&(cw===0||cw===6)&&(wi===0||wi===6); }
+function dwNear(){ return wpNear>=0&&wpicks[wpNear]&&dwElig(wpicks[wpNear].wi); }
 [0,6].forEach(function(i){
-  var w=weapons[i], g=(i===0?buildMagnum:buildSMG)();
-  g.userData.leftHand.visible=false; g.scale.x=-1; g.visible=false; vm.add(g); w.group2=g; w.mag2=0; w.dual=false;
+  var g=(i===0?buildMagnum:buildSMG)(); g.userData.leftHand.visible=false; g.scale.x=-1; g.visible=false; vm.add(g); weapons[i].group2=g;
 });
-function dwToggle(){
-  var w=weapons[cur]; if(state!=='play'||p.inVeh||!dwCan(w)||swapT>0||meleeT>0||throwT>0) return;
-  if(!w.dual){
-    var t=Math.min(w.magSize,w.reserve); if(t<=0){ showToast('NO AMMO FOR DUAL'); return; }
-    w.mag2=t; w.reserve-=t; w.dual=true; reloading=false; dwT=[0,0]; dwDn=[0,0]; dwHand=0; if(zoomed) zoomOff(); showToast('DUAL WIELD'); sfx.draw();
-  }else{ dwDrop(w); showToast('SINGLE'); sfx.draw(); }
+function dwStart(X,Y){
+  weapons[Y].reserve=Math.min(weapons[Y].maxRes,weapons[Y].reserve+AMMO_PK[Y]);
+  dwG=[{wi:X,mag:weapons[X].mag},{wi:Y,mag:weapons[Y].magSize}];
+  dwT=[0,0]; dwDn=[0,0]; dwCd=[0,0]; dwApplied=[false,false]; dwOnF=true; reloading=false; if(zoomed) zoomOff();
 }
-function dwDrop(w){ if(!w.dual) return; w.reserve=Math.min(w.maxRes,w.reserve+w.mag2); w.mag2=0; w.dual=false; dwT=[0,0]; dwDn=[0,0]; }
-function dwReload(w,h){
-  if(dwT[h]>0) return false; var m=h?w.mag2:w.mag; if(m>=w.magSize||w.reserve<=0) return false;
+function dwEnd(){ if(!dwOnF) return; weapons[dwG[0].wi].mag=dwG[0].mag; dwOnF=false; dwT=[0,0]; dwDn=[0,0]; }
+function dwToggle(){
+  if(state!=='play'||p.inVeh||swapT>0||meleeT>0||throwT>0) return;
+  if(dwOnF){ var Y=dwG[1].wi; dwEnd(); dwDropGun(Y); showToast('SINGLE'); sfx.draw(); return; }
+  if(dwNear()){ takeWeapon(wpNear,true); return; }
+  showToast('STAND NEXT TO A MAGNUM OR SMG TO DUAL WIELD');
+}
+function dwDropGun(wi){
+  if(!rackTpl) buildRackTpl();
+  var n=0, i; for(i=0;i<wpicks.length;i++) if(wpicks[i].once) n++;
+  for(i=0;i<wpicks.length&&n>5;i++) if(wpicks[i].once){ scene.remove(wpicks[i].g); wpicks.splice(i,1); i--; n--; }
+  var fx=-Math.sin(p.yaw), fz=-Math.cos(p.yaw);
+  var dk=tmLooseWeapon(p.x+fx*0.7,p.z+fz*0.7,wi,undefined,{y0:p.y+1.1,vx:fx*2.8,vz:fz*2.8,vy:1.2}); dk.ign=2.5;
+}
+function dwDrop(w){ if(dwCan(w)) dwEnd(); }
+function dwReload(h){
+  var w=dwW(h); if(dwT[h]>0||dwG[h].mag>=w.magSize||w.reserve<=0) return false;
   dwT[h]=Math.max(1.0,w.reloadDur); dwApplied[h]=false; sfx.magOut(); return true;
 }
-function dwFire(w,h){
-  var mz=(h?w.group2:w.group).userData.muzzle;
-  if(h){ var a=w.mag; w.mag=w.mag2; w.mag2=a; }
-  mz.add(flash); burstSnd=true; fireWeapon(w,mz,false);
-  if(h){ var b=w.mag; w.mag=w.mag2; w.mag2=b; }
-  fireCool=w.rate*0.6; fireEdgeT=0; dwHand=1-h;
+function dwFire(h){
+  var w=dwW(h), g=dwG[h], mz=(h?weapons[g.wi].group2:weapons[g.wi].group).userData.muzzle, sv=w.mag;
+  w.mag=g.mag; mz.add(flash); burstSnd=true; fireWeapon(w,mz,false); g.mag=w.mag; w.mag=sv;
+  dwCd[h]=w.rate; fireEdgeT=0;
 }
-function dwTick(w,dt){
-  var h, tot;
+function dwTick(w0,dt){
+  var h, w, tot;
   for(h=0;h<2;h++){
+    w=dwW(h); dwCd[h]=Math.max(0,dwCd[h]-dt); tot=Math.max(1.0,w.reloadDur);
     if(dwT[h]>0){
-      tot=Math.max(1.0,w.reloadDur); var el=tot-dwT[h]; dwT[h]-=dt;
-      if(!dwApplied[h]&&el>=tot*0.7){
-        var m=h?w.mag2:w.mag, take=Math.min(w.magSize-m,w.reserve); if(h) w.mag2+=take; else w.mag+=take; w.reserve-=take; dwApplied[h]=true; sfx.magIn();
-      }
+      var el=tot-dwT[h]; dwT[h]-=dt;
+      if(!dwApplied[h]&&el>=tot*0.7){ var take=Math.min(w.magSize-dwG[h].mag,w.reserve); dwG[h].mag+=take; w.reserve-=take; dwApplied[h]=true; sfx.magIn(); }
       if(dwT[h]<=0) dwT[h]=0;
     }
-    var tgt=(dwT[h]>0.3&&tot-dwT[h]>0)?1:0; if(dwT[h]<=0) tgt=0;
+    var tgt=(dwT[h]>0.3)?1:0;
     dwDn[h]+=(tgt-dwDn[h])*Math.min(1,dt*9);
   }
-  if(swapT<=0&&meleeT<=0&&throwT<=0&&fireCool<=0){
-    var want=w.auto?ctrl.fire:(fireEdgeT>0);
-    if(want){
-      var hh=dwHand, ok=[w.mag>0&&dwT[0]<=0, w.mag2>0&&dwT[1]<=0];
-      if(!ok[hh]) hh=1-hh;
-      if(ok[hh]) dwFire(w,hh);
-      else if(dwT[0]<=0&&dwT[1]<=0){
-        if(w.reserve>0){ dwReload(w,0); dwReload(w,1); } else { sfx.click(); fireCool=0.35; fireEdgeT=0; showToast('NO AMMO'); }
-      }
+  if(swapT<=0&&meleeT<=0&&throwT<=0){
+    ctrl.fireRT=Math.max(0,(ctrl.fireRT||0)-dt);
+    var edge=fireEdgeT>0, hd=[ctrl.fireR||ctrl.fireRT>0||((ctrl.fire||edge)&&!ctrl.mouseL), ctrl.fire||edge];
+    for(h=0;h<2;h++){
+      w=dwW(h);
+      if(!hd[h]||dwCd[h]>0||dwT[h]>0) continue;
+      if(dwG[h].mag>0) dwFire(h);
+      else if(w.reserve<=0&&dwG[1-h].mag<=0&&dwT[1-h]<=0){ dwCd[h]=0.35; sfx.click(); showToast('NO AMMO'); }
     }
   }
-  for(h=0;h<2;h++) if((h?w.mag2:w.mag)<=0&&dwT[h]<=0&&w.reserve>0) dwReload(w,h);
+  for(h=0;h<2;h++){ w=dwW(h); if(dwG[h].mag<=0&&dwT[h]<=0&&w.reserve>0) dwReload(h); }
 }
 function dwAnimate(w){
-  var i, ww, on=dwCan(w)&&w.dual;
-  for(i=0;i<2;i++){ ww=weapons[i?6:0]; ww.group.userData.leftHand.visible=!ww.dual; ww.group2.visible=!!ww.dual&&cur===(i?6:0)&&ww.group.visible; }
-  var b=$('bDual'); if(b){ var cap=dwCan(w)&&!p.inVeh; if(b._c!==cap){ b._c=cap; b.classList.toggle('avail',cap); } if(b._o!==!!w.dual){ b._o=!!w.dual; b.classList.toggle('on',!!w.dual); } }
+  var on=dwOn(w), sp=MA.sprint, i, ri=dwG[0].wi, li=dwG[1].wi;
+  for(i=0;i<2;i++){ var wi=i?6:0; weapons[wi].group.userData.leftHand.visible=!(dwOnF&&ri===wi); weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
+  var b=$('bDual'); if(b){
+    var near=dwNear(), cap=(dwOnF||near)&&!p.inVeh; if(b._c!==cap){ b._c=cap; b.classList.toggle('avail',cap); }
+    var lab=dwOnF?'DROP 1':'DUAL'; if(b._l!==lab){ b._l=lab; b.textContent=lab; }
+    if(b._o!==dwOnF){ b._o=dwOnF; b.classList.toggle('on',dwOnF); }
+  }
   if(!on) return;
-  var an=w.anim, bs=an.base||ZERO3, br=an.baseRot||ZERO3, g=w.group, g2=w.group2, d0=dwDn[0], d1=dwDn[1], wob0=Math.sin(tAcc*13)*0.05*d0, wob1=Math.sin(tAcc*13+1.7)*0.05*d1;
-  g.position.x+=0.12*d0; g.position.y-=0.55*d0; g.position.z+=0.12*d0;
-  g.rotation.x+=0.7*d0; g.rotation.z+=-0.5*d0+wob0;
-  g2.position.set(-0.277-bs[0]-0.12*d1,bs[1]-0.55*d1,bs[2]+0.12*d1);
-  g2.rotation.set(br[0]+0.7*d1,-br[1],-br[2]+0.5*d1+wob1);
+  var g=weapons[ri].group, g2=weapons[li].group2, a6=weapons[li].anim, bs=a6.base||ZERO3, br=a6.baseRot||ZERO3, d0=dwDn[0], d1=dwDn[1];
+  vm.rotation.y-=0.45*sp; vm.rotation.z-=0.12*sp; vm.position.x-=0.05*sp;
+  g.position.x+=0.09+0.12*d0+0.04*sp; g.position.y+=0.08-0.55*d0; g.position.z+=0.12*d0;
+  g.rotation.y+=0.45*sp; g.rotation.z+=0.12*sp;
+  g.rotation.x+=0.7*d0; g.rotation.z+=-0.5*d0+Math.sin(tAcc*13)*0.05*d0;
+  g2.position.set(-0.277-0.09-bs[0]-0.12*d1-0.04*sp,bs[1]+0.08-0.55*d1,bs[2]+0.12*d1);
+  g2.rotation.set(br[0]+0.7*d1,-br[1]-0.45*sp,-br[2]+0.5*d1-0.12*sp+Math.sin(tAcc*13+1.7)*0.05*d1);
 }
 function updateWeapon(dt){
   curDt=dt;
@@ -5048,12 +5083,12 @@ function clearWorld(){
 function resetGame(){
   clearWorld();
   p.x=0; p.z=0; p.y=groundH(0,0); p.vx=0; p.vz=0; p.vy=0; p.yaw=0; p.pitch=0; p.shield=100; p.health=100; p.lastHit=-10; p.onGround=true;
-  weapons[0].mag=12; weapons[0].reserve=72; weapons[1].mag=32; weapons[1].reserve=192; weapons[2].mag=4; weapons[2].reserve=24; weapons[3].mag=2; weapons[3].reserve=6; weapons[4].mag=6; weapons[4].reserve=30; weapons[4].pumpT=-1; weapons[4].pumpDelay=0; weapons[4].tilt=0; burstLeft=0; weapons[0].dual=false; weapons[0].mag2=0; weapons[6].dual=false; weapons[6].mag2=0; dwT=[0,0]; dwDn=[0,0]; weapons[6].mag=48; weapons[6].reserve=240; weapons[7].mag=36; weapons[7].reserve=144;
+  weapons[0].mag=12; weapons[0].reserve=72; weapons[1].mag=32; weapons[1].reserve=192; weapons[2].mag=4; weapons[2].reserve=24; weapons[3].mag=2; weapons[3].reserve=6; weapons[4].mag=6; weapons[4].reserve=30; weapons[4].pumpT=-1; weapons[4].pumpDelay=0; weapons[4].tilt=0; burstLeft=0; dwOnF=false; dwT=[0,0]; dwDn=[0,0]; weapons[6].mag=48; weapons[6].reserve=240; weapons[7].mag=36; weapons[7].reserve=144;
   for(var wk=0;wk<weapons.length;wk++) weapons[wk].slideKick=0;
   meleeT=0; boltT=0; vmBaseX=0.18; vm.visible=true;
   gren.frag=3; gren.plasma=2; throwT=0; slots=[0,1]; sel=0; spawnRacks(); resetEmitter(); camLag=0; spawnPacks(); nav.src=-1; nav.active=false;
   setWeapon(0); fireCool=0; fireEdgeT=0; swapT=0; pendingW=null; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on');
-  camera.fov=75; camera.updateProjectionMatrix();
+  camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   score=0; kills=0; heads=0; vigT=0;
   wave.n=0; wave.toSpawn=0; wave.active=false; wave.delay=1.5; wave.fl=false; night=0; applyNight(0);
   ctrl.fire=false; ctrl.jump=false; ctrl.brake=false;
@@ -5229,7 +5264,7 @@ function gameOver(){
   state='dying'; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   if(p.inVeh){ p.inVeh=false; } p.air=false; lockEl.style.display='none'; stopEngine();
-  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=75; camera.updateProjectionMatrix();
+  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   vm.visible=false; heldG.frag.visible=false; heldG.plasma.visible=false; throwT=0; throwDone=true;
   if(score>best){ best=score; try{ localStorage.setItem('halo-best',String(best)); }catch(e){} }
   $('oWave').textContent=Math.max(1,wave.n); $('oKills').textContent=kills; $('oHeads').textContent=heads;
@@ -5369,7 +5404,7 @@ function toMenu(){
   if(p.inVeh){ p.inVeh=false; stopEngine(); }
   p.air=false; lockEl.style.display='none'; clearMissiles();
   zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); vm.visible=true; reloading=false; meleeT=0; boltT=0;
-  camera.fov=75; camera.updateProjectionMatrix();
+  camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   $('pause').hidden=true; $('over').hidden=true; $('controls').hidden=true; $('ui').hidden=true; $('menu').hidden=false;
   if(ac&&ac.state==='suspended') ac.resume();
   playTheme();
@@ -5393,9 +5428,9 @@ function lookDown(ev){
   if(state!=='play') return;
   ev.preventDefault();
   if(ev.pointerType==='mouse'){
-    if(ev.button===2){ if(p.air){ fireMissile(); return; } toggleZoom(); return; }
+    if(ev.button===2){ if(p.air){ fireMissile(); return; } if(dwOnF){ ctrl.fireR=true; ctrl.fireRT=0.18; return; } toggleZoom(); return; }
     if(ev.button===1){ startMelee(); return; }
-    ctrl.fire=true; fireEdgeT=0.18;
+    ctrl.fire=true; ctrl.mouseL=true; fireEdgeT=0.18;
     try{ if(document.pointerLockElement!==lookEl){ var pr=lookEl.requestPointerLock(); if(pr&&pr.catch) pr.catch(function(){}); } }catch(e){}
   }
   try{ lookEl.setPointerCapture(ev.pointerId); }catch(e){}
@@ -5407,7 +5442,7 @@ lookEl.addEventListener('pointermove',function(ev){
   var l=lookPtrs.get(ev.pointerId); if(!l) return;
   lookDX+=(ev.clientX-l.x)*TSENS; lookDY+=(ev.clientY-l.y)*TSENS; l.x=ev.clientX; l.y=ev.clientY;
 });
-function endLook(ev){ if(ev.pointerType==='mouse'){ if(ev.button===0||ev.type==='pointercancel'||(ev.buttons&1)===0) ctrl.fire=false; if(ev.button!==0&&ev.type!=='pointercancel') return; } lookPtrs.delete(ev.pointerId); }
+function endLook(ev){ if(ev.pointerType==='mouse'){ if(ev.button===2||(ev.buttons&2)===0) ctrl.fireR=false; if(ev.button===0&&true) ctrl.mouseL=false; if(ev.button===0||ev.type==='pointercancel'||(ev.buttons&1)===0) ctrl.fire=false; if(ev.button!==0&&ev.type!=='pointercancel') return; } lookPtrs.delete(ev.pointerId); }
 lookEl.addEventListener('pointerup',endLook);
 lookEl.addEventListener('pointercancel',endLook);
 
@@ -5502,7 +5537,19 @@ window.addEventListener('keydown',function(ev){
   else if(ev.code==='KeyE') useAction();
 });
 window.addEventListener('keyup',function(ev){ keys[ev.code]=false; });
-window.addEventListener('blur',function(){ keys={}; ctrl.fire=false; });
+window.addEventListener('blur',function(){ keys={}; ctrl.fire=false; ctrl.fireR=false; });
+window.addEventListener('pointerup',function(e){ if(e.pointerType==='mouse'&&!(e.buttons&2)) ctrl.fireR=false; },true);
+/* a second mouse button pressed while the first is held gives no pointerdown, so both buttons are tracked here for dual wield */
+function dwMouse(e){
+  if(e.pointerType&&e.pointerType!=='mouse') return;
+  if(state!=='play') return;
+  var b=e.buttons;
+  if(!dwOnF){ if(!(b&2)) ctrl.fireR=false; return; }
+  ctrl.fireR=!!(b&2);
+  if((b&1)&&!ctrl.fire){ ctrl.fire=true; ctrl.mouseL=true; fireEdgeT=0.18; }
+  else if(!(b&1)&&ctrl.mouseL){ ctrl.fire=false; ctrl.mouseL=false; }
+}
+['mousedown','mouseup','pointermove'].forEach(function(t){ window.addEventListener(t,dwMouse,true); });
 document.addEventListener('visibilitychange',function(){ if(document.hidden) pauseGame(); });
 var hadLock=false, lockAt=0;
 document.addEventListener('pointerlockchange',function(){
@@ -5848,15 +5895,26 @@ function tmTintJet(g,hex,remember){
   g.traverse(function(m){ if(m.isMesh&&m.material&&m.material.map){ if(remember) TM.tint.push([m.material,m.material.color.getHex()]); m.material.color.copy(c); } });
 }
 /* loose weapons lying about the field, rocket launchers included */
-function tmLooseWeapon(x,z,wi,fy){
-  var y=(fy!==undefined?fy:tmH(x,z)+0.5), g=new THREE.Group(), inner=rackTpl[wi].clone();
-  g.add(inner);
+function lyH(x,z,y){
+  var m=floorY(x,z,y), a, hh;
+  for(a=0;a<6.3;a+=0.785){ hh=floorY(x+Math.cos(a)*0.7,z+Math.sin(a)*0.7,y); if(hh>m) m=hh; }
+  return m;
+}
+function lyG(x,z){
+  var m=groundH(x,z), a, hh;
+  for(a=0;a<6.3;a+=0.785){ hh=groundH(x+Math.cos(a)*0.7,z+Math.sin(a)*0.7); if(hh>m) m=hh; }
+  return m;
+}
+function tmLooseWeapon(x,z,wi,fy,fall){
+  var sz=rackTpl[wi].userData.sz||new V3(1,0.3,0.15), hz=Math.max(0.04,sz.z/2), y=fall?fall.y0:(fy!==undefined?fy:lyG(x,z))+hz+0.07, g=new THREE.Group(), inner=rackTpl[wi].clone();
+  inner.rotation.x=Math.PI/2; g.add(inner);
   var ring=new THREE.Mesh(new THREE.RingGeometry(0.6,0.82,24),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
-  ring.rotation.x=-Math.PI/2; ring.position.y=-0.46; g.add(ring);
+  ring.rotation.x=-Math.PI/2; ring.position.y=-hz-0.01; g.add(ring);
   var hl=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.5,0.9),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.2,depthWrite:false,blending:THREE.AdditiveBlending}));
   hl.visible=false; g.add(hl);
   g.position.set(x,y,z); g.rotation.y=x*0.37+z*0.11; scene.add(g);
-  wpicks.push({wi:wi,g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0});
+  var pk={wi:wi,g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0,fl:true,hz:hz,fall:fall||null,once:!!fall};
+  wpicks.push(pk); return pk;
 }
 function tmLoose(){
   if(!rackTpl) buildRackTpl();
@@ -6317,7 +6375,7 @@ function mpOppNear(P){
 function mpOnDeath(){
   state='dying'; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
-  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=75; camera.updateProjectionMatrix();
+  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   vm.visible=false; heldG.frag.visible=false; heldG.plasma.visible=false; throwT=0; throwDone=true;
   sfx.hurt();
   if(mp.mode==='dm'){
@@ -6333,7 +6391,7 @@ function mpRevive(near){
   var R=mp.rem;
   if(mp.mode==='dm'){
     var s=tmSpawnPoint(mp.team); mpPlace(s.x,s.z);
-    weapons.forEach(function(w){ if(w.dual) w.mag2=w.magSize; if(!w.inf){ w.mag=w.magSize; w.reserve=Math.max(w.reserve,w.maxRes>>1); } });
+    weapons.forEach(function(w){ if(!w.inf){ w.mag=w.magSize; w.reserve=Math.max(w.reserve,w.maxRes>>1); } });
     gren.frag=3; gren.plasma=2;
   }else if(near&&R.has){ p.x=R.x+2; p.z=R.z+2; p.y=groundH(p.x,p.z); p.yaw=R.yaw; }
   p.vx=0; p.vz=0; p.vy=0; reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0;
