@@ -3312,9 +3312,10 @@ function tpWanted(){
 function tpAttach(on){
   var par=on?TP.hold:camera;
   [vm,muzzleLight,torch,heldG.frag,heldG.plasma].forEach(function(o){ if(o&&o.parent!==par) par.add(o); });
+  HANDS.forEach(function(h){ h.visible=!on; });
 }
 function tpHoldPose(){
-  TP.hold.position.set(p.x,p.y+EYE-0.1,p.z); TP.hold.rotation.set(p.pitch,p.yaw,0);
+  TP.hold.position.set(p.x+Math.cos(p.yaw)*0.22,p.y+EYE-0.1,p.z-Math.sin(p.yaw)*0.22); TP.hold.rotation.set(p.pitch,p.yaw,0);
 }
 function tpCamera(){
   var cy=Math.cos(p.yaw), sy=Math.sin(p.yaw), cp=Math.cos(p.pitch), sp=Math.sin(p.pitch);
@@ -3343,12 +3344,32 @@ function tpBuildRig(){
   CH_NAMES.forEach(function(n){ R[n]=CHIEF.rest[n].map(function(v){ return v*CH_SCALE; }); if(R[n][1]<minY) minY=R[n][1]; });
   var sf=(EYE-0.12)/(R.head[1]-minY), wrap=new THREE.Group();
   built.root.position.y=-minY; wrap.add(built.root); wrap.scale.setScalar(sf); wrap.visible=false; scene.add(wrap);
-  ['uaR','faR','hR','uaL','faL','hL'].forEach(function(n){ if(built.groups[n]) built.groups[n].visible=false; });
-  TP.rig={wrap:wrap,groups:built.groups,mats:built.mats,R:R}; TP.rigId=CHIEF.id;
+  TP.rig={wrap:wrap,body:built.root,groups:built.groups,mats:built.mats,R:R}; TP.rigId=CHIEF.id;
 }
 function tpRot(v,o,a){   /* swing point v about origin o in the forward/up plane by angle a */
   var y=v[1]-o[1], z=v[2]-o[2], c=Math.cos(a), s=Math.sin(a);
   return [v[0],o[1]+y*c+z*s,o[2]+z*c-y*s];
+}
+var _hw=new V3();
+function tpDist(a,b){ return Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]); }
+/* two-bone IK: elbow and wrist for a shoulder S reaching target T, elbow bent towards the pole direction */
+function tpIK(S,T,l1,l2,pole){
+  var d0=[T[0]-S[0],T[1]-S[1],T[2]-S[2]], d=Math.hypot(d0[0],d0[1],d0[2])||1e-6, u=[d0[0]/d,d0[1]/d,d0[2]/d];
+  d=Math.min(Math.max(d,Math.abs(l1-l2)+0.01),l1+l2-0.005);
+  var a=(l1*l1-l2*l2+d*d)/(2*d), h=Math.sqrt(Math.max(0,l1*l1-a*a));
+  var pd=pole[0]*u[0]+pole[1]*u[1]+pole[2]*u[2], pp=[pole[0]-u[0]*pd,pole[1]-u[1]*pd,pole[2]-u[2]*pd], pl=Math.hypot(pp[0],pp[1],pp[2])||1;
+  pp=[pp[0]/pl,pp[1]/pl,pp[2]/pl];
+  return {e:[S[0]+u[0]*a+pp[0]*h,S[1]+u[1]*a+pp[1]*h,S[2]+u[2]*a+pp[2]*h], w:[S[0]+u[0]*d,S[1]+u[1]*d,S[2]+u[2]*d], u:u};
+}
+function tpArms(P,R,rg){
+  var g=weapons[cur].group, ud=g&&g.userData;
+  [['R','rightHand'],['L','leftHand']].forEach(function(sd){
+    var s=sd[0], S=R['s'+s], l1=tpDist(S,R['e'+s]), l2=tpDist(R['e'+s],R['w'+s]), l3=tpDist(R['w'+s],R['f'+s]), sg=S[0]<0?-1:1, T, h=ud&&ud[sd[1]];
+    if(h){ h.getWorldPosition(_hw); var q=rg.body.worldToLocal(_hw.clone()); T=[q.x,q.y,q.z]; }
+    else T=[S[0]+sg*0.08,S[1]-(l1+l2)*0.95,S[2]+0.1];
+    var ik=tpIK(S,T,l1,l2,[sg*0.7,-1,-0.5]), u=ik.u;
+    P['e'+s]=ik.e; P['w'+s]=ik.w; P['f'+s]=[ik.w[0]+u[0]*l3,ik.w[1]+u[1]*l3,ik.w[2]+u[2]*l3];
+  });
 }
 function tpUpdate(dt){
   var want=tpWanted();
@@ -3365,6 +3386,9 @@ function tpUpdate(dt){
     ['a','t'].forEach(function(j){ var o=R[j+s], rel=[o[0]-kn[0],o[1]-kn[1],o[2]-kn[2]], r=tpRot([rel[0],rel[1],rel[2]],[0,0,0],th+bend); P[j+s]=[k2[0]+r[0],k2[1]+r[1],k2[2]+r[2]]; });
   });
   P.head=tpRot(R.head,R.neck,p.pitch*0.55);
+  rg.wrap.position.set(p.x,p.y,p.z); rg.wrap.rotation.y=p.yaw+Math.PI; rg.wrap.updateMatrixWorld(true);
+  tpHoldPose(); TP.hold.updateMatrixWorld(true); if(weapons[cur].group) weapons[cur].group.updateMatrixWorld(true);
+  tpArms(P,R,rg);
   for(i=0;i<CH_PARTS.length;i++){
     var cd=CH_PARTS[i], g=rg.groups[cd.n]; if(!g) continue;
     var r=chPose(cd,P,R); g.position.set(r[0][0],r[0][1],r[0][2]); g.quaternion.set(r[1][0],r[1][1],r[1][2],r[1][3]);
