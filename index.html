@@ -6419,7 +6419,7 @@ function tmLoose(){
   TUR.list=[];
   var S0=[[-18,-84,6],[18,-84,7],[-30,-44,7],[30,-44,6],[-6,-62,6],[-30,-80,1],[26,-70,4],[-12,-52,2],[40,-30,0],[-40,-20,5],[10,-14,1],[-22,-96,4],[22,-100,2],[14,-26,3],[-56,-52,3]], i;
   S0.forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); });
-  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); tmLooseWeapon(10,Z+dz*45,9); var ty=dz>0?Math.PI:0; spawnTurret(-17,Z+dz*40,ty); spawnTurret(17,Z+dz*40,ty); });
+  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); tmLooseWeapon(10,Z+dz*45,9); var ty=dz>0?Math.PI:0; spawnTurret(-16,Z+dz*63,ty); spawnTurret(16,Z+dz*63,ty); });
 }
 function tmEnter(team){
   var prev=scene.children.length;
