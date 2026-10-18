@@ -4161,7 +4161,7 @@ function spawnRacks(){
       wpicks.push({wi:L[0],g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0});
     }
     tmLooseWeapon(rk.x-1.9,rk.z+rk.f*1.9,6,rk.y); tmLooseWeapon(rk.x+1.9,rk.z+rk.f*1.9,7,rk.y); tmLooseWeapon(rk.x,rk.z+rk.f*3.4,8,rk.y); tmLooseWeapon(rk.x-3.2,rk.z+rk.f*3.0,9,rk.y);
-    if(!(mp.on||mp.conn||mp.peer)) spawnTurret(rk.x+5.2,rk.z+rk.f*2.8,rk.f>0?Math.PI:0,lyH(rk.x+5.2,rk.z+rk.f*2.8,rk.y+0.5));
+    spawnTurret(rk.x+5.2,rk.z+rk.f*2.8,rk.f>0?Math.PI:0,lyH(rk.x+5.2,rk.z+rk.f*2.8,rk.y+0.5));
   }
 }
 function updateWpicks(dt){
@@ -6431,14 +6431,14 @@ function tmLoose(){
   TUR.list=[];
   var S0=[[-18,-84,6],[18,-84,7],[-30,-44,7],[30,-44,6],[-6,-62,6],[-30,-80,1],[26,-70,4],[-12,-52,2],[40,-30,0],[-40,-20,5],[10,-14,1],[-22,-96,4],[22,-100,2],[14,-26,3],[-56,-52,3]], i;
   S0.forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); });
-  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); tmLooseWeapon(10,Z+dz*45,9); });
+  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); tmLooseWeapon(10,Z+dz*45,9); var ty=dz>0?Math.PI:0; spawnTurret(-16,Z+dz*63,ty); spawnTurret(16,Z+dz*63,ty); });
 }
 function tmEnter(team){
   teamPaint(fpMaterials(),team); TP.rigId=null;
   var prev=scene.children.length;
   TM.on=true; TM.team=team; TM.hid=[];
   scene.children.slice().forEach(function(o){
-    if(o.isLight||o.isCamera||o.isSprite||o.isPoints||o.renderOrder<0||o===rover.group||o===jetObj.group||o===beacon||o===jbeacon||o===boom||o===stars||o===bloodMesh||o===bloodDyn||o.position.length()>260) return;
+    if(o.isLight||o.isCamera||o.isSprite||o.isPoints||o.renderOrder<0||o===TP.hold||(TUR.fly&&o===TUR.fly.g)||o===rover.group||o===jetObj.group||o===beacon||o===jbeacon||o===boom||o===stars||o===bloodMesh||o===bloodDyn||o.position.length()>260) return;
     TM.hid.push([o,o.visible]); o.visible=false;
   });
   TM.sb=boxes.slice(); boxes.length=0; TM.sc=coverMeshes.slice(); coverMeshes.length=0;
