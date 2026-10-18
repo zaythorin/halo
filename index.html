@@ -1401,8 +1401,10 @@ function setChar(k){
 }
 /* first-person hands: the gloved hand and forearm taken straight from the Master Chief model */
 var fpMats=null, fpGeo={}, fpLoader=new THREE.TextureLoader(), HAND_SCALE=0.75;
+/* the Spartans are plain dark green: no textures */
+function spartanMat(){ return new THREE.MeshLambertMaterial({color:0x1f3d23,emissive:0x08170b,side:THREE.DoubleSide}); }
 function fpMaterials(){
-  if(!fpMatsBy[CHIEF.id]) fpMatsBy[CHIEF.id]=CHIEF.tex.map(function(u){ var t=fpLoader.load(u); t.flipY=false; return new THREE.MeshLambertMaterial({map:t,emissiveMap:t,emissive:0x444444,side:THREE.DoubleSide}); });
+  if(!fpMatsBy[CHIEF.id]) fpMatsBy[CHIEF.id]=CHIEF.tex.map(function(u){ return spartanMat(); });
   return fpMatsBy[CHIEF.id];
 }
 function fpPart(name){ for(var i=0;i<CHIEF.parts.length;i++) if(CHIEF.parts[i].n===name) return CHIEF.parts[i]; return null; }
@@ -5629,7 +5631,7 @@ function chiefTexture(i){
 var CH_SCALE=1.22;
 function buildRagdoll(){
   var root=new THREE.Group(), mats=[], i, groups={};
-  for(i=0;i<CHIEF.tex.length;i++){ var tx=chiefTexture(i); mats.push(new THREE.MeshLambertMaterial({map:tx,emissiveMap:tx,emissive:0x444444,side:THREE.DoubleSide})); }
+  for(i=0;i<CHIEF.tex.length;i++) mats.push(spartanMat());
   CHIEF.parts.forEach(function(pd){
     var g=new THREE.Group();
     pd.meshes.forEach(function(md,mi){
@@ -6640,7 +6642,7 @@ function chiefTeamTexture(team,i){
 }
 function tmTintAvatar(av,team){
   var mats=av.userData.built.mats;
-  for(var i=0;i<mats.length;i++){ var t=chiefTeamTexture(team,i); mats[i].map=t; mats[i].emissiveMap=t; mats[i].needsUpdate=true; }
+  for(var i=0;i<mats.length;i++){ mats[i].map=null; mats[i].emissiveMap=null; mats[i].color.set(TEAMS[team].c).multiplyScalar(0.5); mats[i].emissive.set(TEAMS[team].c).multiplyScalar(0.08); mats[i].needsUpdate=true; }
   var col=TEAMS[team].c, mk=new THREE.Mesh(new THREE.OctahedronGeometry(0.2),new THREE.MeshBasicMaterial({color:col,fog:false,depthTest:team===mp.team?false:true,transparent:true}));
   mk.position.y=2.65*(av.userData.hs||1); mk.renderOrder=5; av.add(mk); av.userData.tmk=mk;
 }
