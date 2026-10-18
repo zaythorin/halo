@@ -433,6 +433,7 @@ body{letter-spacing:.02em}
     <h2>PLAY ONLINE</h2>
     <div class="mpModes"><button type="button" class="go alt on" id="mpFF">FIREFIGHT CO-OP</button><button type="button" class="go alt" id="mpDM">TEAM BATTLE 1v1 - 2v2</button></div>
     <p class="dim" id="mpDesc"></p>
+    <div class="mpRow"><input id="mpName" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false"></div>
     <button type="button" class="go" id="mpHost">HOST A GAME</button>
     <div class="mpRow"><input id="mpCode" maxlength="5" placeholder="ROOM CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button type="button" class="go alt" id="mpJoin">JOIN</button></div>
     <div id="mpStatus"></div>
@@ -1402,6 +1403,14 @@ function setChar(k){
 /* first-person hands: the gloved hand and forearm taken straight from the Master Chief model */
 var fpMats=null, fpGeo={}, fpLoader=new THREE.TextureLoader(), HAND_SCALE=0.75;
 /* the Spartans are plain dark green: no textures */
+function teamPaint(mats,team){
+  for(var i=0;i<mats.length;i++){
+    var m=mats[i]; m.map=null; m.emissiveMap=null;
+    if(team===undefined||team<0){ m.color.setHex(0x1f3d23); m.emissive.setHex(0x08170b); }
+    else{ m.color.set(TEAMS[team].c).multiplyScalar(0.6); m.emissive.set(TEAMS[team].c).multiplyScalar(0.12); }
+    m.needsUpdate=true;
+  }
+}
 function spartanMat(){ return new THREE.MeshLambertMaterial({color:0x1f3d23,emissive:0x08170b,side:THREE.DoubleSide}); }
 function fpMaterials(){
   if(!fpMatsBy[CHIEF.id]) fpMatsBy[CHIEF.id]=CHIEF.tex.map(function(u){ return spartanMat(); });
@@ -3402,6 +3411,7 @@ function tpBuildRig(){
   var sf=(EYE-0.12)/(R.head[1]-minY), wrap=new THREE.Group();
   built.root.position.y=-minY; wrap.add(built.root); wrap.scale.setScalar(sf); wrap.visible=false; scene.add(wrap);
   TP.rig={wrap:wrap,body:built.root,groups:built.groups,mats:built.mats,R:R}; TP.rigId=CHIEF.id;
+  if(TM.on) teamPaint(built.mats,TM.team);
 }
 function tpRot(v,o,a){   /* swing point v about origin o in the forward/up plane by angle a */
   var y=v[1]-o[1], z=v[2]-o[2], c=Math.cos(a), s=Math.sin(a);
@@ -4151,7 +4161,7 @@ function spawnRacks(){
       wpicks.push({wi:L[0],g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0});
     }
     tmLooseWeapon(rk.x-1.9,rk.z+rk.f*1.9,6,rk.y); tmLooseWeapon(rk.x+1.9,rk.z+rk.f*1.9,7,rk.y); tmLooseWeapon(rk.x,rk.z+rk.f*3.4,8,rk.y); tmLooseWeapon(rk.x-3.2,rk.z+rk.f*3.0,9,rk.y);
-    spawnTurret(rk.x+5.2,rk.z+rk.f*2.8,rk.f>0?Math.PI:0,lyH(rk.x+5.2,rk.z+rk.f*2.8,rk.y+0.5));
+    if(!(mp.on||mp.conn||mp.peer)) spawnTurret(rk.x+5.2,rk.z+rk.f*2.8,rk.f>0?Math.PI:0,lyH(rk.x+5.2,rk.z+rk.f*2.8,rk.y+0.5));
   }
 }
 function updateWpicks(dt){
@@ -6421,9 +6431,10 @@ function tmLoose(){
   TUR.list=[];
   var S0=[[-18,-84,6],[18,-84,7],[-30,-44,7],[30,-44,6],[-6,-62,6],[-30,-80,1],[26,-70,4],[-12,-52,2],[40,-30,0],[-40,-20,5],[10,-14,1],[-22,-96,4],[22,-100,2],[14,-26,3],[-56,-52,3]], i;
   S0.forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); });
-  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); tmLooseWeapon(10,Z+dz*45,9); var ty=dz>0?Math.PI:0; spawnTurret(-16,Z+dz*63,ty); spawnTurret(16,Z+dz*63,ty); });
+  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); tmLooseWeapon(10,Z+dz*45,9); });
 }
 function tmEnter(team){
+  teamPaint(fpMaterials(),team); TP.rigId=null;
   var prev=scene.children.length;
   TM.on=true; TM.team=team; TM.hid=[];
   scene.children.slice().forEach(function(o){
@@ -6457,6 +6468,7 @@ function tmEnter(team){
 }
 function tmExit(){
   if(!TM.on) return;
+  teamPaint(fpMaterials(),-1); TP.rigId=null;
   TM.on=false;
   TM.objs.forEach(function(o){ scene.remove(o); }); TM.objs=[]; TM.mesh=null; TM.snow=null;
   if(TM.wx){ var w=TM.wx; scene.background.copy(w.bg); scene.fog.color.copy(w.fog); scene.fog.near=w.fn; scene.fog.far=w.ff; hemi.intensity=w.hi; hemi.color.copy(w.hc); hemi.groundColor.copy(w.hg); sun.intensity=w.si; if(skyDome&&w.sk) skyDome.material.color.copy(w.sk); TM.wx=null; }
@@ -6642,7 +6654,7 @@ function chiefTeamTexture(team,i){
 }
 function tmTintAvatar(av,team){
   var mats=av.userData.built.mats;
-  for(var i=0;i<mats.length;i++){ mats[i].map=null; mats[i].emissiveMap=null; mats[i].color.set(TEAMS[team].c).multiplyScalar(0.5); mats[i].emissive.set(TEAMS[team].c).multiplyScalar(0.08); mats[i].needsUpdate=true; }
+  teamPaint(mats,team);
   var col=TEAMS[team].c, mk=new THREE.Mesh(new THREE.OctahedronGeometry(0.2),new THREE.MeshBasicMaterial({color:col,fog:false,depthTest:team===mp.team?false:true,transparent:true}));
   mk.position.y=2.65*(av.userData.hs||1); mk.renderOrder=5; av.add(mk); av.userData.tmk=mk;
 }
@@ -6693,6 +6705,24 @@ function mpLeave(){
   p=pLocal; $('match').style.display=''; $('mpHud').hidden=true; $('mpHud').style.color=''; $('restart').hidden=false; $('redeploy').hidden=false;
 }
 var pLocal=p;
+var myNameV='';
+function myName(){
+  var el=$('mpName'), v=(el&&el.value||'').replace(/[^A-Za-z0-9 _\-]/g,'').trim().toUpperCase().slice(0,12);
+  if(!v) v='PLAYER '+((mp.id|0)+1);
+  if(v!==myNameV){ myNameV=v; try{ localStorage.setItem('halo-name',v); }catch(e){} }
+  return v;
+}
+function mpSetName(pe,nm){
+  pe.nm=nm; var av=pe.avatar; if(!av) return;
+  if(av.userData.ntag){ av.remove(av.userData.ntag); av.userData.ntag.material.map.dispose(); av.userData.ntag.material.dispose(); }
+  var c=document.createElement('canvas'); c.width=256; c.height=64; var g=c.getContext('2d');
+  g.font='900 38px "Arial Black",Impact,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+  g.lineWidth=8; g.strokeStyle='rgba(0,0,0,.85)'; g.strokeText(nm,128,34);
+  g.fillStyle=(mp.mode==='dm'&&TEAMS[pe.team])?TEAMS[pe.team].css:'#ffffff'; g.fillText(nm,128,34);
+  var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false,depthTest:!(mp.mode!=='dm'||pe.team===mp.team),fog:false}));
+  sp.scale.set(1.9,0.475,1); sp.position.y=3.05*(av.userData.hs||1); sp.renderOrder=6; av.add(sp); av.userData.ntag=sp;
+}
+try{ var _sn=localStorage.getItem('halo-name'); if(_sn&&$('mpName')) $('mpName').value=_sn; }catch(e){}
 function mpAddPeer(id,team){
   if(mp.peers[id]||id===mp.id) return mp.peers[id];
   var pe={id:id,team:team,rem:{x:0,y:0,z:0,yaw:0,tx:0,ty:0,tz:0,tyaw:0,al:true,hp:200,has:false,iv:0},avatar:buildChiefAvatar()};
@@ -6712,6 +6742,7 @@ function mpSetPeerChar(pe,k){
   nav.visible=oav.visible; nav.position.copy(oav.position); nav.rotation.copy(oav.rotation);
   nav.userData.hit.forEach(function(m){ m.userData.pid=pe.id; });
   scene.remove(oav); scene.add(nav); pe.avatar=nav; if(mp.avatar===oav) mp.avatar=nav;
+  if(pe.nm) mpSetName(pe,pe.nm);
 }
 function mpRemovePeer(id){
   var pe=mp.peers[id]; if(!pe) return;
@@ -6942,6 +6973,7 @@ function mpRecv(m){
     case 'st':
       if(!R) break;
       if(pe&&m.ch) mpSetPeerChar(pe,m.ch);
+      if(pe&&m.nm&&pe.nm!==m.nm) mpSetName(pe,m.nm);
       R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0; R.iv=m.iv|0;
       var nowt=performance.now(); if(R.lt){ var dtm=Math.max(0.02,(nowt-R.lt)/1000), sv=Math.hypot(m.x-R.sx,m.z-R.sz)/dtm; R.sp=(R.sp||0)*0.6+Math.min(12,sv)*0.4; } R.lt=nowt; R.sx=m.x; R.sz=m.z;
       if(!R.has){ R.x=m.x; R.y=m.y; R.z=m.z; R.yaw=m.yaw; R.has=true; } break;
@@ -7099,7 +7131,7 @@ function mpTick(dt){
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
-    mpSend({t:'st',ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:slots[sel],rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:(p.inVeh||p.air)?1:0});
+    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:slots[sel],rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:(p.inVeh||p.air)?1:0});
   }
   if(mp.host&&mp.mode==='ff'){
     mp.enT-=dt; if(mp.enT<=0){ mp.enT=0.09; mpSend({t:'en',a:mpSnapshot()}); }
