@@ -1367,7 +1367,7 @@ var weapons=[
   {id:'laser',name:'SPARTAN LASER',auto:false,laser:true,noEject:true,dmg:0,head:1,rate:0.6,mag:100,magSize:100,reserve:0,maxRes:0,reload:0,reloadDur:0,spread:0,bloomAdd:0,bloomMax:0,zoomFov:30,kick:0.045,vmKick:0.24,flashSize:2.6,sfx:'laser',slideKick:0}
 ];
 var AMMO_PK=[18,48,6,2,8,0,48,18,25,18], AMMO_WAVE=[24,64,8,3,10,0,64,24,60,24];
-weapons.push(Object.assign({},weapons[7],{id:'salt',name:'SALT RIFLE'}));
+weapons.push(Object.assign({},weapons[7],{id:'salt',name:'SALT RIFLE',auto:true,burst:0,rate:0.09,dmg:12,head:1.8,spread:0.01,bloomAdd:0.004,bloomMax:0.035,kick:0.01,vmKick:0.03}));
 var slots=[0,1], sel=0, wpicks=[], wpNear=-1;
 var vehGun={id:'rover',name:'ROVER GUN',auto:true,inf:true,dmg:10,head:1.8,rate:0.07,mag:0,magSize:0,reserve:0,maxRes:0,spread:0.01,bloomAdd:0.003,bloomMax:0.03,kick:0,vmKick:0,sfx:'rover'};
 function boxMesh(w,h,d,color,x,y,z){
@@ -4294,6 +4294,25 @@ function spawnTracer(from,to){
   t.line.geometry.attributes.position.needsUpdate=true;
   t.line.visible=true; t.life=0.06;
 }
+var saltBul=[], saltBulTex=null;
+function spawnSaltBullet(from,to){
+  if(!saltBulTex){
+    var c=document.createElement('canvas'); c.width=256; c.height=96; var g=c.getContext('2d');
+    g.font='900 80px "Arial Black",Impact,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.lineWidth=10; g.strokeStyle='#14161a'; g.strokeText('SALT',128,52); g.fillStyle='#ffffff'; g.fillText('SALT',128,52);
+    saltBulTex=new THREE.CanvasTexture(c);
+  }
+  var b=null,i;
+  for(i=0;i<saltBul.length;i++) if(!saltBul[i].on){ b=saltBul[i]; break; }
+  if(!b){ b={sp:new THREE.Sprite(new THREE.SpriteMaterial({map:saltBulTex,transparent:true,depthWrite:false,fog:false})),on:false,d:new THREE.Vector3(),t:0,len:0}; b.sp.scale.set(0.75,0.28,1); b.sp.frustumCulled=false; scene.add(b.sp); saltBul.push(b); }
+  b.d.copy(to).sub(from); b.len=b.d.length(); b.d.normalize(); b.t=Math.min(1.5,b.len); b.o=from.clone(); b.on=true; b.sp.visible=true;
+  b.sp.position.copy(from).addScaledVector(b.d,b.t);
+}
+function saltBulletStep(dt){
+  for(var i=0;i<saltBul.length;i++){ var b=saltBul[i]; if(!b.on) continue;
+    b.t+=dt*160; if(b.t>=b.len){ b.on=false; b.sp.visible=false; continue; }
+    b.sp.position.copy(b.o).addScaledVector(b.d,b.t); }
+}
 /* loose physical bits: dropped magazines, spent casings, debris */
 function spawnProp(mesh,pos,vel,spin,life){
   mesh.position.copy(pos); scene.add(mesh);
@@ -4584,6 +4603,7 @@ function fireWeapon(w,muzzleObj,inVeh){
   for(var tt=1;tt<=glim;tt+=(tt<150?1.5:4)){ if(origin.y+dir.y*tt<groundH(origin.x+dir.x*tt,origin.z+dir.z*tt)){ dist=tt; hit=null; break; } }
   var end=origin.clone().addScaledVector(dir,dist);
   muzzleObj.getWorldPosition(tmpMuzzle);
+  if(w.id==='salt') spawnSaltBullet(tmpMuzzle.clone(),end);
   spawnTracer(tmpMuzzle.clone(),end); mpFx(burstSnd?(w.sfx==='smg'?'ar':w.sfx):'none',tmpMuzzle,end);
   if(hit && hit.object.userData.mp){ mpHitUD(hit.object.userData,w.dmg*(hit.object.userData.head?w.head:1),!!hit.object.userData.head); }
   else if(hit && hit.object.userData.enemy){
@@ -5329,6 +5349,7 @@ function clearRockets(){
 /* ---------- effects ---------- */
 function updateFx(dt){
   var i;
+  saltBulletStep(dt);
   for(i=0;i<tracers.length;i++){ var t=tracers[i]; if(t.life>0){ t.life-=dt; if(t.life<=0) t.line.visible=false; } }
   updateSparks(dt);
   if(markT>0){ markT-=dt; if(markT<=0){ els.cross.className='cross'; els.scope.className=''; } }
