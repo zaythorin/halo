@@ -1541,12 +1541,18 @@ function buildSMG(){ return buildGunFrom('smg',-0.45,[0,-0.09,0.09],[0.01,-0.12,
 function buildBR(){ return buildGunFrom('br',-0.69,[0,-0.09,0.27],[0.01,-0.085,0.07]); }
 function buildSalt(){ return buildGunFrom('salt',-0.69,[0,-0.09,0.27],[0.01,-0.085,0.07]); }
 function buildMMG(){
-  var g=new THREE.Group(), body=wpnBody('mmgH'); body.scale.setScalar(0.5); body.position.set(0,-0.735,-0.1625); g.add(body);
+  var g=new THREE.Group(), body=wpnBody('mmgH'); g.add(body);
   var mag=new THREE.Group(); mag.add(boxMesh(0.1,0.085,0.13,0x2a3128,0,0,0)); mag.add(basicBox(0.104,0.014,0.134,0xffb347,0,-0.05,0)); mag.position.set(-0.13,-0.12,0); g.add(mag);
   var mz=new THREE.Object3D(); mz.position.set(0,-0.10,-0.69); g.add(mz);
   var lh=makeHand(true), rh=makeHand(false); lh.rotation.set(0.55,-0.35,0); lh.position.set(-0.075,-0.115,0.13); rh.position.set(0.075,-0.115,0.13); rh.rotation.set(0.6,0.3,0); g.add(lh); g.add(rh);
-  g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh};
+  g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh,body:body,sc:0};
+  mmgFit(g,0.5);
   return g;
+}
+function mmgFit(g,sc){
+  var ud=g.userData; if(ud.sc===sc) return; ud.sc=sc;
+  ud.body.scale.setScalar(sc); ud.body.position.set(0,-0.115-1.27*sc,0.13-0.525*sc);
+  ud.muzzle.position.set(0,-0.115,0.13-0.525*sc-1.06*sc);
 }
 function buildMagnum(){
   var g=new THREE.Group(), def=MODELS.magnum, mp=modelParts(def), mc=def.magCentre;
@@ -3412,6 +3418,7 @@ function tpArms(P,R,rg){
   var g=weapons[cur].group, ud=g&&g.userData;
   [['R','rightHand'],['L','leftHand']].forEach(function(sd){
     var s=sd[0], S=R['s'+s], l1=tpDist(S,R['e'+s]), l2=tpDist(R['e'+s],R['w'+s]), l3=tpDist(R['w'+s],R['f'+s]), sg=S[0]<0?-1:1, T, h=ud&&ud[sd[1]];
+    if(TUR.pk&&weapons[cur]===weapons[10]) h=(s==='R')?TUR.pk.hR:TUR.pk.hL;
     if(h){ h.getWorldPosition(_hw); var q=rg.body.worldToLocal(_hw.clone()); T=[q.x,q.y,q.z]; }
     else T=[S[0]+sg*0.08,S[1]-(l1+l2)*0.95,S[2]+0.1];
     var ik=tpIK(S,T,l1,l2,[sg*0.7,-1,-0.5]), u=ik.u;
@@ -4207,19 +4214,25 @@ function spawnTurret(x,z,yaw,fy0){
   inner.add(wpnBody('mmgB'));
   var yawG=new THREE.Group(), pitG=new THREE.Group(); pitG.position.set(0,TUR.GY,0); yawG.add(pitG);
   var gun=wpnBody('mmgH'); gun.position.set(0,-TUR.GY,0); pitG.add(gun); inner.add(yawG);
+  var muz=new THREE.Object3D(); muz.position.set(0,0,-1.06); pitG.add(muz);
+  HREG=false; var hL=makeHand(true), hR=makeHand(false); HREG=true;
+  hL.rotation.set(0.55,-0.35,0); hL.position.set(-0.14,-0.02,0.5); hR.rotation.set(0.6,0.3,0); hR.position.set(0.14,-0.02,0.5);
+  hL.scale.setScalar(1/TUR.S); hR.scale.setScalar(1/TUR.S); hL.visible=false; hR.visible=false; pitG.add(hL); pitG.add(hR);
   var ring=new THREE.Mesh(new THREE.RingGeometry(1.15,1.4,28),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
   ring.rotation.x=-Math.PI/2; ring.position.y=0.03; root.add(ring);
   var hl=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.2,1.8),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.18,depthWrite:false,blending:THREE.AdditiveBlending}));
   hl.position.y=0.6; hl.visible=false; root.add(hl);
   root.position.set(x,fy,z); root.rotation.y=yaw; scene.add(root);
-  var pk={wi:10,mount:true,g:root,m:inner,hl:hl,x:x,y:fy+0.9,z:z,fy:fy,t:Math.random()*6,taken:false,rt:0,fl:true,hz:0,head:yawG,pit:pitG,manned:false,rman:false,tid:TUR.list.length};
+  var pk={wi:10,mount:true,g:root,m:inner,hl:hl,x:x,y:fy+0.9,z:z,fy:fy,t:Math.random()*6,taken:false,rt:0,fl:true,hz:0,head:yawG,pit:pitG,manned:false,rman:false,tid:TUR.list.length,ring:ring,muz:muz,hL:hL,hR:hR};
   TUR.list.push(pk); wpicks.push(pk); return pk;
 }
 function turRelease(){
   var pk=TUR.pk; if(!pk) return;
   pk.manned=false; pk.head.visible=true; TUR.pk=null; turNet('leave',pk);
+  pk.hL.visible=false; pk.hR.visible=false; turVmShow(true);
   weapons[10].inf=false; weapons[10].mounted=false;
 }
+function turVmShow(on){ var ud=weapons[10].group.userData; ud.body.visible=on; ud.mag.visible=on; ud.leftHand.visible=on; ud.rightHand.visible=on; }
 function turReset(){ turRelease(); weapons[10].inf=false; weapons[10].mounted=false; }
 function turMan(pk){
   if(TUR.pk||swapT>0||meleeT>0||throwT>0||p.inVeh||state!=='play') return;
@@ -4239,24 +4252,45 @@ function turDismount(){
   if(zoomed) zoomOff();
   showToast('LEFT TURRET');
 }
+function turBroken(pk,on){ pk.head.visible=!on; pk.ring.visible=!on; pk.hl.visible=false; }
+var _tq=new THREE.Quaternion(), _tq2=new THREE.Quaternion(), _te=new THREE.Euler(), _tv=new V3(), _tv2=new V3();
+function turRipAnim(pk){
+  if(!TUR.fly){ var h=new THREE.Group(), m=wpnBody('mmgH'); m.position.set(0,-TUR.GY,0); h.add(m); h.visible=false; scene.add(h); TUR.fly={g:h,t:0,on:false,p0:new V3(),q0:new THREE.Quaternion(),pt:new V3()}; }
+  var F=TUR.fly; pk.pit.getWorldPosition(F.p0); pk.pit.getWorldQuaternion(F.q0);
+  F.g.position.copy(F.p0); F.g.quaternion.copy(F.q0); F.g.scale.setScalar(TUR.S); F.g.visible=true; F.t=0; F.on=true;
+  turBroken(pk,true);
+  puffSmoke(F.p0,0.9,0.9,0xaaaeb2); puffSmoke(F.p0.clone().setY(F.p0.y-0.5),0.7,1.0,0x8a8f94);
+  if(sample){ tone(140,60,0.18,'square',0.15); tone(70,35,0.35,'sawtooth',0.14); }
+}
+function turFlyStep(dt){
+  var F=TUR.fly; if(!F||!F.on) return;
+  F.t+=dt; var u=F.t/0.85, g=F.g, e, k;
+  if(u<0.4){ k=u/0.4; g.position.copy(F.p0); g.position.x+=(Math.random()-0.5)*0.05*k; g.position.y+=0.12*k+(Math.random()-0.5)*0.03; g.position.z+=(Math.random()-0.5)*0.05*k; g.quaternion.copy(F.q0); if(Math.random()<0.25) puffSmoke(g.position,0.35,0.5,0xcfd3d6); }
+  else if(u<1){
+    k=(u-0.4)/0.6; e=k*k*(3-2*k);
+    _tv.set(-Math.sin(p.yaw),0,-Math.cos(p.yaw)); F.pt.set(p.x,p.y+EYE-0.25,p.z).addScaledVector(_tv,0.7);
+    _tv2.copy(F.p0); _tv2.y+=0.12; g.position.copy(_tv2).lerp(F.pt,e); g.position.y+=Math.sin(k*3.14159)*0.35;
+    _te.set(p.pitch,p.yaw,0,'YXZ'); _tq.setFromEuler(_te); g.quaternion.copy(F.q0).slerp(_tq,e); g.scale.setScalar(TUR.S+(0.55-TUR.S)*e);
+  }else{ F.on=false; g.visible=false; sfx.pickup(); }
+}
 function turRipTry(){
   var pk=TUR.pk, j;
   if(!pk&&wpNear>=0&&wpicks[wpNear]&&wpicks[wpNear].mount&&!wpicks[wpNear].taken) pk=wpicks[wpNear];
   if(!pk||swapT>0||meleeT>0||throwT>0) return false;
   var w=weapons[10], was=(TUR.pk===pk);
   if(was) turRelease();
-  pk.taken=true; pk.rt=60; pk.g.visible=false; pk.hl.visible=false; wpNear=-1; pk.rman=false; turNet('rip',pk);
+  turRipAnim(pk); pk.taken=true; pk.rt=60; wpNear=-1; pk.rman=false; turNet('rip',pk);
+  if(!TUR.ripTP) TUR.ripTP={prev:TP.on}; TP.on=true; tpLabels();
   w.inf=false; w.mounted=false;
   if(was||slots.indexOf(10)<0){
     var old=slots[sel];
     if(!was){
       for(j=0;j<wpicks.length;j++) if(wpicks[j].wi===old && wpicks[j].taken && wpicks[j].rt<0){ wpicks[j].taken=false; wpicks[j].g.visible=true; }
       if(dwOnF){ var dY=dwG[1].wi; dwEnd(); dwDropGun(dY); }
-      slots[sel]=10; pendingW=10; swapT=0.4; reloading=false; boltT=0; if(zoomed) zoomOff();
+      slots[sel]=10; pendingW=10; reloading=false; boltT=0; if(zoomed) zoomOff();
     }
-    w.mag=w.magSize; w.reserve=100;
+    pendingW=10; swapT=1.1; w.mag=w.magSize; w.reserve=100;
   } else topUp(10);
-  sfx.pickup(); if(sample) tone(90,40,0.25,'sawtooth',0.12);
   showToast('RIPPED OFF   LIMITED AMMO');
   return true;
 }
@@ -4267,13 +4301,20 @@ function turDropKey(){
   dwDropGun(10); showToast('DROPPED MMG');
 }
 function updateTurret(dt){
+  var i, k;
+  turFlyStep(dt);
+  for(i=0;i<wpicks.length;i++){ k=wpicks[i]; if(k.mount&&!k.taken&&!k.manned&&!k.head.visible){ turBroken(k,false); } }
+  if(TUR.ripTP&&cur!==10&&pendingW!==10&&swapT<=0&&!(TUR.fly&&TUR.fly.on)){ TP.on=TUR.ripTP.prev; TUR.ripTP=null; tpLabels(); }
+  if(weapons[10].group&&!weapons[10].mounted) mmgFit(weapons[10].group,TP.act?0.7:0.5);
   var pk=TUR.pk; if(!pk) return;
   if(slots[TUR.sel]!==10||pk.taken||p.inVeh){ turRelease(); return; }
   var yaw=pk.g.rotation.y;
   if(p.vy>2&&!p.onGround){ turDismount(); return; }
   p.x=pk.x+Math.sin(yaw)*0.8; p.z=pk.z+Math.cos(yaw)*0.8; p.vx=0; p.vz=0;
   pk.head.rotation.y=p.yaw-yaw; pk.pit.rotation.x=Math.max(-0.5,Math.min(0.9,p.pitch));
-  pk.head.visible=!!TP.act;
+  pk.head.visible=true; pk.hL.visible=pk.hR.visible=!TP.act;
+  var ud=weapons[10].group.userData, gg=weapons[10].group; turVmShow(false);
+  pk.muz.getWorldPosition(_tv); ud.muzzle.position.copy(gg.worldToLocal(_tv));
 }
 function startReload(){
   var w=weapons[cur];
@@ -6919,7 +6960,7 @@ function mpRecv(m){
     case 'vc': case 'vs': case 'vx': case 'vhit': tmRecvVeh(m); break;
     case 'tu':
       var tk=TUR.list[m.i]; if(!tk) break;
-      if(m.a==='rip'){ if(TUR.pk===tk) turDismount(); tk.taken=true; tk.rt=60; tk.g.visible=false; tk.hl.visible=false; tk.rman=false; if(wpNear>=0&&wpicks[wpNear]===tk) wpNear=-1; }
+      if(m.a==='rip'){ if(TUR.pk===tk) turDismount(); tk.taken=true; tk.rt=60; turBroken(tk,true); tk.rman=false; if(wpNear>=0&&wpicks[wpNear]===tk) wpNear=-1; }
       else if(m.a==='man') tk.rman=true; else if(m.a==='leave') tk.rman=false;
       break;
     case 'rk': if(state==='play'||state==='dying') ghostRocket(new V3(m.p[0],m.p[1],m.p[2]),new V3(m.v[0],m.v[1],m.v[2])); break;
