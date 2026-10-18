@@ -4505,12 +4505,23 @@ function fireLaser(w){
   }
   var shown=Math.min(cover,500), end=origin.clone().addScaledVector(dir,shown);
   w.group.userData.muzzle.getWorldPosition(tmpMuzzle);
-  LZ.from=tmpMuzzle.clone(); LZ.to=end; LZ.len=shown; LZ.beamT=LZ.BT;
+  LZ.from=tmpMuzzle.clone(); LZ.to=end; LZ.len=shown; LZ.beamT=LZ.BT; mpFx('laser',LZ.from,end);
   if(cover<2999){ impactFx(end,tr.coverHit,dir,w); for(var k=0;k<8;k++) spawnSpark(end,'metal'); puffSmoke(end,1.1,0.8,0x7a6a60); }
   if(any){ if(kills){ marker('kill'); sfx.kill(); } else{ marker('hit'); sfx.hit(); } }
   sfx.laser(); setFlash(w); rumble(400,1,0.6);
   p.pitch+=w.kick; vmKick=Math.min(0.34,vmKick+w.vmKick); shakeAmp=Math.max(shakeAmp,0.06); shakeT=0.6;
   recoilKick(w); p.vx+=Math.sin(p.yaw)*2; p.vz+=Math.cos(p.yaw)*2;
+}
+function laserBeamStep(dt){
+  if(LZ.beamT>0){
+    LZ.beamT-=dt; var f=Math.max(0,LZ.beamT/LZ.BT);
+    if(f<=0){ LZ.beam.visible=false; LZ.core.visible=false; }
+    else{
+      var r=0.1+0.3*f;
+      laserSeg(LZ.beam,LZ.from,LZ.to,r); laserSeg(LZ.core,LZ.from,LZ.to,r*0.4);
+      LZ.beam.material.opacity=0.85*f; LZ.core.material.opacity=f;
+    }
+  }
 }
 function laserTick(w,dt){
   var ud=w.group.userData, gl=ud.glow, fired=false;
@@ -4535,15 +4546,6 @@ function laserTick(w,dt){
     laserSeg(LZ.aim,tmpMuzzle,tgt,0.006+0.012*k);
     LZ.dot.position.copy(tgt); LZ.dot.scale.setScalar(0.05+0.05*k+0.015*Math.sin(tAcc*50)+dist*0.0025); LZ.dot.visible=true;
   }else{ LZ.aim.visible=false; LZ.dot.visible=false; }
-  if(LZ.beamT>0){
-    LZ.beamT-=dt; var f=Math.max(0,LZ.beamT/LZ.BT);
-    if(f<=0){ LZ.beam.visible=false; LZ.core.visible=false; }
-    else{
-      var r=0.1+0.3*f;
-      laserSeg(LZ.beam,LZ.from,LZ.to,r); laserSeg(LZ.core,LZ.from,LZ.to,r*0.4);
-      LZ.beam.material.opacity=0.85*f; LZ.core.material.opacity=f;
-    }
-  }
 }
 function fireWeapon(w,muzzleObj,inVeh){
   noiseT=tAcc; noiseR=NOISE[w.id]||50;
@@ -5871,6 +5873,7 @@ function frame(now){
   else if(camera.rotation.z!==0) camera.rotation.z=0;
   updateFx(dt); if(TM.on){ tmSnow(dt); tmDoors(dt); }
   if(lzLoop&&(state!=='play'||!LZ.on)){ laserLoopStop(); LZ.on=false; }
+  laserBeamStep(dt);
   tpUpdate(dt);
   renderer.render(scene,camera);
 }
@@ -6194,7 +6197,7 @@ function tmLoose(){
   if(!rackTpl) buildRackTpl();
   var S0=[[-18,-84,6],[18,-84,7],[-30,-44,7],[30,-44,6],[-6,-62,6],[-30,-80,1],[26,-70,4],[-12,-52,2],[40,-30,0],[-40,-20,5],[10,-14,1],[-22,-96,4],[22,-100,2],[14,-26,3],[-56,-52,3]], i;
   S0.forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); });
-  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); });
+  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); });
 }
 function tmEnter(team){
   var prev=scene.children.length;
@@ -6595,7 +6598,7 @@ function buildChiefAvatar(){
   var pv=new THREE.Group(); pv.position.set(-0.12,1.42*hs,0.05); av.add(pv); av.userData.pv=pv;
   var wr=new THREE.Group(); wr.rotation.y=Math.PI; wr.position.set(-0.1,0.06,0.42); pv.add(wr); av.userData.wr=wr;
   HREG=false;
-  av.userData.wg=[buildMagnum,buildAR,buildSniper,buildRocket,buildShotgun,buildSword,buildSMG,buildBR].map(function(f){
+  av.userData.wg=[buildMagnum,buildAR,buildSniper,buildRocket,buildShotgun,buildSword,buildSMG,buildBR,buildLaser].map(function(f){
     var g=f(); if(g.userData.leftHand) g.userData.leftHand.visible=false; if(g.userData.rightHand) g.userData.rightHand.visible=false;
     g.visible=false; wr.add(g); return g;
   });
@@ -6722,7 +6725,8 @@ function mpRecv(m){
       if(state!=='play'&&state!=='dying') break;
       var fo=new V3(m.o[0],m.o[1],m.o[2]), fe=new V3(m.e[0],m.e[1],m.e[2]);
       if(avatar) avatar.userData.kick=1;
-      if(m.s!=='rocket'&&fo.distanceTo(fe)>0.5) spawnTracer(fo,fe);
+      if(m.s==='laser'){ LZ.from=fo.clone(); LZ.to=fe.clone(); LZ.len=fo.distanceTo(fe); LZ.beamT=LZ.BT; }
+      else if(m.s!=='rocket'&&fo.distanceTo(fe)>0.5) spawnTracer(fo,fe);
       if(distToPlayer(fo)<90&&sfx[m.s]) sfx[m.s]();
       break;
     case 'hit': case 'hurt':
