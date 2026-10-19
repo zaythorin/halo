@@ -1474,7 +1474,7 @@ function teamPaint(mats,team){
     m.needsUpdate=true;
   }
 }
-function spartanMat(){ return new THREE.MeshLambertMaterial({color:0x1f3d23,emissive:0x08170b,side:THREE.DoubleSide}); }
+function spartanMat(){ return new THREE.MeshLambertMaterial({color:0x1f3d23,emissive:0x08170b,side:THREE.DoubleSide,morphTargets:true}); }
 function fpMaterials(){
   if(!fpMatsBy[CHIEF.id]) fpMatsBy[CHIEF.id]=CHIEF.tex.map(function(u){ return spartanMat(); });
   return fpMatsBy[CHIEF.id];
@@ -1496,30 +1496,45 @@ function fillHand(grp,left,curl){
       if(!geo){
         geo=new THREE.BufferGeometry();
         var gp=emBuf(md.p,Float32Array), gn=emBuf(md.n,Float32Array);
-        if(curl&&pr[0]==='h'+s){
-          /* curl the fingers: from about a third of the way along the hand the geometry bends towards the palm about the knuckle line, a little more the further out it is, so it can wrap a handle */
-          gp=new Float32Array(gp); gn=new Float32Array(gn);
-          var dmin=1e9,dmax=-1e9,vi,dd; for(vi=0;vi<gp.length;vi+=3){ dd=gp[vi]*a[0]+gp[vi+1]*a[1]+gp[vi+2]*a[2]; if(dd<dmin) dmin=dd; if(dd>dmax) dmax=dd; }
-          var ln=dmax-dmin, sp0=dmin+0.35*ln, ax=c, pvt=[a[0]*sp0,a[1]*sp0,a[2]*sp0];
-          for(vi=0;vi<gp.length;vi+=3){
-            dd=gp[vi]*a[0]+gp[vi+1]*a[1]+gp[vi+2]*a[2]; if(dd<=sp0) continue;
-            var tt=Math.min(1,(dd-sp0)/(0.3*ln)); tt=tt*tt*(3-2*tt); var th=curl*tt, cc=Math.cos(th), sn=Math.sin(th);
-            var x=gp[vi]-pvt[0], y=gp[vi+1]-pvt[1], z=gp[vi+2]-pvt[2], d1=ax[0]*x+ax[1]*y+ax[2]*z;
-            gp[vi]=x*cc+(ax[1]*z-ax[2]*y)*sn+ax[0]*d1*(1-cc)+pvt[0]; gp[vi+1]=y*cc+(ax[2]*x-ax[0]*z)*sn+ax[1]*d1*(1-cc)+pvt[1]; gp[vi+2]=z*cc+(ax[0]*y-ax[1]*x)*sn+ax[2]*d1*(1-cc)+pvt[2];
-            var nx=gn[vi],ny=gn[vi+1],nz=gn[vi+2], d2=ax[0]*nx+ax[1]*ny+ax[2]*nz;
-            gn[vi]=nx*cc+(ax[1]*nz-ax[2]*ny)*sn+ax[0]*d2*(1-cc); gn[vi+1]=ny*cc+(ax[2]*nx-ax[0]*nz)*sn+ax[1]*d2*(1-cc); gn[vi+2]=nz*cc+(ax[0]*ny-ax[1]*nx)*sn+ax[2]*d2*(1-cc);
+        var isH=(pr[0]==='h'+s), raw=gp, rawN=gn;
+        var buildH=function(th0){
+          var bp=raw, bn=rawN;
+          if(isH&&(curl||th0)){
+            /* curl the fingers: from about a third of the way along the hand the geometry bends towards the palm about the knuckle line, a little more the further out it is, so it can wrap a handle. th0 is an extra bend used for the animated finger morphs */
+            bp=new Float32Array(raw); bn=new Float32Array(rawN);
+            var dmin=1e9,dmax=-1e9,vi,dd,cmin=1e9,cmax=-1e9,dc; for(vi=0;vi<raw.length;vi+=3){ dd=raw[vi]*a[0]+raw[vi+1]*a[1]+raw[vi+2]*a[2]; if(dd<dmin) dmin=dd; if(dd>dmax) dmax=dd; dc=raw[vi]*c[0]+raw[vi+1]*c[1]+raw[vi+2]*c[2]; if(dc<cmin) cmin=dc; if(dc>cmax) cmax=dc; }
+            var ln=dmax-dmin, sp0=dmin+0.35*ln, ax=c, pvt=[a[0]*sp0,a[1]*sp0,a[2]*sp0];
+            for(vi=0;vi<raw.length;vi+=3){
+              dd=raw[vi]*a[0]+raw[vi+1]*a[1]+raw[vi+2]*a[2]; if(dd<=sp0) continue;
+              var tt=Math.min(1,(dd-sp0)/(0.3*ln)); tt=tt*tt*(3-2*tt);
+              dc=raw[vi]*c[0]+raw[vi+1]*c[1]+raw[vi+2]*c[2];
+              var th=(curl||0)*tt + th0*tt*(0.8+0.4*(dc-cmin)/Math.max(1e-6,cmax-cmin)), cc=Math.cos(th), sn=Math.sin(th);
+              var x=raw[vi]-pvt[0], y=raw[vi+1]-pvt[1], z=raw[vi+2]-pvt[2], d1=ax[0]*x+ax[1]*y+ax[2]*z;
+              bp[vi]=x*cc+(ax[1]*z-ax[2]*y)*sn+ax[0]*d1*(1-cc)+pvt[0]; bp[vi+1]=y*cc+(ax[2]*x-ax[0]*z)*sn+ax[1]*d1*(1-cc)+pvt[1]; bp[vi+2]=z*cc+(ax[0]*y-ax[1]*x)*sn+ax[2]*d1*(1-cc)+pvt[2];
+              var nx=rawN[vi],ny=rawN[vi+1],nz=rawN[vi+2], d2=ax[0]*nx+ax[1]*ny+ax[2]*nz;
+              bn[vi]=nx*cc+(ax[1]*nz-ax[2]*ny)*sn+ax[0]*d2*(1-cc); bn[vi+1]=ny*cc+(ax[2]*nx-ax[0]*nz)*sn+ax[1]*d2*(1-cc); bn[vi+2]=nz*cc+(ax[0]*ny-ax[1]*nx)*sn+ax[2]*d2*(1-cc);
+            }
           }
-        }
-        if(pr[0]==='h'+s&&left&&curl&&CHIEF.wfix!==0){
-          /* the hand mesh is modelled bent backwards at the wrist: rotate it about the wrist towards the palm so the wrist reads straight and slightly flexed */
-          gp=new Float32Array(gp); gn=new Float32Array(gn);
-          var wth=0.6, wc=Math.cos(wth), ws=Math.sin(wth), wx=c[0], wy=c[1], wz=c[2], wv, wX, wY, wZ, wd;
-          for(wv=0;wv<gp.length;wv+=3){
-            wX=gp[wv]; wY=gp[wv+1]; wZ=gp[wv+2]; wd=wx*wX+wy*wY+wz*wZ;
-            gp[wv]=wX*wc+(wy*wZ-wz*wY)*ws+wx*wd*(1-wc); gp[wv+1]=wY*wc+(wz*wX-wx*wZ)*ws+wy*wd*(1-wc); gp[wv+2]=wZ*wc+(wx*wY-wy*wX)*ws+wz*wd*(1-wc);
-            wX=gn[wv]; wY=gn[wv+1]; wZ=gn[wv+2]; wd=wx*wX+wy*wY+wz*wZ;
-            gn[wv]=wX*wc+(wy*wZ-wz*wY)*ws+wx*wd*(1-wc); gn[wv+1]=wY*wc+(wz*wX-wx*wZ)*ws+wy*wd*(1-wc); gn[wv+2]=wZ*wc+(wx*wY-wy*wX)*ws+wz*wd*(1-wc);
+          if(isH&&left&&curl&&CHIEF.wfix!==0){
+            /* the hand mesh is modelled bent backwards at the wrist: rotate it about the wrist towards the palm so the wrist reads straight and slightly flexed */
+            bp=new Float32Array(bp); bn=new Float32Array(bn);
+            var wth=0.6, wc=Math.cos(wth), ws=Math.sin(wth), wx=c[0], wy=c[1], wz=c[2], wv, wX, wY, wZ, wd;
+            for(wv=0;wv<bp.length;wv+=3){
+              wX=bp[wv]; wY=bp[wv+1]; wZ=bp[wv+2]; wd=wx*wX+wy*wY+wz*wZ;
+              bp[wv]=wX*wc+(wy*wZ-wz*wY)*ws+wx*wd*(1-wc); bp[wv+1]=wY*wc+(wz*wX-wx*wZ)*ws+wy*wd*(1-wc); bp[wv+2]=wZ*wc+(wx*wY-wy*wX)*ws+wz*wd*(1-wc);
+              wX=bn[wv]; wY=bn[wv+1]; wZ=bn[wv+2]; wd=wx*wX+wy*wY+wz*wZ;
+              bn[wv]=wX*wc+(wy*wZ-wz*wY)*ws+wx*wd*(1-wc); bn[wv+1]=wY*wc+(wz*wX-wx*wZ)*ws+wy*wd*(1-wc); bn[wv+2]=wZ*wc+(wx*wY-wy*wX)*ws+wz*wd*(1-wc);
+            }
           }
+          return [bp,bn];
+        };
+        var bb=buildH(0); gp=bb[0]; gn=bb[1];
+        if(isH){
+          /* morph targets for animated fingers: [0] opens the fingers, [1] closes them tighter (grip / trigger squeeze) */
+          var mo=buildH(-0.6)[0], mg=buildH(0.7)[0], d0=new Float32Array(gp.length), d1m=new Float32Array(gp.length), k2;
+          for(k2=0;k2<gp.length;k2++){ d0[k2]=mo[k2]-gp[k2]; d1m[k2]=mg[k2]-gp[k2]; }
+          geo.morphAttributes.position=[new THREE.BufferAttribute(d0,3),new THREE.BufferAttribute(d1m,3)];
+          geo.morphTargetsRelative=true;
         }
         geo.setAttribute('position',new THREE.BufferAttribute(gp,3));
         geo.setAttribute('normal',new THREE.BufferAttribute(gn,3));
@@ -1528,6 +1543,7 @@ function fillHand(grp,left,curl){
         fpGeo[key]=geo;
       }
       var m=new THREE.Mesh(geo,mats[md.t]);
+      if(geo.morphAttributes.position){ m.morphTargetInfluences=[0,0]; (grp.userData.hm=grp.userData.hm||[]).push(m); }
       m.position.set(R[pr[1]][0]-R['w'+s][0],R[pr[1]][1]-R['w'+s][1],R[pr[1]][2]-R['w'+s][2]);
       inner.add(m);
     });
@@ -5046,6 +5062,46 @@ function dwTick(w0,dt){
   }
   for(h=0;h<2;h++){ w=dwW(h); if(dwG[h].mag<=0&&dwT[h]<=0&&w.reserve>0) dwReload(h); }
 }
+/* ---------- finger animation: drives the open/grip morph targets on the viewmodel hands ---------- */
+var fgT=0;
+function fgHands(g){
+  if(!g) return [];
+  if(!g.userData._fh){ var arr=[]; g.traverse(function(o){ if(o.userData&&o.userData.hm&&o.userData.hk) arr.push(o); }); g.userData._fh=arr; }
+  return g.userData._fh;
+}
+function fgApply(h,open,grip){
+  var hm=h.userData.hm; if(!hm) return;
+  open=Math.max(0,Math.min(1,open)); grip=Math.max(0,Math.min(1,grip));
+  for(var i=0;i<hm.length;i++){ var mi=hm[i].morphTargetInfluences; if(mi){ mi[0]=open; mi[1]=grip; } }
+}
+function fingerAnim(w,g,dt){
+  if(!g||!g.visible) return;
+  fgT+=dt;
+  var hs=fgHands(g), pr=reloading?Math.min(1,reloadT/(w.reloadDur||1)):-1, i;
+  var fireK=(w.rate>0&&fireCool>0)?Math.min(1,fireCool/Math.max(0.08,w.rate)):0;
+  var holdFire=(ctrl.fire&&!reloading&&swapT<=0)?1:0;
+  var melee=meleeT>0?Math.sin(Math.min(1,meleeT/MELEE_DUR)*Math.PI):0;
+  var breathe=0.5+0.5*Math.sin(fgT*1.7);
+  for(i=0;i<hs.length;i++){
+    var left=hs[i].userData.hk[0], open=0, grip=0.18+0.1*breathe;
+    if(!left){
+      /* trigger hand: squeezes on each shot, stays tight while the trigger is held, relaxes between */
+      grip=0.2+0.1*breathe+0.35*holdFire+0.45*fireK*(w.auto?0.6:1);
+      if(pr>=0) grip=0.25+0.2*Math.sin(pr*Math.PI);
+    }else{
+      grip=0.45+0.08*breathe;
+      if(pr>=0){
+        /* support hand lets go to take the magazine, then closes back on the grip */
+        var k=pr<0.25?pr/0.25:(pr>0.75?1-(pr-0.75)/0.25:1);
+        k=Math.sin(Math.min(1,k)*Math.PI/2); open=0.9*k; grip=0.45*(1-k);
+        if(pr>0.5&&pr<0.8) grip+=0.35*Math.sin((pr-0.5)/0.3*Math.PI);
+      }
+    }
+    if(melee>0){ open=Math.max(open,0.7*melee); grip*=1-melee; }
+    if(w.sword||w.shells){ if(!left||pr<0) grip=Math.max(grip,0.55); }
+    fgApply(hs[i],open,grip);
+  }
+}
 function dwAnimate(w){
   var on=dwOn(w), sp=MA.sprint, i, ri=dwG[0].wi, li=dwG[1].wi;
   for(i=0;i<2;i++){ var wi=i?6:0; weapons[wi].group.userData.leftHand.visible=!(dwOnF&&ri===wi); weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
@@ -5163,7 +5219,7 @@ function updateWeapon(dt){
   vm.position.x+=0.05*ma.sprint+ma.mxs*0.012; vm.position.y+=-0.05*ma.sprint-Math.abs(Math.sin(tAcc*9))*0.012*ma.sprint+0.03*ma.air-0.09*ma.land+Math.sin(tAcc*5.2)*0.006*(ma.breath+lowHp); vm.position.z+=-0.02*ma.sprint+0.03*ma.land+0.05*ma.flinch;
   vm.rotation.x+=-0.22*ma.sprint+0.1*ma.air-0.18*ma.land+0.2*ma.flinch; vm.rotation.y+=0.45*ma.sprint; vm.rotation.z+=0.12*ma.sprint-ma.mxs*0.07+0.25*ma.flinch*ma.flx;
   vm.visible=!((w.scope||w.lscope)&&zoomed&&camera.fov<45);
-  animateWeaponParts(w); dwAnimate(w);
+  animateWeaponParts(w); dwAnimate(w); fingerAnim(w,w.group,dt); if(w.group2) fingerAnim(w,w.group2,dt);
   flashT-=dt; flash.visible=flashT>0; muzzleLight.intensity=flashT>0?mlBase*Math.min(1,flashT/mlDur+0.2):0;
 }
 
