@@ -80,6 +80,10 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #toast{top:calc(28vh + var(--st));font-size:clamp(14px,2.4vw,20px);letter-spacing:.18em;color:var(--amber)}
 #banner.show{animation:fade 2.4s ease-out forwards}
 #toast.show{animation:fade 1.5s ease-out forwards}
+#killMsg{position:absolute;left:0;right:0;top:calc(34vh + var(--st));text-align:center;pointer-events:none;font-weight:900;letter-spacing:.14em;text-shadow:0 2px 14px rgba(0,0,0,.8);display:none}
+#killMsg b{display:block;font-size:clamp(12px,2vw,16px);color:#ccc;letter-spacing:.3em;margin-bottom:4px}
+#killMsg span{display:block;font-size:clamp(22px,4.6vw,40px)}
+#killMsg i{display:block;font-style:normal;font-size:clamp(13px,2.2vw,20px);color:var(--amber);margin-top:6px}
 @keyframes fade{0%{opacity:0;transform:translateY(8px)}12%{opacity:1;transform:none}70%{opacity:1}100%{opacity:0}}
 
 #stickZone{position:absolute;left:0;bottom:0;width:48%;height:62%;pointer-events:auto;touch-action:none}
@@ -358,6 +362,7 @@ body{letter-spacing:.02em}
   <div id="mpHud" hidden></div>
   <div id="banner"></div>
   <div id="toast"></div>
+  <div id="killMsg"><b></b><span></span><i></i></div>
 
   <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
 
@@ -3582,7 +3587,7 @@ function updatePlayer(dt){
   if(TM.on&&TM.wire&&!p.inVeh){
     var wn=false, wi2, W2;
     for(wi2=0;wi2<TM.wire.length;wi2++){ W2=TM.wire[wi2]; if(Math.abs(p.x-W2.x)<1.0&&Math.abs(p.z-W2.z)<1.0&&p.y<W2.y+1.2){ wn=true; break; } }
-    if(wn){ sp*=0.45; TM.wireT=(TM.wireT||0)-dt; if(TM.wireT<=0){ TM.wireT=0.5; hitDir.x=0; hitDir.z=0; hurt(4); } } else TM.wireT=0;
+    if(wn){ sp*=0.45; TM.wireT=(TM.wireT||0)-dt; if(TM.wireT<=0){ TM.wireT=0.5; hitDir.x=0; hitDir.z=0; mp.cause='BARBED WIRE'; mp.causeT=tAcc; hurt(4); } } else TM.wireT=0;
   }
   var g0=groundH(p.x,p.z);
   if(p.onGround){
@@ -3603,7 +3608,7 @@ function updatePlayer(dt){
   var gy=floorY(p.x,p.z,p.y);
   if(p.y<=gy+0.04){
     if(!p.onGround && vyBefore<-3){ MA.land=Math.min(1,-vyBefore/14); camLag-=Math.min(0.22,-vyBefore*0.014); }
-    if(!p.onGround && vyBefore<-13 && !GR.safe){ hurt((-vyBefore-13)*5); }
+    if(!p.onGround && vyBefore<-13 && !GR.safe){ mp.cause='FALL DAMAGE'; mp.causeT=tAcc; hurt((-vyBefore-13)*5); }
     GR.safe=false;
     if(p.onGround&&gy-p.y>0.35) camLag-=Math.min(EM_STEP,gy-p.y);
     p.y=gy; p.vy=0; p.onGround=true;
@@ -4288,7 +4293,7 @@ function grFire(){
 function grPunch(){
   if(GR.st!==2||GR.pt>0) return false;
   GR.pt=0.5; GR.punch++;
-  mpSend({t:'vhit',k:'j',vt:1-TM.team,n:GR.punch>=3?99999:45});
+  mpSend({t:'vhit',k:'j',vt:1-TM.team,n:GR.punch>=3?99999:45,w:'GRAPPLING HOOK'});
   sfx.hit(); marker('hit');
   if(GR.punch>=3){ showBanner('HORNET DESTROYED   PILOT PUNCHED OUT'); grRelease(true); }
   else showToast('PUNCH '+GR.punch+' / 3');
@@ -4544,7 +4549,7 @@ function meleeStrike(){
     for(var mid in mp.peers){
       var mpe=mp.peers[mid]; if(mpe.team===mp.team||!mpe.rem.al||!mpe.avatar.visible) continue;
       var mR=mpe.rem, mdx=mR.x-p.x, mdz=mR.z-p.z, mdd=Math.hypot(mdx,mdz)||0.001;
-      if(mdd<(sw?3.6:2.7)&&(mdd<1.0||(mdx*fx+mdz*fz)/mdd>=0.5)&&Math.abs(mR.y-p.y)<2.2){ mpSend({t:'hit',n:sw?220:80,dx:fx,dz:fz},mpe.id); any=true; }
+      if(mdd<(sw?3.6:2.7)&&(mdd<1.0||(mdx*fx+mdz*fz)/mdd>=0.5)&&Math.abs(mR.y-p.y)<2.2){ mpSend({t:'hit',n:sw?220:80,dx:fx,dz:fz,w:sw?'ENERGY SWORD':'MELEE'},mpe.id); any=true; }
     }
   }
   if(any){ sfx.bash(); marker(kill?'kill':'hit'); p.pitch-=0.02; }
@@ -6718,7 +6723,7 @@ function tmRecvVeh(m){
       var c=e.cur; boomAt(c.x,(k==='r'?groundH(c.x,c.z)+1:c.y),c.z);
     }
   }else if(m.t==='vhit'){
-    if(m.vt===TM.team&&TM.drv[k][m.vt]===mp.id){ if(k==='r') damageVehicle(m.n); else damageJet(m.n); }
+    if(m.vt===TM.team&&TM.drv[k][m.vt]===mp.id){ if(m.f!==undefined&&mpTeamOf(m.f)!==mp.team){ mp.lastBy=m.f; mp.lastHow=(m.w||'WEAPON')+(k==='r'?' ON YOUR ROVER':' ON YOUR HORNET'); mp.lastByT=tAcc; } if(k==='r') damageVehicle(m.n); else damageJet(m.n); }
   }
 }
 function tmUpdate(dt){
@@ -6755,6 +6760,7 @@ function tmProjHit(P){
   return false;
 }
 function tmBlastDamage(P,R,d){
+  var bw=d===RKT?'ROCKET':d===MSL?'MISSILE':'GRENADE';
   for(var id in mp.peers){
     var pe=mp.peers[id]; if(pe.team===mp.team) continue;
     var Q=pe.rem; if(!Q.al||!pe.avatar||!pe.avatar.visible) continue;
@@ -6763,12 +6769,12 @@ function tmBlastDamage(P,R,d){
       var om=falloff(od,d)*0.6, olos=!(od>0.6&&!hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(Q.x,Q.y+1.0,Q.z)));
       if(!olos) om*=0.3;
       if((d===RKT||d===MSL)&&olos&&od<R*0.8) om=999;
-      if(om>1) mpSend({t:'hit',n:Math.round(om),dx:Q.x-P.x,dz:Q.z-P.z},pe.id);
+      if(om>1) mpSend({t:'hit',n:Math.round(om),dx:Q.x-P.x,dz:Q.z-P.z,w:bw},pe.id);
     }
   }
   var ev=TM.ev, et=1-TM.team; if(!ev) return;
-  if(ev.r.alive&&TM.drv.r[et]>=0){ var c=ev.r.cur, cy=groundH(c.x,c.z)+1, vd=Math.sqrt((c.x-P.x)*(c.x-P.x)+(cy-P.y)*(cy-P.y)+(c.z-P.z)*(c.z-P.z)), vm=falloff(Math.max(0,vd-1.2),d)*0.6; if(vm>1) mpSend({t:'vhit',k:'r',vt:et,n:Math.round(vm)}); }
-  if(ev.j.alive&&TM.drv.j[et]>=0){ var c2=ev.j.cur, jd=Math.sqrt((c2.x-P.x)*(c2.x-P.x)+(c2.y-P.y)*(c2.y-P.y)+(c2.z-P.z)*(c2.z-P.z)), jm=falloff(Math.max(0,jd-2.5),d)*0.45; if(jm>1) mpSend({t:'vhit',k:'j',vt:et,n:Math.round(jm)}); }
+  if(ev.r.alive&&TM.drv.r[et]>=0){ var c=ev.r.cur, cy=groundH(c.x,c.z)+1, vd=Math.sqrt((c.x-P.x)*(c.x-P.x)+(cy-P.y)*(cy-P.y)+(c.z-P.z)*(c.z-P.z)), vm=falloff(Math.max(0,vd-1.2),d)*0.6; if(vm>1) mpSend({t:'vhit',k:'r',vt:et,n:Math.round(vm),w:bw}); }
+  if(ev.j.alive&&TM.drv.j[et]>=0){ var c2=ev.j.cur, jd=Math.sqrt((c2.x-P.x)*(c2.x-P.x)+(c2.y-P.y)*(c2.y-P.y)+(c2.z-P.z)*(c2.z-P.z)), jm=falloff(Math.max(0,jd-2.5),d)*0.45; if(jm>1) mpSend({t:'vhit',k:'j',vt:et,n:Math.round(jm),w:bw}); }
 }
 /* team suits: the green armour is recoloured to the team colour */
 var chiefTeamTex=[[],[]];
@@ -7131,9 +7137,19 @@ function mpTargets(){
   }
   return L;
 }
+function mpWhat(){
+  if(p.air) return 'HORNET GUNS';
+  if(p.inVeh) return 'ROVER GUN';
+  var w=weapons[cur]; if(!w) return 'WEAPON';
+  return (cur===10&&TUR.pk&&!w.mounted)?'MOUNTED GUN':w.name;
+}
+function mpNm(id){
+  if(id===mp.id) return myNameV||'YOU';
+  var pe=mp.peers[id]; return (pe&&pe.nm)?pe.nm:('PLAYER '+id);
+}
 function mpHitUD(ud,n,head){
-  if(ud.vk){ mpSend({t:'vhit',k:ud.vk,vt:ud.vt,n:Math.round(n)}); marker('hit'); sfx.hit(); return; }
-  mpSend({t:'hit',n:Math.round(n),dx:-Math.sin(p.yaw),dz:-Math.cos(p.yaw)},ud.pid);
+  if(ud.vk){ mpSend({t:'vhit',k:ud.vk,vt:ud.vt,n:Math.round(n),w:mpWhat()}); marker('hit'); sfx.hit(); return; }
+  mpSend({t:'hit',n:Math.round(n),dx:-Math.sin(p.yaw),dz:-Math.cos(p.yaw),w:mpWhat()+(head?' HEADSHOT':'')},ud.pid);
   marker(head?'head':'hit'); if(head) sfx.head(); else sfx.hit();
 }
 function mpFx(s,from,to){ if(mp.on) mpSend({t:'fx',s:s,o:[r2(from.x),r2(from.y),r2(from.z)],e:[r2(to.x),r2(to.y),r2(to.z)]}); }
@@ -7155,8 +7171,18 @@ function mpOnDeath(){
   if(mp.mode==='dm'){
     if(p.air) leaveJetState(); else if(p.inVeh) exitRover();
     ctfDropMine(); grReset();
-    var dm={t:'dead',by:mp.lastBy,vt:mp.team}; mpSend(dm); if(mp.host){ dm.f=0; mpRecv(dm); }
-    mp.lastBy=undefined;
+    var kby=(mp.lastBy!==undefined&&tAcc-(mp.lastByT||0)<15)?mp.lastBy:undefined, khow=mp.lastHow||'';
+    if(mp.cause&&tAcc-(mp.causeT||0)<1.5&&(kby===undefined||(mp.causeT||0)>(mp.lastByT||0))) khow=mp.cause;
+    var dm={t:'dead',by:mp.lastBy,vt:mp.team,w:khow}; mpSend(dm); if(mp.host){ dm.f=0; mpRecv(dm); }
+    try{
+      var km=$('killMsg'), tm0=(kby!==undefined)?mpTeamOf(kby):undefined;
+      km.children[0].textContent=kby!==undefined?'KILLED BY':'YOU DIED';
+      km.children[1].textContent=kby!==undefined?mpNm(kby):(khow||'');
+      km.children[1].style.color=(tm0!==undefined&&TEAMS[tm0])?TEAMS[tm0].css:'#fff';
+      km.children[2].textContent=(kby!==undefined&&khow)?khow:'';
+      km.style.display='block';
+    }catch(e){}
+    mp.lastBy=undefined; mp.lastHow=undefined; mp.cause=undefined;
   }
   mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:0,al:0,hp:0,w:slots[sel],iv:0,ch:curChar});
   try{ startRagdoll(); }catch(err){ rag=null; }
@@ -7170,7 +7196,7 @@ function mpRevive(near){
     gren.frag=3; gren.plasma=2;
   }else if(near&&R.has){ p.x=R.x+2; p.z=R.z+2; p.y=groundH(p.x,p.z); p.yaw=R.yaw; }
   p.vx=0; p.vz=0; p.vy=0; reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0;
-  mp.inv=tAcc+2.5; $('ui').hidden=false; lockMouse(); showToast('RESPAWNED');
+  mp.inv=tAcc+2.5; $('ui').hidden=false; lockMouse(); showToast('RESPAWNED'); try{ $('killMsg').style.display='none'; }catch(e){}
 }
 function mpTarget(){ if(mp.opt&&mp.opt.lim) return mp.opt.lim; if(mp.ctf) return 3; var n=0; for(var id in mp.peers) n++; return n<=1?10:20; }
 function mpCheckEnd(){
@@ -7219,7 +7245,7 @@ function mpRecv(m){
       break;
     case 'hit': case 'hurt':
       if(state==='play'&&tAcc>mp.inv){
-        if(mp.mode==='dm'&&m.t==='hit'&&m.f!==undefined){ if(mpTeamOf(m.f)===mp.team) break; mp.lastBy=m.f; }
+        if(mp.mode==='dm'&&m.t==='hit'&&m.f!==undefined){ if(mpTeamOf(m.f)===mp.team) break; mp.lastBy=m.f; mp.lastHow=m.w; mp.lastByT=tAcc; }
         hitDir.x=m.dx; hitDir.z=m.dz; hurt(m.n);
       }
       break;
@@ -7229,7 +7255,7 @@ function mpRecv(m){
           var kt=m.by!==undefined&&mpTeamOf(m.by)!==undefined&&mpTeamOf(m.by)!==m.vt?mpTeamOf(m.by):1-m.vt;
           if(!mp.ctf){ mp.score[kt]++; mpSend({t:'sc',s:mp.score}); mpCheckEnd(); }
         }
-        if(m.by===mp.id){ marker('kill'); sfx.kill(); showToast('FRAGGED'); }
+        if(m.by===mp.id){ marker('kill'); sfx.kill(); showToast('FRAGGED '+(m.f!==undefined?mpNm(m.f):'')+(m.w?'  ('+m.w+')':'')); }
       }
       break;
     case 'vc': case 'vs': case 'vx': case 'vhit': tmRecvVeh(m); break;
