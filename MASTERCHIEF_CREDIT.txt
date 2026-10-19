@@ -1,0 +1,3 @@
+Master Chief model
+This work is based on "Masterchief" (https://sketchfab.com/3d-models/masterchief-38b9ad07c4b549578aa069e58115a5e9) by irons3th (https://sketchfab.com/irons3th) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+Converted into rigid body parts for this game; textures re-encoded as JPEG.
