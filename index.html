@@ -109,6 +109,7 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #bUse.down{transform:translateX(-50%)}
 #bRip{left:50%;transform:translateX(-50%);bottom:calc(86px + var(--sb));width:104px;border-color:#ffb34d;color:#ffb34d;font-size:14px}
 #bRip.down{transform:translateX(-50%)}
+#bHook{right:calc(206px + var(--sr));bottom:calc(262px + var(--sb));border-color:#6be4ff;color:#6be4ff}
 #ui.driving #bReload,#ui.driving #bSwap,#ui.driving #bMelee{display:none}
 #bMsl{display:none;right:calc(206px + var(--sr));bottom:calc(196px + var(--sb));width:88px;border-color:#ff7a4a;color:#ff9a6a}
 #ui.flying #bMsl{display:grid}
@@ -375,6 +376,7 @@ body{letter-spacing:.02em}
   <button type="button" class="btn" id="bPause" aria-label="Pause">II</button>
   <button type="button" class="btn" id="bUse" hidden>DRIVE</button>
   <button type="button" class="btn" id="bRip" hidden>RIP OFF</button>
+  <button type="button" class="btn" id="bHook" hidden>HOOK</button>
 </div>
 
 <div class="overlay" id="menu">
@@ -423,7 +425,7 @@ body{letter-spacing:.02em}
     <div class="ctl">
       <div><b>TOUCH</b>Left thumb moves. Drag anywhere on the right to aim. Hold FIRE to shoot, and slide that thumb to aim while firing. MELEE bashes, FRAG and PLASMA throw grenades, ZOOM scopes in, SPRINT toggles a faster run (the gun lowers while you sprint), SWAP cycles weapons, II pauses.</div>
       <div><b>CONTROLLER</b>Left stick move, right stick aim, RT fire, LT zoom, left stick click sprint, A jump (brake in the rover), X reload, Y swap weapon, B or right stick click melee, RB frag, LB plasma, D-pad up use or take or drive, D-pad left and right pick a slot, D-pad down switches first and third person, Start pause. Menus: D-pad or left stick and A. Rumble on hits and shots.</div>
-      <div><b>KEYBOARD</b>B switches between first and third person, WASD move, mouse aim and fire, Space jump, R reload, V or middle click melee, G frag grenade, H plasma grenade, Q swap weapon, 1 and 2 pick a weapon slot, Z or right click zoom, hold Shift to sprint, E to get in or out of the rover, P or Esc pause.</div>
+      <div><b>KEYBOARD</b>B switches between first and third person, WASD move, mouse aim and fire, Space jump, R reload, V or middle click melee, Y grappling hook onto an enemy Hornet in team battle (punch the pilot out), C crouch, G frag grenade, H plasma grenade, Q swap weapon, 1 and 2 pick a weapon slot, Z or right click zoom, hold Shift to sprint, E to get in or out of the rover, P or Esc pause.</div>
       <div><b>WEAPONS</b>You carry two weapons at a time. Every weapon hangs on a weapon rack: one just ahead of where you start, and two more out in the valley. Walk up, look at the weapon you want and press E (or TAKE) to swap it in for the weapon you are holding, which goes back on the rack. Grab a weapon you already carry to restock its ammo. The sniper rifle zooms for a scope view and a headshot drops almost anything.</div>
       <div><b>OPEN WORLD</b>The arena is now a big valley: ridges, plateaus, a river basin and sheer cliffs. Cliffs and very steep slopes can't be climbed, so find a ramp or go round, and long falls hurt. Raiders hunt you across the terrain, and when you kill one the others nearby may panic and run for a few seconds.</div>
       <div><b>HORNET</b>Walk up to the Hornet and press E to fly it. Mouse aims, W/S fly, A/D slide, Space climbs, C descends. Left click fires the guns. Keep your view on an enemy until the box turns red, then right click (or F) to fire a homing missile. Land to get out.</div>
@@ -1952,6 +1954,7 @@ function hud(){
   var dd=Math.hypot(p.x-veh.x,p.z-veh.z), showUse=drv||(veh.alive&&dd<4.4)||nearJet()||wpNear>=0||!!TUR.pk;
   var ulab=drv?'EXIT':(TUR.pk?'LEAVE':wpNear>=0?((wpicks[wpNear]&&wpicks[wpNear].mount)?'MAN':'TAKE'):((nearJet()&&!(veh.alive&&dd<4.4))?'FLY':'DRIVE')); if(hudCache.ulab!==ulab){ hudCache.ulab=ulab; els.bUse.textContent=ulab; }
   if(hudCache.use!==showUse){ hudCache.use=showUse; els.bUse.hidden=!showUse; }
+  var showHook=!!(TM.on&&!p.inVeh&&!p.air); if(hudCache.hook!==showHook){ hudCache.hook=showHook; $('bHook').hidden=!showHook; }
   var showRip=!!(TUR.pk||(wpNear>=0&&wpicks[wpNear]&&wpicks[wpNear].mount&&!wpicks[wpNear].taken)); if(hudCache.rip!==showRip){ hudCache.rip=showRip; $('bRip').hidden=!showRip; }
   setText('rv',mp.on?'OFF':drv?(p.air?'FLYING':'DRIVING'):(veh.alive?Math.round(dd)+' m':'REPAIR '+Math.ceil(veh.respawnT)+'s'));
   setText('wave',String(Math.max(1,wave.n)));
@@ -3600,7 +3603,8 @@ function updatePlayer(dt){
   var gy=floorY(p.x,p.z,p.y);
   if(p.y<=gy+0.04){
     if(!p.onGround && vyBefore<-3){ MA.land=Math.min(1,-vyBefore/14); camLag-=Math.min(0.22,-vyBefore*0.014); }
-    if(!p.onGround && vyBefore<-13){ hurt((-vyBefore-13)*5); }
+    if(!p.onGround && vyBefore<-13 && !GR.safe){ hurt((-vyBefore-13)*5); }
+    GR.safe=false;
     if(p.onGround&&gy-p.y>0.35) camLag-=Math.min(EM_STEP,gy-p.y);
     p.y=gy; p.vy=0; p.onGround=true;
   } else if(p.onGround && p.vy<=0 && p.y-gy<0.5 && p.vy>-GRAV*dt*1.5){ p.y=gy; p.vy=0; }
@@ -4246,6 +4250,80 @@ function takeWeapon(i,dual){
   sfx.pickup(); showToast(weapons[wi].name);
 }
 
+
+/* ---------- grappling hook (team battle): hook an enemy Hornet in the air, ride it, punch the pilot out ---------- */
+var GR={st:0,t:0,cd:0,punch:0,pt:0,safe:false,line:null,claw:null,dir:new V3()};
+function grObjs(){
+  if(GR.line) return;
+  var g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));
+  GR.line=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xd8dee4})); GR.line.frustumCulled=false; GR.line.visible=false; scene.add(GR.line);
+  GR.claw=new THREE.Mesh(new THREE.OctahedronGeometry(0.2),new THREE.MeshBasicMaterial({color:0xffb34d})); GR.claw.visible=false; scene.add(GR.claw);
+}
+function grDraw(ax,ay,az,bx,by,bz){
+  grObjs(); var a=GR.line.geometry.attributes.position.array;
+  a[0]=ax;a[1]=ay;a[2]=az;a[3]=bx;a[4]=by;a[5]=bz; GR.line.geometry.attributes.position.needsUpdate=true;
+  GR.line.visible=true; GR.claw.visible=true; GR.claw.position.set(bx,by,bz); GR.claw.rotation.y+=0.3;
+}
+function grHide(){ if(GR.line){ GR.line.visible=false; GR.claw.visible=false; } }
+function grReset(){ GR.st=0; GR.safe=false; GR.cd=0; grHide(); }
+function grEnemyJet(){
+  if(!TM.on||!TM.ev) return null;
+  var et=1-TM.team, j=TM.ev.j;
+  if(!j||!j.alive||!(TM.drv.j[et]>=0)) return null;
+  var c=j.cur; if(c.y<groundH(c.x,c.z)+4) return null;
+  return c;
+}
+function grRelease(safe){ GR.st=0; GR.safe=!!safe; GR.cd=1.5; grHide(); }
+function grFire(){
+  if(state!=='play'||!TM.on||p.inVeh||p.air||GR.st!==0||GR.cd>0) return;
+  var c=grEnemyJet(), o=new V3(), d=new V3();
+  camera.getWorldPosition(o); camera.getWorldDirection(d);
+  if(c){
+    var tv=new V3(c.x-o.x,c.y-o.y,c.z-o.z), dist=tv.length();
+    if(dist<85&&Math.acos(Math.max(-1,Math.min(1,tv.dot(d)/dist)))<0.25){ GR.st=1; GR.t=0; tone(500,900,0.12,'square',0.2); showToast('HOOKED'); return; }
+  }
+  GR.st=3; GR.t=0; GR.cd=1.0; GR.dir.copy(d); tone(300,150,0.1,'square',0.15);
+  showToast(c?'AIM AT THE HORNET':'NO ENEMY HORNET IN THE AIR');
+}
+function grPunch(){
+  if(GR.st!==2||GR.pt>0) return false;
+  GR.pt=0.5; GR.punch++;
+  mpSend({t:'vhit',k:'j',vt:1-TM.team,n:GR.punch>=3?99999:45});
+  sfx.hit(); marker('hit');
+  if(GR.punch>=3){ showBanner('HORNET DESTROYED   PILOT PUNCHED OUT'); grRelease(true); }
+  else showToast('PUNCH '+GR.punch+' / 3');
+  return true;
+}
+function updateGrapple(dt){
+  GR.cd-=dt; GR.pt-=dt;
+  if(GR.safe){ if(p.onGround){ GR.safe=false; } else if(p.vy<-9) p.vy=-9; }
+  if(GR.st===0){ return; }
+  var sx=p.x+Math.cos(p.yaw)*0.3, sy=p.y+eyeC()-0.35, sz=p.z-Math.sin(p.yaw)*0.3;
+  if(GR.st===3){
+    GR.t+=dt; var u=GR.t/0.45;
+    if(u>=1){ GR.st=0; grHide(); return; }
+    var len=(u<0.5?u*2:(1-u)*2)*30;
+    grDraw(sx,sy,sz,sx+GR.dir.x*len,sy+GR.dir.y*len,sz+GR.dir.z*len); return;
+  }
+  var c=grEnemyJet();
+  if(!c){ grRelease(true); return; }
+  if(GR.st===1){
+    var tx=c.x, ty=c.y+0.8, tz=c.z, dx=tx-p.x, dy=ty-(p.y+1), dz=tz-p.z, d=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.001;
+    GR.t+=dt; if(GR.t>4.5){ grRelease(true); return; }
+    if(d<3.0){ GR.st=2; GR.punch=0; GR.pt=0; showToast('ON THE HORNET   V OR MELEE TO PUNCH   SPACE TO LET GO'); tone(200,120,0.15,'sawtooth',0.2); }
+    else{
+      var v=Math.min(d/dt,42);
+      p.x+=dx/d*v*dt; p.y=Math.max(groundH(p.x,p.z),p.y+dy/d*v*dt); p.z+=dz/d*v*dt;
+      p.vx=p.vz=0; p.vy=0; p.onGround=false;
+      grDraw(sx,sy,sz,tx,ty,tz);
+    }
+  }else if(GR.st===2){
+    var fx=-Math.sin(c.yaw), fz=-Math.cos(c.yaw);
+    p.x=c.x-fx*0.5; p.z=c.z-fz*0.5; p.y=c.y+1.35; p.vx=p.vz=0; p.vy=0; p.onGround=false;
+    grHide();
+    if(keys.Space){ grRelease(true); }
+  }
+}
 /* ---------- ground-mounted turret: man it for endless ammo, or rip it off the tripod for a heavy gun with limited ammo ---------- */
 var TUR={pk:null,sel:0,prev:0,S:0.85,GY:1.27,list:[]};
 function turNet(a,pk){ if(mp.on&&pk&&pk.tid!==undefined) mpSend({t:'tu',i:pk.tid,a:a}); }
@@ -4441,6 +4519,7 @@ function meleePose(t){
   return out;
 }
 function startMelee(){
+  if(GR.st===2) grPunch();
   if(state==='play'&&!p.inVeh&&turRipTry()) return;
   if(state!=='play'||p.inVeh||meleeT>0||swapT>0||throwT>0) return;
   if(weapons[cur].sword){ swCombo=(tAcc-swLast>1.3)?0:(swCombo+1)%SW_COMBO.length; swLast=tAcc; }
@@ -5597,7 +5676,7 @@ function clearWorld(){
   for(i=0;i<bolts.length;i++) scene.remove(bolts[i].m); bolts.length=0; hBeams.forEach(function(b){ scene.remove(b.core); scene.remove(b.out); }); hBeams.length=0;
   for(i=0;i<pickups.length;i++) scene.remove(pickups[i].m); pickups.length=0;
   for(i=0;i<props.length;i++) scene.remove(props[i].m); props.length=0;
-  for(i=0;i<wpicks.length;i++) scene.remove(wpicks[i].g); wpicks.length=0; wpNear=-1; turReset();
+  for(i=0;i<wpicks.length;i++) scene.remove(wpicks[i].g); wpicks.length=0; wpNear=-1; turReset(); grReset();
 }
 function resetGame(){
   clearWorld();
@@ -6037,6 +6116,7 @@ hold($('bFire'),function(){ ctrl.fire=true; fireEdgeT=0.18; },function(){ ctrl.f
 hold($('bJump'),function(){ ctrl.jump=true; ctrl.brake=true; },function(){ ctrl.brake=false; });
 hold($('bUse'),useAction);
 hold($('bRip'),function(){ turRipTry(); });
+hold($('bHook'),grFire);
 hold($('bReload'),startReload);
 hold($('bSwap'),swapWeapon);
 hold($('bZoom'),toggleZoom);
@@ -6068,6 +6148,7 @@ window.addEventListener('keydown',function(ev){
   else if(ev.code==='KeyV'||ev.code==='KeyF'){ if(ev.repeat) return; if(p.air) fireMissile(); else startMelee(); }
   else if(ev.code==='KeyZ') toggleZoom();
   else if(ev.code==='KeyB') tpToggle();
+  else if(ev.code==='KeyY'){ if(!ev.repeat) grFire(); }
   else if(ev.code==='KeyX'){ if(!ev.repeat) turDropKey(); }
   else if(ev.code==='KeyG') throwGrenade('frag');
   else if(ev.code==='KeyH') throwGrenade('plasma');
@@ -6124,7 +6205,7 @@ function frame(now){
     updateDeathCam(dt); updateFx(dt); if(TM.on){ tmSnow(dt); tmDoors(dt); } renderer.render(scene,camera); return;
   }
   if(state==='play'){
-    updateRover(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh) updateDriving(dt); else{ updatePlayer(dt); updateTurret(dt); }
+    updateRover(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh) updateDriving(dt); else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
     updateWeapon(dt); updateThrow(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
     if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ updateShips(dt); updateWaves(dt); for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on) updateAllies(dt);
@@ -7073,7 +7154,7 @@ function mpOnDeath(){
   sfx.hurt();
   if(mp.mode==='dm'){
     if(p.air) leaveJetState(); else if(p.inVeh) exitRover();
-    ctfDropMine();
+    ctfDropMine(); grReset();
     var dm={t:'dead',by:mp.lastBy,vt:mp.team}; mpSend(dm); if(mp.host){ dm.f=0; mpRecv(dm); }
     mp.lastBy=undefined;
   }
