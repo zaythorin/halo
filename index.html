@@ -328,6 +328,44 @@ body{letter-spacing:.02em}
 .pbtns{width:100%}
 .pbtns .go{text-align:left}
 .mpCard .go{align-self:stretch}
+
+/* ---- teal Halo 3 HUD: shield bar top centre, grenades top left, weapon and ammo top right, radar bottom left, thin visor frame; no health bar ---- */
+:root{--h1:#46d2d6;--h2:#128a96;--hd:#0b4a56;--hl:#6fdde0;--ht:#d8fbfb}
+#visor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:rgba(90,205,212,.55);stroke-width:1.6;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 3px rgba(40,170,180,.45))}
+#visor path{vector-effect:non-scaling-stroke}
+#ui.scoped #visor{display:none}
+.status{left:50%;right:auto;transform:translateX(-50%);top:calc(10px + var(--st));width:min(400px,46vw);padding-left:0;gap:4px;align-items:center}
+#chIcon{display:none}
+.status .row:nth-of-type(2){display:none!important}
+.status .row:nth-of-type(1){width:100%;filter:drop-shadow(0 0 6px rgba(40,190,200,.55))}
+.status .row:nth-of-type(1) .bar{height:22px;padding:0;border:0;border-radius:0;background:rgba(8,62,72,.6);clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,14px 100%);box-shadow:none}
+.status .row:nth-of-type(1) .bar>i{-webkit-mask-image:none;mask-image:none;background:linear-gradient(180deg,var(--hl),var(--h1) 40%,var(--h2))}
+.status .row:nth-of-type(3){width:56%;margin-top:1px}
+.status .row:nth-of-type(3) .bar{height:8px;padding:0;border:0;border-radius:0;background:rgba(8,62,72,.6)}
+.status.low .row:nth-of-type(1) .bar,.status.sdown .row:nth-of-type(1) .bar{animation:sflash .55s steps(2) infinite;background:rgba(150,30,20,.55)}
+.status.low .row:nth-of-type(1) .bar>i,.status.sdown .row:nth-of-type(1) .bar>i{background:linear-gradient(180deg,#ffb4a0,#e0452c)}
+.status.shhit .row:nth-of-type(1) .bar{background:rgba(190,255,255,.55);box-shadow:none}
+#bPause{top:calc(40px + var(--st))}
+#match{top:calc(80px + var(--st))}
+.info{left:auto;right:calc(22px + var(--sr));top:calc(12px + var(--st));width:min(280px,44vw);align-items:flex-end;text-align:right;gap:4px}
+#wname{font-size:13px;letter-spacing:.3em;color:var(--hl);text-shadow:0 0 6px rgba(60,200,210,.7)}
+.info .ammo{justify-content:flex-end;gap:8px}
+#mag{font-size:54px;color:var(--ht);text-shadow:0 0 10px rgba(60,200,210,.85)}
+.info .ammo .x{font-size:26px;color:#5cc2c8}
+#res{font-size:28px;color:#8fe2e4;text-shadow:0 0 6px rgba(60,190,200,.6)}
+.info.lowAmmo #mag{color:#ffc65a}
+.magbar{align-items:flex-end;gap:4px}
+.magbar .mrow{justify-content:flex-end}
+.magbar .mrow i{height:11px;background:rgba(70,200,210,.16);border:1px solid rgba(110,220,225,.3)}
+.magbar .mrow i.on{background:linear-gradient(180deg,#bff6f6,var(--h1));border-color:rgba(200,250,250,.85);box-shadow:0 0 5px rgba(70,210,220,.7)}
+.info .kv.gren{position:fixed;left:calc(22px + var(--sl));top:calc(14px + var(--st));margin:0;gap:18px;justify-content:flex-start}
+.gren b{font-size:26px;color:var(--ht);text-shadow:0 0 7px rgba(60,200,210,.75);gap:7px}
+.gi{width:26px;height:28px;fill:var(--hl);filter:drop-shadow(0 0 4px rgba(60,200,210,.75))}
+.gi.fg{fill:#bfeff0}
+#tracker{width:176px;height:176px;left:calc(18px + var(--sl));bottom:calc(30px + var(--sb))}
+#trLabel{display:none;position:absolute;left:calc(18px + var(--sl) + 138px);bottom:calc(16px + var(--sb));font:700 14px ui-monospace,Menlo,Consolas,monospace;color:rgba(110,222,226,.85);text-shadow:0 0 5px rgba(40,170,180,.6)}
+@media (pointer:coarse){#tracker{width:120px;height:120px;bottom:auto;top:calc(76px + var(--st));left:calc(14px + var(--sl))}#trLabel{bottom:auto;top:calc(196px + var(--st));left:calc(100px + var(--sl))}.info .kv.gren{top:calc(12px + var(--st))}#mag{font-size:44px}}
+#toast{color:var(--hl)}
 </style>
 
 <canvas id="gl"></canvas>
@@ -340,6 +378,7 @@ body{letter-spacing:.02em}
   <div id="scope"><i class="h"></i><i class="v"></i><i class="d"></i><i class="tk a"></i><i class="tk b"></i><i class="tk c"></i></div>
   <div class="cross" id="cross"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
 
+  <svg id="visor" viewBox="0 0 728 406" preserveAspectRatio="none"><path d="M0 98L128 90L170 52H558L600 90L728 98"/><path d="M0 270L50 274L110 322L300 332H428L618 322L678 274L728 270"/></svg>
   <div id="svig"></div>
   <div id="dmgDir"><i></i></div>
   <div class="panel status" id="status">
@@ -356,7 +395,7 @@ body{letter-spacing:.02em}
     <div class="kv gren"><span>GRENADES</span><b><svg class="gi fg" viewBox="0 0 20 22"><path d="M8 1h4v3h-4z"/><path d="M10 4C5 4 2 8 2 13s3 8 8 8 8-3 8-8-3-9-8-9zm0 3c3 0 5 2.4 5 6s-2 5-5 5-5-1.4-5-5 2-6 5-6z" fill-rule="evenodd"/></svg><u id="gFrag">3</u></b><b><svg class="gi" viewBox="0 0 20 22"><path d="M10 1l2 4 5 1-3 4 1 5-5-2-5 2 1-5-3-4 5-1z"/><circle cx="10" cy="16" r="4"/></svg><u id="gPlasma">2</u></b></div>
   </div>
   <div id="match"><span>WAVE<b id="wave">1</b></span><span>HOSTILES<b id="left">0</b></span><span>SCORE<b id="score">0</b></span><span>ROVER<b id="rv">--</b></span></div>
-  <canvas id="tracker" width="150" height="150"></canvas><div id="trLabel">35m</div>
+  <canvas id="tracker" width="176" height="176"></canvas><div id="trLabel"></div>
 
   <div id="lockHint" hidden>CLICK TO CAPTURE MOUSE</div>
   <div id="mpHud" hidden></div>
@@ -1898,14 +1937,14 @@ function drawTracker(){
   if(!trCx||(++trN%2)) return;
   var W=trCv.width, c=W/2, R=c-5, RANGE=35, i, x=trCx;
   x.clearRect(0,0,W,W);
-  var gr=x.createRadialGradient(c,c,R*0.1,c,c,R); gr.addColorStop(0,'rgba(22,76,116,.58)'); gr.addColorStop(1,'rgba(8,36,64,.74)');
+  var gr=x.createRadialGradient(c,c,R*0.1,c,c,R); gr.addColorStop(0,'rgba(24,104,116,.62)'); gr.addColorStop(1,'rgba(10,64,76,.8)');
   x.fillStyle=gr; x.beginPath(); x.arc(c,c,R,0,6.2832); x.fill();
   var sn=Math.sin(p.yaw), cs=Math.cos(p.yaw);
   /* view cone */
-  x.fillStyle='rgba(127,220,255,.1)'; x.beginPath(); x.moveTo(c,c); x.arc(c,c,R,-1.5708-0.62,-1.5708+0.62); x.closePath(); x.fill();
-  x.strokeStyle='rgba(127,220,255,.2)'; x.lineWidth=1;
+  x.fillStyle='rgba(110,224,228,.1)'; x.beginPath(); x.moveTo(c,c); x.arc(c,c,R,-1.5708-0.62,-1.5708+0.62); x.closePath(); x.fill();
+  x.strokeStyle='rgba(110,224,228,.2)'; x.lineWidth=1;
   x.beginPath(); x.arc(c,c,R*0.34,0,6.2832); x.moveTo(c+R*0.67,c); x.arc(c,c,R*0.67,0,6.2832); x.moveTo(c,c-R); x.lineTo(c,c+R); x.moveTo(c-R,c); x.lineTo(c+R,c); x.stroke();
-  var sw=((tAcc*0.9)%1); x.strokeStyle='rgba(170,235,255,'+(0.4*(1-sw)).toFixed(2)+')'; x.lineWidth=2; x.beginPath(); x.arc(c,c,R*sw,0,6.2832); x.stroke();
+  var sw=((tAcc*0.9)%1); x.strokeStyle='rgba(190,245,245,'+(0.4*(1-sw)).toFixed(2)+')'; x.lineWidth=2; x.beginPath(); x.arc(c,c,R*sw,0,6.2832); x.stroke();
   function blip(wx,wz,col,sz,sq){
     var dx=wx-p.x, dz=wz-p.z, d=Math.hypot(dx,dz); if(d>RANGE) return;
     var fw=-dx*sn-dz*cs, rt=dx*cs-dz*sn, sc=R/RANGE, bx=c+rt*sc, by=c-fw*sc;
@@ -1922,7 +1961,7 @@ function drawTracker(){
   for(i=0;i<allies.length;i++){ if(!allies[i].dead) blip(allies[i].x,allies[i].z,'#7dff9a',3.2,false); }
   if(veh.alive&&!p.inVeh) blip(veh.x,veh.z,'#8fe0ff',3,true);
   /* frame, ticks and the player */
-  x.strokeStyle='rgba(127,220,255,.9)'; x.lineWidth=2; x.beginPath(); x.arc(c,c,R,0,6.2832); x.stroke();
+  x.strokeStyle='rgba(110,224,228,.9)'; x.lineWidth=2; x.beginPath(); x.arc(c,c,R,0,6.2832); x.stroke();
   x.lineWidth=1.5; for(i=0;i<12;i++){ var a=i*Math.PI/6, r0=R-(i%3===0?8:4); x.beginPath(); x.moveTo(c+Math.cos(a)*r0,c+Math.sin(a)*r0); x.lineTo(c+Math.cos(a)*R,c+Math.sin(a)*R); x.stroke(); }
   x.fillStyle='#bff0ff'; x.beginPath(); x.moveTo(c,c-6); x.lineTo(c+4.5,c+5); x.lineTo(c,c+2.5); x.lineTo(c-4.5,c+5); x.closePath(); x.fill();
   x.fillStyle='rgba(160,230,255,.85)'; x.font='700 11px ui-monospace,Menlo,Consolas,monospace'; x.textAlign='center'; x.fillText(RANGE+' m',c,c+R*0.62+4);
