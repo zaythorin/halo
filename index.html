@@ -5895,10 +5895,9 @@ function chPose(cd,P,R,out){
   return [cd.org(P),qMul(basisQ(cd.up(P),cd.right(P)),qInv(basisQ(cd.up(R),cd.right(R))))];
 }
 function chiefTexture(i){
-  if(!chiefTexCache) chiefTexCache={};
-  var ck=CHIEF.id+i;
-  if(!chiefTexCache[ck]){ var t=emTexLoader.load(CHIEF.tex[i]); t.flipY=false; chiefTexCache[ck]=t; }
-  return chiefTexCache[ck];
+  var ck=CHIEF.id+i, C=chiefTexture.c||(chiefTexture.c={});
+  if(!C[ck]){ var t=fpLoader.load(CHIEF.tex[i]); t.flipY=false; C[ck]=t; }
+  return C[ck];
 }
 var CH_SCALE=1.22;
 function buildRagdoll(){
