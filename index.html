@@ -145,17 +145,34 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #lockHint{position:absolute;left:0;right:0;bottom:calc(110px + var(--sb));text-align:center;font-size:11px;letter-spacing:.3em;color:var(--amber);font-weight:700;text-shadow:0 1px 6px #000;pointer-events:none}
 #menu.gate .go,#menu.gate #ctlBtn{visibility:hidden}
 /* sniper scope */
-#scope{position:absolute;inset:0;opacity:0;pointer-events:none;--c:#fff;--r:min(45vh,45vw);background:radial-gradient(circle at 50% 50%,transparent calc(var(--r) - 1px),#000 var(--r))}
+#scope{position:absolute;inset:0;opacity:0;pointer-events:none;--c:#8fd8ff;--w:min(61vw,112vh);--h:calc(var(--w) * 0.466);--tk:rgba(235,240,255,.85)}
 #ui.scoped #scope{opacity:1}
 #ui.scoped .cross{display:none}
 #scope.head{--c:var(--amber)}
 #scope.kill{--c:var(--warn)}
-#scope i{position:absolute;display:block}
-#scope .h{left:calc(50% - var(--r));width:calc(var(--r) * 2);top:50%;height:1px;background:linear-gradient(90deg,var(--c) 0,var(--c) calc(50% - 16px),transparent calc(50% - 16px),transparent calc(50% + 16px),var(--c) calc(50% + 16px),var(--c) 100%);opacity:.8}
-#scope .v{top:calc(50% - var(--r));height:calc(var(--r) * 2);left:50%;width:1px;background:linear-gradient(180deg,var(--c) 0,var(--c) calc(50% - 16px),transparent calc(50% - 16px),transparent calc(50% + 16px),var(--c) calc(50% + 16px),var(--c) 100%);opacity:.8}
-#scope .d{left:calc(50% - 1.5px);top:calc(50% - 1.5px);width:3px;height:3px;border-radius:50%;background:var(--c)}
-#scope .tk{left:calc(50% - 7px);width:14px;height:1px;background:var(--c);opacity:.7}
-#scope .tk.a{top:calc(50% + 40px)}#scope .tk.b{top:calc(50% + 80px)}#scope .tk.c{top:calc(50% + 120px)}
+#scope i,#scope b,#scope u{position:absolute;display:block;text-decoration:none}
+#scope .win{left:calc(50% - var(--w) / 2);top:calc(50% - var(--h) / 2);width:var(--w);height:var(--h);border:3px solid #000;border-radius:clamp(14px,2.6vh,26px);box-sizing:border-box;box-shadow:0 0 0 100vmax rgba(0,0,0,.42)}
+#scope .bl{background:rgba(0,0,0,.01);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+#scope .bt{left:0;right:0;top:0;height:calc(50% - var(--h) / 2)}
+#scope .bb{left:0;right:0;bottom:0;height:calc(50% - var(--h) / 2)}
+#scope .bw{left:0;width:calc(50% - var(--w) / 2);top:calc(50% - var(--h) / 2);height:var(--h)}
+#scope .be{right:0;width:calc(50% - var(--w) / 2);top:calc(50% - var(--h) / 2);height:var(--h)}
+#scope .sc{top:calc(50% - var(--h) * 0.4);height:calc(var(--h) * 0.8);width:9px;background:repeating-linear-gradient(180deg,var(--tk) 0 1px,transparent 1px 13px)}
+#scope .sc.l{left:calc(50% - var(--w) / 2 - 22px)}
+#scope .sc.r{left:calc(50% + var(--w) / 2 + 13px)}
+#scope .ar{top:calc(50% - var(--h) * 0.4 + var(--h) * 0.2);width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-top:-7px}
+#scope .ar.l{left:calc(50% - var(--w) / 2 - 24px);border-left:11px solid var(--tk)}
+#scope .ar.r{left:calc(50% + var(--w) / 2 + 13px);border-right:11px solid var(--tk)}
+#scope .ln{background:var(--c);opacity:.8}
+#scope .lh{top:calc(50% - 0.5px);height:1px}
+#scope .lh.a{left:calc(50% - var(--w) * 0.18);width:calc(var(--w) * 0.11)}
+#scope .lh.b{left:calc(50% + var(--w) * 0.07);width:calc(var(--w) * 0.11)}
+#scope .lv{left:calc(50% - 0.5px);width:1px;top:calc(50% + 14px);height:calc(var(--h) * 0.36)}
+#scope .bar{height:4px;top:calc(50% - 2px);background:rgba(0,0,0,.8)}
+#scope .bar.a{left:calc(50% - var(--w) * 0.18);width:calc(var(--w) * 0.055)}
+#scope .bar.b{left:calc(50% + var(--w) * 0.125);width:calc(var(--w) * 0.055)}
+#scope .ring{left:calc(50% - 6px);top:calc(50% - 6px);width:12px;height:12px;border:1.5px solid var(--c);border-radius:50%;box-sizing:border-box}
+#scope .z{left:calc(50% + var(--w) / 2 - 78px);top:calc(50% + var(--h) / 2 - 52px);font:900 28px/1 var(--font-ui);color:var(--c);letter-spacing:.02em}
 
 /* main menu: no card, just the title over the turning ring */
 #menu{flex-direction:column;background:radial-gradient(ellipse at 50% 55%,rgba(2,6,10,.05) 0,rgba(2,6,10,.55) 100%);-webkit-backdrop-filter:none;backdrop-filter:none}
@@ -384,7 +401,7 @@ body{letter-spacing:.02em}
 
 <div id="ui" hidden>
   <div id="vig"></div>
-  <div id="scope"><i class="h"></i><i class="v"></i><i class="d"></i><i class="tk a"></i><i class="tk b"></i><i class="tk c"></i></div>
+  <div id="scope"><u class="bl bt"></u><u class="bl bb"></u><u class="bl bw"></u><u class="bl be"></u><i class="win"></i><i class="sc l"></i><i class="sc r"></i><i class="ar l"></i><i class="ar r"></i><i class="ln lh a"></i><i class="ln lh b"></i><i class="ln lv"></i><i class="bar a"></i><i class="bar b"></i><i class="ring"></i><b class="z" id="scopeZ">4x</b></div>
   <div class="cross" id="cross"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
 
   <svg id="visor" viewBox="0 0 728 406" preserveAspectRatio="none"><path d="M0 98L128 90L170 52H558L600 90L728 98"/><path d="M0 270L50 274L110 322L300 332H428L618 322L678 274L728 270"/></svg>
@@ -2060,6 +2077,7 @@ function hud(){
   if(hudCache.nl!==needLock){ hudCache.nl=needLock; els.lockHint.hidden=!needLock; }
   var scoped=zoomed&&!p.inVeh&&!!(w.scope||w.lscope)&&camera.fov<45;
   if(hudCache.scoped!==scoped){ hudCache.scoped=scoped; els.ui.classList.toggle('scoped',scoped); }
+  if(scoped){ var zt=(w.id==='sniper'?(zoomLvl>1?8:4):(zoomLvl>1?5:2))+'x'; if(hudCache.zt!==zt){ hudCache.zt=zt; $('scopeZ').textContent=zt; } }
   var vo=Math.min(1,vigT);
   if(p.health<35) vo=Math.max(vo,0.25+0.15*Math.sin(tAcc*6));
   els.vig.style.opacity=vo.toFixed(2);
@@ -3595,7 +3613,7 @@ function updateLook(){
   p.pitch=Math.max(-1.45,Math.min(1.45,p.pitch));
 }
 function updateFov(dt){
-  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?(zoomLvl>1?12:30):(weapons[cur].zoomFov||42))):BASE_FOV;
+  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?(weapons[cur].id==='sniper'?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV;
   if(Math.abs(camera.fov-ft)>0.05){ camera.fov+=(ft-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); }
 }
 function regen(dt){
@@ -4572,7 +4590,7 @@ function startReload(){
 }
 var zoomLvl=1;
 function zoomOff(){ zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); }
-/* the sniper zooms in two steps (2x, then double again); the rocket launcher scope is a single step; press again to leave the scope */
+/* the sniper zooms in two steps (4x, then double again to 8x); the rocket launcher scope is a single step; press again to leave the scope */
 function toggleZoom(){
   var w=weapons[cur];
   if(zoomed&&w&&w.id==='sniper'&&!p.inVeh&&zoomLvl<2){ zoomLvl=2; if(sample) tone(900,1300,0.06,'sine',0.05); return; }
