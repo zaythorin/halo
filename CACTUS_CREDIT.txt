@@ -1,0 +1,11 @@
+Model Information:
+* title:	Cactus | Pack
+* source:	https://sketchfab.com/3d-models/cactus-pack-588596f1601d48e6ad4cb24b31c3f33c
+* author:	Erroratten (https://sketchfab.com/erroratten)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Cactus | Pack" (https://sketchfab.com/3d-models/cactus-pack-588596f1601d48e6ad4cb24b31c3f33c) by Erroratten (https://sketchfab.com/erroratten) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
