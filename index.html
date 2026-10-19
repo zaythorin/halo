@@ -59,7 +59,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);-
 
 body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #mpHud{position:absolute;left:0;right:0;top:calc(52px + var(--st));text-align:center;font-weight:700;font-size:13px;letter-spacing:.24em;color:var(--ink);text-shadow:0 2px 8px rgba(0,0,0,.7);pointer-events:none}
-.mpCard{align-items:center;text-align:center}
+.mpCard{align-items:center;text-align:center;max-height:92vh;overflow-y:auto}
+.mpOpts{width:100%;display:flex;flex-direction:column;gap:6px;text-align:left}
+.mpOptT{font:700 12px var(--font-ui);letter-spacing:.2em;color:var(--dim);margin-top:4px}
+.mpChips{display:flex;flex-wrap:wrap;gap:5px}
+.mpChips .chip{font:700 11px var(--font-ui);letter-spacing:.08em;padding:6px 9px;border:1.5px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;border-radius:3px}
+.mpChips .chip.on{color:#fff;border-color:#6be4ff;background:rgba(107,228,255,.16)}
+.mpOpts select{background:rgba(14,28,38,.8);color:var(--ink);border:1.5px solid var(--line);font:700 13px var(--font-ui);padding:6px 8px}
 .mpCard .go{align-self:stretch}
 .mpModes{display:flex;gap:10px;width:100%}
 .mpModes .go{flex:1;padding:12px 8px;font-size:13px;background:transparent;color:var(--dim);border:1.5px solid var(--line)}
@@ -434,6 +440,14 @@ body{letter-spacing:.02em}
     <div class="mpModes"><button type="button" class="go alt on" id="mpFF">FIREFIGHT CO-OP</button><button type="button" class="go alt" id="mpDM">TEAM BATTLE 1v1 - 2v2</button><button type="button" class="go alt" id="mpCTF">CAPTURE THE FLAG</button></div>
     <p class="dim" id="mpDesc"></p>
     <div class="mpRow"><input id="mpName" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false"></div>
+    <div class="mpOpts" id="mpOpts">
+      <div class="mpOptT">MATCH SETTINGS (THE HOST'S CHOICES APPLY)</div>
+      <div class="mpOptT">WEAPONS ALLOWED</div><div class="mpChips" id="mpOptW"></div>
+      <div id="mpOptTM">
+        <div class="mpOptT">VEHICLES AND MAP</div><div class="mpChips" id="mpOptV"></div>
+        <div class="mpOptT">SCORE LIMIT <select id="mpLim"></select></div>
+      </div>
+    </div>
     <button type="button" class="go" id="mpHost">HOST A GAME</button>
     <div class="mpRow"><input id="mpCode" maxlength="5" placeholder="ROOM CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button type="button" class="go alt" id="mpJoin">JOIN</button></div>
     <div id="mpStatus"></div>
@@ -4156,6 +4170,7 @@ function spawnRacks(){
   for(var r=0;r<racks.length;r++){
     var rk=racks[r];
     for(var j=0;j<lay.length;j++){
+      if(!wAllowed(lay[j][0])) continue;
       var L=lay[j], g=new THREE.Group(), inner=rackTpl[L[0]].clone();
       g.add(inner);
       var hl=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.5,0.04),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.22,depthWrite:false,blending:THREE.AdditiveBlending}));
@@ -4226,6 +4241,7 @@ function takeWeapon(i,dual){
 var TUR={pk:null,sel:0,prev:0,S:0.85,GY:1.27,list:[]};
 function turNet(a,pk){ if(mp.on&&pk&&pk.tid!==undefined) mpSend({t:'tu',i:pk.tid,a:a}); }
 function spawnTurret(x,z,yaw,fy0){
+  if(!wAllowed(10)) return null;
   if(!rackTpl) buildRackTpl();
   var fy=(fy0!==undefined)?fy0:lyG(x,z), root=new THREE.Group(), inner=new THREE.Group();
   inner.scale.setScalar(TUR.S); root.add(inner);
@@ -6151,7 +6167,7 @@ function tmH(x,z){
   h+=tmBump(x,z,0,-50,14,1.8)+tmBump(x,z,0,50,14,1.8)+tmBump(x,z,18,-12,10,1.5)+tmBump(x,z,-18,12,10,1.5)+tmBump(x,z,28,-30,11,1.7)+tmBump(x,z,-28,30,11,1.7);
   var m=smooth(0,12,tmRd(x,z)), mb=smooth(6,22,tmRd(x,z));
   h*=m;
-  h+=(tmCuts(x,z)+tmCuts(-x,-z))*mb;
+  if(!TM.noTr) h+=(tmCuts(x,z)+tmCuts(-x,-z))*mb;
   var e=tmE(x,z);
   return h+6*smooth(0.84,1.0,e)+55*smooth(0.98,1.1,e)+25*smooth(1.08,1.3,e);
 }
@@ -6420,6 +6436,7 @@ function lyG(x,z){
   return m;
 }
 function tmLooseWeapon(x,z,wi,fy,fall){
+  if(!fall&&!wAllowed(wi)) return null;
   var sz=rackTpl[wi].userData.sz||new V3(1,0.3,0.15), hz=Math.max(0.04,sz.z/2), y=fall?fall.y0:(fy!==undefined?fy:lyG(x,z))+hz+0.07, g=new THREE.Group(), inner=rackTpl[wi].clone();
   inner.rotation.x=Math.PI/2; g.add(inner);
   var ring=new THREE.Mesh(new THREE.RingGeometry(0.6,0.82,24),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
@@ -6438,6 +6455,7 @@ function tmLoose(){
   [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmLooseWeapon(-12,Z+dz*49,1); tmLooseWeapon(12,Z+dz*49,4); tmLooseWeapon(0,Z+dz*47,0); tmLooseWeapon(-6,Z+dz*49,7); tmLooseWeapon(6,Z+dz*49,6); tmLooseWeapon(0,Z+dz*43,8); tmLooseWeapon(10,Z+dz*45,9); var ty=dz>0?Math.PI:0; spawnTurret(-16,Z+dz*63,ty); spawnTurret(16,Z+dz*63,ty); });
 }
 function tmEnter(team){
+  TM.noTr=!!(mp.opt&&mp.opt.tr===0);
   teamPaint(fpMaterials(),team); TP.rigId=null;
   var prev=scene.children.length;
   TM.on=true; TM.team=team; TM.hid=[];
@@ -6470,6 +6488,10 @@ function tmEnter(team){
   tmMakeEnemyVehicles(1-team);
   placeRover(); placeJet(); veh.respawnT=0; jet.respawnT=0;
   beacon.visible=true; jbeacon.visible=true;
+  if(mp.opt){
+    if(!mp.opt.vr){ veh.alive=false; veh.respawnT=1e9; rover.group.visible=false; beacon.visible=false; if(TM.ev&&TM.ev.r){ TM.ev.r.alive=false; TM.ev.r.rt=1e9; TM.ev.r.g.visible=false; TM.ev.r.mk.visible=false; } }
+    if(!mp.opt.vj){ jet.alive=false; jet.respawnT=1e9; jetObj.group.visible=false; jbeacon.visible=false; if(TM.ev&&TM.ev.j){ TM.ev.j.alive=false; TM.ev.j.rt=1e9; TM.ev.j.g.visible=false; TM.ev.j.mk.visible=false; } }
+  }
 }
 function tmExit(){
   if(!TM.on) return;
@@ -6865,7 +6887,7 @@ function mpHostAccept(cn){
   var ent={cn:cn,id:id,team:cnt[1]<cnt[0]?1:0};
   mp.conns.push(ent); cn.pid=id; if(!mp.conn) mp.conn=cn;
   cn.on('open',function(){
-    try{ cn.send({t:'start',mode:mp.mode,ctf:mp.ctf?1:0,id:id,team:ent.team,ps:mpRosterMsg(),sc:mp.score,f:0}); }catch(e){}
+    try{ cn.send({t:'start',mode:mp.mode,ctf:mp.ctf?1:0,opt:mp.opt||null,id:id,team:ent.team,ps:mpRosterMsg(),sc:mp.score,f:0}); }catch(e){}
     if(!mp.on) mpBegin(); else mpAddPeer(id,ent.team);
     if(mp.mode==='dm'){ mpSend({t:'roster',ps:mpRosterMsg()}); showToast('PLAYER JOINED'); }
   });
@@ -6922,7 +6944,8 @@ function mpSetup(){
   if(mp.host){ mp.conns.forEach(function(c){ mpAddPeer(c.id,c.team); }); }
   else{ mp.roster.forEach(function(r){ mpAddPeer(r[0],r[1]); }); }
   $('restart').hidden=true; $('mpHud').hidden=false; $('match').style.display=mp.mode==='dm'?'none':'';
-  showBanner(mp.mode==='dm'?'TEAM BATTLE':'CO-OP FIREFIGHT');
+  mpLoadout();
+  showBanner(mp.mode==='dm'?(mp.ctf?'CAPTURE THE FLAG':'TEAM BATTLE'):'CO-OP FIREFIGHT');
 }
 function buildChiefAvatar(){
   var built=buildRagdoll(), R={}, S={};
@@ -7030,7 +7053,7 @@ function mpRevive(near){
   p.vx=0; p.vz=0; p.vy=0; reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0;
   mp.inv=tAcc+2.5; $('ui').hidden=false; lockMouse(); showToast('RESPAWNED');
 }
-function mpTarget(){ if(mp.ctf) return 3; var n=0; for(var id in mp.peers) n++; return n<=1?10:20; }
+function mpTarget(){ if(mp.opt&&mp.opt.lim) return mp.opt.lim; if(mp.ctf) return 3; var n=0; for(var id in mp.peers) n++; return n<=1?10:20; }
 function mpCheckEnd(){
   if(mp.mode!=='dm'||mp.over) return;
   var T=mpTarget();
@@ -7050,7 +7073,7 @@ function mpRecv(m){
   var pe=mp.peers[m.f], R=pe?pe.rem:mp.rem, avatar=pe?pe.avatar:mp.avatar;
   switch(m.t){
     case 'start':
-      mp.mode=m.mode; mp.ctf=!!m.ctf; mp.id=m.id; mp.team=m.team||0; mp.roster=m.ps||[]; mp.score=m.sc||[0,0]; mpBegin(); break;
+      mp.mode=m.mode; mp.ctf=!!m.ctf; mp.opt=m.opt||null; mp.id=m.id; mp.team=m.team||0; mp.roster=m.ps||[]; mp.score=m.sc||[0,0]; mpBegin(); break;
     case 'roster':
       if(!mp.on||mp.host) break;
       var seen={}; m.ps.forEach(function(r){ seen[r[0]]=1; if(r[0]!==mp.id) mpAddPeer(r[0],r[1]); });
@@ -7235,8 +7258,8 @@ function mpTick(dt){
   var txt, R=mp.rem;
   if(mp.mode==='dm'){
     var n=1; for(var q in mp.peers) n++;
-    txt=TEAMS[mp.team].n+' TEAM   '+mp.score[0]+'  RED  -  BLUE  '+mp.score[1]+'   ('+n+' PLAYERS)';
-    if(mp.ctf&&CTF.on){ var fs=function(F){ return F.home?'HOME':(F.carrier>=0?(F.carrier===mp.id?'YOU HAVE IT':'TAKEN'):'DROPPED'); }; txt=TEAMS[mp.team].n+' TEAM  CTF  RED '+mp.score[0]+' - '+mp.score[1]+' BLUE  (FIRST TO 3)    RED FLAG: '+fs(CTF.F[0])+'   BLUE FLAG: '+fs(CTF.F[1]); }
+    txt=TEAMS[mp.team].n+' TEAM   '+mp.score[0]+'  RED  -  BLUE  '+mp.score[1]+'   ('+n+' PLAYERS)  FIRST TO '+mpTarget();
+    if(mp.ctf&&CTF.on){ var fs=function(F){ return F.home?'HOME':(F.carrier>=0?(F.carrier===mp.id?'YOU HAVE IT':'TAKEN'):'DROPPED'); }; txt=TEAMS[mp.team].n+' TEAM  CTF  RED '+mp.score[0]+' - '+mp.score[1]+' BLUE  (FIRST TO '+mpTarget()+')    RED FLAG: '+fs(CTF.F[0])+'   BLUE FLAG: '+fs(CTF.F[1]); }
     if($('mpHud').style.color!==TEAMS[mp.team].css) $('mpHud').style.color=TEAMS[mp.team].css;
   }
   else txt='CO-OP   PARTNER  '+(R.al?Math.max(0,R.hp)+' HP':'DOWN');
@@ -7250,6 +7273,37 @@ function dropLoot(x,y,z){
   }
 }
 /* ---- menu wiring ---- */
+var MPO={w:[1,1,1,1,1,1,1,1,1,1,1],vr:1,vj:1,lim:0,tr:1};
+function mpOptRead(){
+  var w=MPO.w.slice(); if(!w.some(function(v){ return v; })) w=w.map(function(){ return 1; });
+  return {w:w,vr:MPO.vr,vj:MPO.vj,lim:MPO.lim,tr:MPO.tr};
+}
+function mpChip(parent,label,get,set){
+  var b=document.createElement('button'); b.type='button'; b.className='chip'+(get()?' on':''); b.textContent=label;
+  b.addEventListener('click',function(){ set(get()?0:1); b.classList.toggle('on',!!get()); }); parent.appendChild(b);
+}
+function mpBuildOpts(){
+  var W=$('mpOptW'), V=$('mpOptV'); W.innerHTML=''; V.innerHTML='';
+  ['MAGNUM','ASSAULT RIFLE','SNIPER','ROCKETS','SHOTGUN','ENERGY SWORD','SMG','BATTLE RIFLE','SPARTAN LASER','SALT RIFLE','MOUNTED TURRET'].forEach(function(n,i){
+    mpChip(W,n,function(){ return MPO.w[i]; },function(v){ MPO.w[i]=v; });
+  });
+  mpChip(V,'ROVER',function(){ return MPO.vr; },function(v){ MPO.vr=v; });
+  mpChip(V,'HORNET',function(){ return MPO.vj; },function(v){ MPO.vj=v; });
+  mpChip(V,'TRENCHES',function(){ return MPO.tr; },function(v){ MPO.tr=v; });
+  $('mpLim').addEventListener('change',function(){ MPO.lim=+$('mpLim').value||0; });
+}
+function mpOptRefresh(m,ctf){
+  $('mpOptTM').style.display=m==='ff'?'none':'';
+  var L=$('mpLim'), opts=ctf?[['3 CAPTURES (DEFAULT)',0],['1 CAPTURE',1],['2 CAPTURES',2],['5 CAPTURES',5],['7 CAPTURES',7],['10 CAPTURES',10]]:[['AUTO (10 OR 20 KILLS)',0],['5 KILLS',5],['10 KILLS',10],['15 KILLS',15],['20 KILLS',20],['30 KILLS',30],['50 KILLS',50]];
+  L.innerHTML=''; opts.forEach(function(o){ var e=document.createElement('option'); e.value=o[1]; e.textContent=o[0]; L.appendChild(e); }); MPO.lim=0;
+}
+function wAllowed(wi){ return !(mp.on&&mp.opt)||mp.opt.w[wi]!==0; }
+function mpLoadout(){
+  if(!mp.opt) return;
+  var order=[0,1,6,7,2,4,3,8,9,5,10], al=order.filter(wAllowed);
+  if(!al.length) return;
+  if(!wAllowed(slots[0])||!wAllowed(slots[1])){ slots=[al[0],al[1]!==undefined?al[1]:al[0]]; sel=0; pendingW=null; swapT=0; setWeapon(slots[0]); }
+}
 var mpMode='ff';
 function mpSetMode0(m){
   mpMode=m; mp.mode=m; $('mpFF').classList.toggle('on',m==='ff'); $('mpDM').classList.toggle('on',m==='dm');
@@ -7257,7 +7311,7 @@ function mpSetMode0(m){
 }
 var mpCtf=false;
 function mpSetMode(m,ctf){
-  mpSetMode0(m); mpCtf=!!ctf&&m==='dm'; mp.ctf=mpCtf;
+  mpSetMode0(m); mpCtf=!!ctf&&m==='dm'; mp.ctf=mpCtf; mpOptRefresh(m,mpCtf);
   $('mpDM').classList.toggle('on',m==='dm'&&!mpCtf); $('mpCTF').classList.toggle('on',mpCtf);
   if(mpCtf) $('mpDesc').textContent='Red against blue, 1v1 up to 2v2. Take the enemy flag from the hall in front of their base and carry it to your own flag. Your flag has to be home to score. Flags drop when the carrier is killed and return after 30 seconds. First to 3 captures wins; kills do not score.';
 }
@@ -7265,10 +7319,10 @@ $('mpBtn').addEventListener('click',function(){ mpSetMode('ff'); mpStatus(''); $
 $('mpFF').addEventListener('click',function(){ mpSetMode('ff'); });
 $('mpDM').addEventListener('click',function(){ mpSetMode('dm'); });
 $('mpCTF').addEventListener('click',function(){ mpSetMode('dm',true); });
-$('mpHost').addEventListener('click',function(){ mp.mode=mpMode; mp.ctf=mpCtf; mpHost(); });
+$('mpHost').addEventListener('click',function(){ mp.mode=mpMode; mp.ctf=mpCtf; mp.opt=mpOptRead(); mpHost(); });
 $('mpJoin').addEventListener('click',mpJoin);
 $('mpBack').addEventListener('click',function(){ if(!mp.on) mpClose(); $('mp').hidden=true; });
-mpSetMode('ff');
+mpBuildOpts(); mpSetMode('ff');
 
 /* ================= CONTROLLER (Gamepad API, standard layout: Xbox / PlayStation / Switch Pro) ================= */
 var gpv={mx:0,mz:0}, gpPrev=[], gpActive=0, gpFire=false, gpNavT=0, gpHeld={}, GP_LOOK=3.3;
