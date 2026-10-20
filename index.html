@@ -1338,6 +1338,7 @@ function resolveCircle(p,r,feetY){
     var b=boxes[i];
     if(b.en) continue;
     if(feetY>=b.h-0.05) continue;
+    if(b.y0!==undefined&&feetY+2.0<=b.y0) continue;
     var cx=Math.max(b.minx,Math.min(p.x,b.maxx)), cz=Math.max(b.minz,Math.min(p.z,b.maxz));
     var dx=p.x-cx, dz=p.z-cz, d2=dx*dx+dz*dz;
     if(d2<r*r){
@@ -1352,7 +1353,7 @@ function resolveCircle(p,r,feetY){
   if(rad>lim){ p.x*=lim/rad; p.z*=lim/rad; }
 }
 function pointInCover(x,y,z){
-  for(var i=0;i<boxes.length;i++){ var b=boxes[i]; if(b.en) continue; if(y<b.h && x>b.minx && x<b.maxx && z>b.minz && z<b.maxz) return true; }
+  for(var i=0;i<boxes.length;i++){ var b=boxes[i]; if(b.en) continue; if(y<b.h && (b.y0===undefined||y>=b.y0) && x>b.minx && x<b.maxx && z>b.minz && z<b.maxz) return true; }
   return false;
 }
 
@@ -3670,7 +3671,11 @@ function structBlock(x,z,y){
   for(var q=0;q<W.length;q++) if(W[q][0]<y+1.8&&W[q][1]-0.2>y+0.7) return structStep(x,z,y)<-1e8;
   return false;
 }
-function floorY(x,z,y){ var g=groundH(x,z), f=structFloor(x,z,y); return f>g?f:g; }
+function floorY(x,z,y){
+  var g=groundH(x,z), f=structFloor(x,z,y); if(f<g) f=g;
+  if(TM&&TM.decks){ for(var i=0;i<TM.decks.length;i++){ var D=TM.decks[i]; if(x>D.minx&&x<D.maxx&&z>D.minz&&z<D.maxz&&D.y<=y+0.7&&D.y>f) f=D.y; } }
+  return f;
+}
 function climbOK(x0,z0,x1,z1,y){
   var d=Math.hypot(x1-x0,z1-z0); if(d<1e-6) return true;
   if(structBlock(x1,z1,y)) return false;
@@ -3678,9 +3683,35 @@ function climbOK(x0,z0,x1,z1,y){
   var f0=floorY(x0,z0,y), rise=floorY(x1,z1,y)-Math.max(y,f0);
   return rise/d<=1.15 || rise<=0.05;
 }
+
+/* ladders up to the sniper decks: walk into the ladder and hold forward to climb, back to climb down; walk forward off the deck at the ladder to climb down */
+var LAD={on:false,vy:0,id:-1,hint:-99};
+function ladderCheck(mx,mz){
+  LAD.on=false;
+  if(!TM.on||!TM.decks||p.inVeh||p.air||state!=='play'){ LAD.id=-1; return false; }
+  var fzw=-Math.cos(p.yaw);
+  for(var i=0;i<TM.decks.length;i++){
+    var D=TM.decks[i], L=D.lad, dx=Math.abs(p.x-L.x), dzz=p.z-L.z, up=mz>0.25, dn=mz<-0.25;
+    if(p.y>=D.y-0.15){
+      /* on the deck, at the ladder gap, walking towards the hall: climb down */
+      if(p.onGround&&up&&dx<0.8&&Math.abs(dzz)<1.5&&fzw*(-L.dz)>0.3){ p.z=L.z; p.x=L.x; p.onGround=false; LAD.on=true; LAD.id=i; LAD.vy=-3.2; return true; }
+      continue;
+    }
+    if(dx>0.8||Math.abs(dzz)>0.9){ if(LAD.id===i) LAD.id=-1; continue; }
+    if(tAcc-LAD.hint>6&&p.y<1){ LAD.hint=tAcc; showToast('WALK INTO THE LADDER AND HOLD FORWARD TO CLIMB'); }
+    var facing=fzw*L.dz>0.3;
+    if(LAD.id===i&&!p.onGround||(up&&facing)){
+      if(p.y>=D.y-0.05){ p.x=L.x; p.z=L.z+L.dz*1.4; p.y=D.y+0.05; p.vy=0; LAD.id=-1; return false; }
+      LAD.on=true; LAD.id=i; p.onGround=false; LAD.vy=up?3.4:(dn?-3.2:0); p.x+=(L.x-p.x)*0.25; if(ctrl.jump){ LAD.on=false; LAD.id=-1; p.vy=2.5; }
+      return true;
+    }
+  }
+  return false;
+}
 function updatePlayer(dt){
   updateLook();
   var m=readMove(), mx=m.mx, mz=m.mz, len=m.len;
+  if(ladderCheck(mx,mz)) mz=0;
   moveFrac=len; MA.mx=mx;
   var sprintHeld=!!(keys.ShiftLeft||keys.ShiftRight||ctrl.sprintTouch||gpSprint);
   CR+=(((keys.KeyC&&!p.inVeh)?1:0)-CR)*Math.min(1,dt*12);
@@ -3708,7 +3739,7 @@ function updatePlayer(dt){
   if(p.onGround){ var stp=structStep(p.x,p.z,p.y); if(stp>-1e8){ camLag-=Math.min(EM_STEP,stp-p.y); p.y=stp; p.vy=0; } }
   if(ctrl.jump){ if(p.onGround){ p.vy=JUMP_V; p.onGround=false; } ctrl.jump=false; }
   var wasAir=!p.onGround, vyBefore=p.vy;
-  p.vy-=GRAV*dt; p.y+=p.vy*dt;
+  if(LAD.on) p.vy=LAD.vy; else p.vy-=GRAV*dt; p.y+=p.vy*dt;
   var gy=floorY(p.x,p.z,p.y);
   if(p.y<=gy+0.04){
     if(!p.onGround && vyBefore<-3){ MA.land=Math.min(1,-vyBefore/14); camLag-=Math.min(0.22,-vyBefore*0.014); }
@@ -4884,6 +4915,13 @@ function boxRayT(o,d,maxT){
     else{ a=(b.minz-o.z)/d.z; c=(b.maxz-o.z)/d.z; if(a>c){ tm=a; a=c; c=tm; } if(a>t0) t0=a; if(c<t1) t1=c; if(t0>t1) continue; }
     if(t0<0.3&&t1<0.3) continue;
     y0=o.y+d.y*t0; y1=o.y+d.y*t1;
+    if(b.y0!==undefined){
+      if(Math.max(y0,y1)<b.y0||Math.min(y0,y1)>=b.h) continue;
+      if(y0>=b.y0&&y0<b.h){ if(t0>0.05&&t0<best) best=t0; }
+      else if(y0<b.y0&&d.y>0){ th=(b.y0-o.y)/d.y; if(th>=t0&&th<best) best=th; }
+      else if(y0>=b.h&&d.y<0){ th=(b.h-o.y)/d.y; if(th>=t0&&th<best) best=th; }
+      continue;
+    }
     if(y0<b.h){ if(t0>0.05&&t0<best) best=t0; }
     else if(y1<b.h&&d.y<0){ th=(b.h-o.y)/d.y; if(th>=t0&&th<best) best=th; }
   }
@@ -5511,7 +5549,7 @@ function stepGrenade(g,h){
   if(P.y<gh+r){ P.y=gh+r; hitSurface(g,groundNormal(P.x,P.z),'ground'); if(g.stuck) return; }
   for(i=0;i<boxes.length;i++){
     b=boxes[i]; if(b.en) continue;
-    if(P.x<b.minx-r||P.x>b.maxx+r||P.z<b.minz-r||P.z>b.maxz+r||P.y>b.h+r) continue;
+    if(P.x<b.minx-r||P.x>b.maxx+r||P.z<b.minz-r||P.z>b.maxz+r||P.y>b.h+r||(b.y0!==undefined&&P.y<b.y0-r)) continue;
     var ox1=P.x-(b.minx-r), ox2=(b.maxx+r)-P.x, oz1=P.z-(b.minz-r), oz2=(b.maxz+r)-P.z, oy=(b.h+r)-P.y, m=Math.min(ox1,ox2,oz1,oz2,oy);
     if(m===oy){ P.y=b.h+r; _bn.set(0,1,0); }
     else if(m===ox1){ P.x=b.minx-r; _bn.set(-1,0,0); }
@@ -6717,7 +6755,7 @@ function tmFBSetup(){
 }
 function tmBase(t){
   tmFBSetup();
-  if(t===0){ TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.spawns=[[],[]]; }
+  if(t===0){ TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.spawns=[[],[]]; }
   var s=t===0?-1:1, Z=s*TM.BZ, th=t===0?Math.PI:0, S=TMS, tc=TEAMS[t].c, cs=Math.cos(th), sn=Math.sin(th);
   function wx(x,z){ return (x*cs+z*sn)*S; }
   function wz(x,z){ return (-x*sn+z*cs)*S+Z; }
@@ -6767,12 +6805,44 @@ function tmHall(t,Z,dz){
   function wall(u0,u1,v0,v1,h,m){ var za=wz(v0), zb=wz(v1); addBox((u0+u1)/2,(za+zb)/2,u1-u0,Math.abs(zb-za),h,m||wallM,false); }
   /* back wall (a small passage to the base), front wall (a wide main gate), side walls (a gate each) */
   wall(-U,-3,V0,V0+TH,H); wall(3,U,V0,V0+TH,H);
-  wall(-U,-6,V1-TH,V1,H); wall(6,U,V1-TH,V1,H);
+  var WY0=4.7, WY1=6.3;
+  function wallY(u0,u1,v0,v1,y0,y1,m){
+    var za=wz(v0), zb=wz(v1), x=(u0+u1)/2, z=(za+zb)/2, w=u1-u0, d=Math.abs(zb-za), h=y1-y0;
+    var me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||wallM); me.position.set(x,y0+h/2,z); scene.add(me); coverMeshes.push(me);
+    var e=new THREE.LineSegments(new THREE.EdgesGeometry(me.geometry),edgeMat); e.position.copy(me.position); scene.add(e);
+    boxes.push({minx:x-w/2,maxx:x+w/2,minz:z-d/2,maxz:z+d/2,h:y1,y0:y0>0?y0:undefined});
+  }
+  /* front wall with sniper windows above the decks */
+  [[-U,-6,[-18,-14,-10]],[6,U,[10,14,18]]].forEach(function(sec){
+    var cur=sec[0], b=sec[1];
+    wallY(sec[0],b,V1-TH,V1,0,WY0); wallY(sec[0],b,V1-TH,V1,WY1,H);
+    sec[2].forEach(function(c){ wallY(cur,c-0.9,V1-TH,V1,WY0,WY1); cur=c+0.9; }); wallY(cur,b,V1-TH,V1,WY0,WY1);
+  });
   wall(-U,-U+TH,V0,36,H); wall(-U,-U+TH,44,V1,H); wall(U-TH,U,V0,36,H); wall(U-TH,U,44,V1,H);
   /* pillars and crates */
   [[-9,33],[9,33],[-9,51],[9,51]].forEach(function(a){ wall(a[0]-0.9,a[0]+0.9,a[1]-0.9,a[1]+0.9,H,colM); });
   wall(-14,-9.5,45.6,46.8,1.4,colM); wall(9.5,14,45.6,46.8,1.4,colM); wall(-3.2,3.2,43.6,44.8,1.4,colM);
   wall(-14,-12.8,34,38.5,1.4,colM); wall(12.8,14,34,38.5,1.4,colM);
+  /* second level: a sniper deck along each end of the front wall, up a ladder, shooting out of the windows */
+  var DY=3.7, DV0=51.2, DV1=V1-TH, deckM=new THREE.MeshLambertMaterial({color:TM.desert?0x9a7c52:0x7d8794}), railM=new THREE.MeshLambertMaterial({color:0x2a3038}), tcM=new THREE.MeshBasicMaterial({color:tc});
+  if(t===0||!TM.decks) TM.decks=TM.decks||[];
+  [[-U+TH,-7.5,-16.5],[7.5,U-TH,16.5]].forEach(function(sd){
+    var x0=sd[0], x1=sd[1], lx=sd[2], za=wz(DV0), zb=wz(DV1), zc=(za+zb)/2, dw=Math.abs(zb-za);
+    var slab=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,0.3,dw),deckM); slab.position.set((x0+x1)/2,DY-0.15,zc); scene.add(slab); coverMeshes.push(slab);
+    var tr=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,0.08,0.12),tcM); tr.position.set((x0+x1)/2,DY-0.1,za); scene.add(tr);
+    [x0+0.5,x1-0.5].forEach(function(px){ var pl=new THREE.Mesh(new THREE.BoxGeometry(0.35,DY-0.3,0.35),railM); pl.position.set(px,(DY-0.3)/2,za+(dz>0?0.3:-0.3)); scene.add(pl); coverMeshes.push(pl); });
+    function rail(u0,u1,v0,v1){ wallY(u0,u1,v0,v1,DY,DY+1.0,railM); }
+    rail(x0,lx-0.75,DV0-0.12,DV0); rail(lx+0.75,x1,DV0-0.12,DV0);
+    if(x1<0) rail(x1-0.12,x1,DV0,DV1); else rail(x0,x0+0.12,DV0,DV1);
+    /* ladder */
+    var lz=wz(DV0-0.12), rg=new THREE.BoxGeometry(0.07,DY,0.07), rm=new THREE.MeshLambertMaterial({color:0xc4ccd4}), k;
+    [-0.3,0.3].forEach(function(o){ var r=new THREE.Mesh(rg,rm); r.position.set(lx+o,DY/2,lz); scene.add(r); });
+    var rgg=new THREE.BoxGeometry(0.6,0.05,0.05);
+    for(k=0.35;k<DY;k+=0.4){ var rn=new THREE.Mesh(rgg,rm); rn.position.set(lx,k,lz); scene.add(rn); }
+    TM.decks.push({minx:x0,maxx:x1,minz:Math.min(za,zb),maxz:Math.max(za,zb),y:DY,lad:{x:lx,z:wz(DV0-0.5),dz:dz}});
+    if(!rackTpl) buildRackTpl(); tmLooseWeapon((x0+x1)/2+(x1<0?2:-2),zc,2,DY);
+  });
+
   /* roof slab (visual, solid to bullets), team-coloured trim and gate lintels */
   var rg=new THREE.Mesh(new THREE.BoxGeometry(2*U,0.6,V1-V0),new THREE.MeshLambertMaterial({color:TM.desert?0xa8875c:0xaab3bd}));
   rg.position.set(0,H+0.3,wz((V0+V1)/2)); scene.add(rg); coverMeshes.push(rg);
@@ -6974,7 +7044,7 @@ function tmExit(){
   while(wpicks.length){ scene.remove(wpicks.pop().g); }
   for(var i=pickups.length-1;i>=0;i--){ if(pickups[i].fixed){ scene.remove(pickups[i].m); pickups.splice(i,1); } }
   boxes.length=0; TM.sb.forEach(function(b){ boxes.push(b); }); coverMeshes.length=0; TM.sc.forEach(function(m){ coverMeshes.push(m); });
-  racks=TM.sr; packSpots=TM.sp; EMIT_FL=TM.se; EM_NAV=TM.sn; TM.doors=null; TM.gates=null; emitter.beam=TM.eb;
+  racks=TM.sr; packSpots=TM.sp; EMIT_FL=TM.se; EM_NAV=TM.sn; TM.doors=null; TM.gates=null; TM.decks=null; LAD.on=false; LAD.id=-1; emitter.beam=TM.eb;
   TM.hid.forEach(function(a){ a[0].visible=a[1]; }); TM.hid=[];
   TM.tint.forEach(function(t){ t[0].color.setHex(t[1]); }); TM.tint=[];
   beacon.material.color.setHex(0x6be4ff); jbeacon.material.color.setHex(0x6be4ff);
