@@ -528,7 +528,7 @@ body{letter-spacing:.02em}
       <div class="mpOptT">WEAPONS ALLOWED</div><div class="mpChips" id="mpOptW"></div>
       <div id="mpOptTM">
         <div class="mpOptT">VEHICLES AND MAP</div><div class="mpChips" id="mpOptV"></div>
-        <div class="mpOptT">MAP <select id="mpMap"><option value="0">SNOW VALLEY</option><option value="1">DESERT</option></select></div>
+        <div class="mpOptT">MAP <select id="mpMap"><option value="0">SNOW VALLEY</option><option value="1">DESERT</option><option value="2">COVENANT SHIP</option></select></div>
         <div class="mpOptT">SCORE LIMIT <select id="mpLim"></select></div>
       </div>
     </div>
@@ -757,15 +757,39 @@ function uvBox(geo,w,h,d,T){
   uv.needsUpdate=true;
 }
 function uvPlane(geo,w,h,T){ var uv=geo.attributes.uv; for(var i=0;i<uv.count;i++) uv.setXY(i,uv.getX(i)*w/T,uv.getY(i)*h/T); uv.needsUpdate=true; }
+
+/* Covenant ship plating: violet metal with glowing seams */
+function covTex(g,kind,rnd,col){
+  var i, N=256;
+  g.fillStyle=col(1); g.fillRect(0,0,N,N);
+  function glowLine(x,y,w,h,c1,c2){ g.fillStyle=c2; g.fillRect(x-(w>h?0:3),y-(w>h?3:0),w+(w>h?0:6),h+(w>h?6:0)); g.fillStyle=c1; g.fillRect(x,y,w,h); }
+  if(kind==='cvf'){
+    var px, py; for(px=0;px<2;px++) for(py=0;py<2;py++){
+      g.fillStyle=col(0.9+rnd()*0.2); g.fillRect(px*128+3,py*128+3,122,122);
+      g.fillStyle='rgba(190,170,255,0.28)'; g.fillRect(px*128+3,py*128+3,122,2); g.fillRect(px*128+3,py*128+3,2,122);
+      g.fillStyle='rgba(8,4,22,0.55)'; g.fillRect(px*128+3,py*128+123,122,2); g.fillRect(px*128+123,py*128+3,2,122);
+      g.fillStyle='rgba(8,4,22,0.35)'; g.fillRect(px*128+30,py*128+30,68,68); g.fillStyle='rgba(150,130,220,0.18)'; g.fillRect(px*128+34,py*128+34,60,60);
+    }
+    glowLine(0,126,N,3,'rgba(120,215,255,0.95)','rgba(90,170,255,0.25)'); glowLine(126,0,3,N,'rgba(120,215,255,0.95)','rgba(90,170,255,0.25)');
+  }else if(kind==='cvw'){
+    for(i=0;i<8;i++){ g.fillStyle=col(i%2?0.82:1.08); g.fillRect(i*32,0,32,N); g.fillStyle='rgba(200,185,255,0.22)'; g.fillRect(i*32,0,2,N); g.fillStyle='rgba(8,4,22,0.5)'; g.fillRect(i*32+30,0,2,N); }
+    glowLine(0,112,N,4,'rgba(205,120,255,0.95)','rgba(170,90,255,0.28)'); glowLine(0,226,N,2,'rgba(120,215,255,0.8)','rgba(90,170,255,0.2)');
+    for(i=0;i<10;i++){ g.fillStyle='rgba(8,4,22,0.4)'; g.fillRect(rnd()*230,10+rnd()*90,10+rnd()*20,6+rnd()*10); }
+  }else{
+    for(i=-256;i<256;i+=12){ g.strokeStyle='rgba(8,4,22,0.5)'; g.lineWidth=3; g.beginPath(); g.moveTo(i,0); g.lineTo(i+256,256); g.stroke(); g.strokeStyle='rgba(190,170,255,0.18)'; g.lineWidth=1; g.beginPath(); g.moveTo(i+4,0); g.lineTo(i+260,256); g.stroke(); }
+    glowLine(0,0,N,3,'rgba(120,215,255,0.9)','rgba(90,170,255,0.25)'); glowLine(0,126,N,2,'rgba(205,120,255,0.7)','rgba(170,90,255,0.2)');
+  }
+}
 var BTEX={};
 function buildTex(kind,desert){
   var key=kind+(desert?'d':'s'); if(BTEX[key]) return BTEX[key];
   var c=document.createElement('canvas'); c.width=c.height=256; var g=c.getContext('2d'), i, sd=kind.length*977+(desert?13:5);
   function rnd(){ sd=(sd*16807)%2147483647; return sd/2147483647; }
-  var B={wall:desert?[222,192,146]:[205,211,218],col:desert?[196,160,114]:[183,191,200],roof:desert?[176,142,98]:[170,179,189],floor:desert?[150,126,90]:[100,108,120],deck:desert?[160,130,88]:[120,130,142]}[kind]||[200,200,200];
+  var B={wall:desert?[222,192,146]:[205,211,218],col:desert?[196,160,114]:[183,191,200],roof:desert?[176,142,98]:[170,179,189],floor:desert?[150,126,90]:[100,108,120],deck:desert?[160,130,88]:[120,130,142],cvf:[74,66,98],cvw:[108,98,138],cvd:[86,78,112]}[kind]||[200,200,200];
   function col(k){ k=Math.max(0,Math.min(1.4,k)); return 'rgb('+Math.round(B[0]*k)+','+Math.round(B[1]*k)+','+Math.round(B[2]*k)+')'; }
   g.fillStyle=col(1); g.fillRect(0,0,256,256);
-  if(desert&&(kind==='wall'||kind==='col')){
+  if(kind.indexOf('cv')===0){ covTex(g,kind,rnd,col); }
+  else if(desert&&(kind==='wall'||kind==='col')){
     /* sandstone blocks with mortar */
     var rh=32, bw=64, r, b2;
     for(r=0;r<8;r++){ var off=(r%2)*bw/2; for(b2=-1;b2<5;b2++){ g.fillStyle=col(0.88+rnd()*0.2); g.fillRect(b2*bw+off+2,r*rh+2,bw-3,rh-3); } }
@@ -3712,7 +3736,7 @@ function structBlock(x,z,y){
 }
 function floorY(x,z,y){
   var g=groundH(x,z), f=structFloor(x,z,y); if(f<g) f=g;
-  if(TM&&TM.decks){ for(var i=0;i<TM.decks.length;i++){ var D=TM.decks[i]; if(x>D.minx&&x<D.maxx&&z>D.minz&&z<D.maxz&&D.y<=y+0.7&&D.y>f) f=D.y; } }
+  if(TM&&TM.decks){ for(var i=0;i<TM.decks.length;i++){ var D=TM.decks[i]; if(x>D.minx&&x<D.maxx&&z>D.minz&&z<D.maxz){ var yy=D.y; if(D.ramp){ var R=D.ramp, tt=((R.ax==='z'?z:x)-R.a0)/(R.a1-R.a0); yy=R.y0+(R.y1-R.y0)*Math.max(0,Math.min(1,tt)); } if(yy<=y+0.7&&yy>f) f=yy; } } }
   return f;
 }
 function climbOK(x0,z0,x1,z1,y){
@@ -3730,7 +3754,7 @@ function ladderCheck(mx,mz){
   if(!TM.on||!TM.decks||p.inVeh||p.air||state!=='play'){ LAD.id=-1; return false; }
   var fzw=-Math.cos(p.yaw);
   for(var i=0;i<TM.decks.length;i++){
-    var D=TM.decks[i], L=D.lad, dx=Math.abs(p.x-L.x), dzz=p.z-L.z, up=mz>0.25, dn=mz<-0.25;
+    var D=TM.decks[i], L=D.lad; if(!L) continue; var dx=Math.abs(p.x-L.x), dzz=p.z-L.z, up=mz>0.25, dn=mz<-0.25;
     if(p.y>=D.y-0.15){
       /* on the deck, at the ladder gap, walking towards the hall: climb down */
       if(p.onGround&&up&&dx<0.8&&Math.abs(dzz)<1.5&&fzw*(-L.dz)>0.3){ p.z=L.z; p.x=L.x; p.onGround=false; LAD.on=true; LAD.id=i; LAD.vy=-3.2; return true; }
@@ -6608,6 +6632,7 @@ function tmH(x,z){
   if(TM.desert) h+=(1.7*Math.sin(x*0.045+z*0.02+1)+1.2*Math.sin(z*0.05-x*0.03)+0.5*Math.sin(x*0.12+z*0.09)+1.5*(1-Math.abs(Math.sin(x*0.052+z*0.03+2.4*vnoise(x*0.02+3,z*0.02))))-0.9+0.25*Math.sin(x*0.5+z*0.3+vnoise(x*0.1,z*0.1)*6))*smooth(14,30,Math.hypot(x,z));
   var m=smooth(0,12,tmRd(x,z)), mb=smooth(6,22,tmRd(x,z));
   h*=m;
+  if(TM.ship){ var es=tmE(x,z); return 6*smooth(0.84,1.0,es)+55*smooth(0.98,1.1,es)+25*smooth(1.08,1.3,es); }
   if(!TM.noTr) h+=(tmCuts(x,z)+tmCuts(-x,-z))*mb;
   var e=tmE(x,z);
   return h+6*smooth(0.84,1.0,e)+55*smooth(0.98,1.1,e)+25*smooth(1.08,1.3,e);
@@ -6671,12 +6696,13 @@ function tmBuildTerrain(){
     r*=1-0.85*Math.max(t0,t1);
     rk[q]=r; pos[k]=x; pos[k+1]=h; pos[k+2]=z;
     var sh=0.9+0.1*n, dep=smooth(-5,-0.4,h), cr=sh*(0.8+0.2*dep), cg=sh*(0.84+0.16*dep), cb=sh*1.02*(0.92+0.08*dep);
-    if(TM.desert){ var sd2=0.93+0.1*n2; cr=sd2*(0.97-0.19*r)*(0.9+0.1*dep); cg=sd2*(0.80-0.30*r)*(0.9+0.1*dep); cb=sd2*(0.55-0.23*r)*(0.88+0.12*dep); }
+    if(TM.ship){ cr=cg=cb=0.85+0.3*n2; }
+    else if(TM.desert){ var sd2=0.93+0.1*n2; cr=sd2*(0.97-0.19*r)*(0.9+0.1*dep); cg=sd2*(0.80-0.30*r)*(0.9+0.1*dep); cb=sd2*(0.55-0.23*r)*(0.88+0.12*dep); }
     cr+=(1.0-cr)*t0*0.55+(0.62-cr)*t1*0.55; cg+=(0.62-cg)*t0*0.55+(0.78-cg)*t1*0.55; cb+=(0.58-cb)*t0*0.55+(1.0-cb)*t1*0.55;
     col[k]=cr; col[k+1]=cg; col[k+2]=cb;
   }
   function build(rock){
-    var idx=[], seen={}, ps=[], cs=[], us=[], a, UV=rock?0.12:(TM.desert?0.085:0.07);
+    var idx=[], seen={}, ps=[], cs=[], us=[], a, UV=TM.ship?0.25:(rock?0.12:(TM.desert?0.085:0.07));
     function add(v){ if(seen[v]===undefined){ seen[v]=ps.length/3; var k=v*3; ps.push(pos[k],pos[k+1],pos[k+2]); cs.push(col[k],col[k+1],col[k+2]); us.push(pos[k]*UV,pos[k+2]*UV); } return seen[v]; }
     for(j=0;j<nz-1;j++) for(i=0;i<nx-1;i++){ a=j*nx+i;
       [[a,a+nx,a+1],[a+1,a+nx,a+nx+1]].forEach(function(T){ var m=(rk[T[0]]+rk[T[1]]+rk[T[2]])/3; if((m>0.5)===rock){ idx.push(add(T[0]),add(T[1]),add(T[2])); } });
@@ -6684,7 +6710,7 @@ function tmBuildTerrain(){
     if(!idx.length) return null;
     var geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(ps),3)); geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(cs),3)); geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(us),2)); geo.setIndex(idx); geo.computeVertexNormals();
-    return new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true,map:rock?tmTex(TREEM.rock):(TM.desert?tmSandTex():tmTex(TREEM.snow))}));
+    return new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true,map:TM.ship?buildTex(rock?'cvw':'cvf'):(rock?tmTex(TREEM.rock):(TM.desert?tmSandTex():tmTex(TREEM.snow)))}));
   }
   var g=new THREE.Group(), s1=build(false), r1=build(true);
   if(s1) g.add(s1); if(r1) g.add(r1);
@@ -6716,7 +6742,7 @@ function tmDesertSky(){
     var geo=new THREE.CylinderGeometry(rt,rb,H,8,5,false), pp=geo.attributes.position, cc=new Float32Array(pp.count*3), j;
     for(j=0;j<pp.count;j++){
       var yy=pp.getY(j), jh, f=(yy+H/2)/H, jh=Math.sin(pp.getX(j)*0.37+pp.getZ(j)*0.53+yy*0.11); pp.setX(j,pp.getX(j)*(1+0.12*jh)); pp.setZ(j,pp.getZ(j)*(1+0.12*jh));
-      var bi=Math.min(bands.length-1,Math.floor(f*bands.length)), bc=bands[bi], sh=0.9+0.1*Math.sin(j*3.1);
+      var bi=Math.max(0,Math.min(bands.length-1,Math.floor(f*bands.length)||0)), bc=bands[bi], sh=0.9+0.1*Math.sin(j*3.1);
       cc[j*3]=bc[0]*sh; cc[j*3+1]=bc[1]*sh; cc[j*3+2]=bc[2]*sh;
     }
     geo.setAttribute('color',new THREE.BufferAttribute(cc,3)); geo.computeVertexNormals();
@@ -6746,6 +6772,76 @@ function tmCacti(list){
     var m=M[Math.floor(t.c*M.length)%M.length], me=new THREE.Mesh(m.geo,m.mat), k=4.2*t.s/m.h;
     me.scale.setScalar(k); me.position.set(t.x,t.y-0.1,t.z); me.rotation.y=t.c*40; scene.add(me);
   });
+}
+
+/* ---------- Covenant ship: a vast hangar with a raised citadel, bridges, towers and ramps ---------- */
+function tmShip(){
+  if(!TM.decks) TM.decks=[];
+  var wm=buildTex('cvw'), dm=buildTex('cvd'), matW=new THREE.MeshLambertMaterial({map:wm}), matD=new THREE.MeshLambertMaterial({map:dm,emissive:0x140a2c}), matR=new THREE.MeshLambertMaterial({color:0x2a2244}),
+      cyan=new THREE.MeshBasicMaterial({color:0x6be4ff}), mag=new THREE.MeshBasicMaterial({color:0xc46bff}), Y=6;
+  function rbox(x0,x1,z0,z1,y0,y1,mat,solid){
+    var w=x1-x0, d=z1-z0, h=y1-y0, me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat||matR); if(mat&&mat.map) uvBox(me.geometry,w,h,d,4);
+    me.position.set((x0+x1)/2,y0+h/2,(z0+z1)/2); scene.add(me); coverMeshes.push(me);
+    if(solid!==false) boxes.push({minx:x0,maxx:x1,minz:z0,maxz:z1,h:y1,y0:y0>0?y0:undefined});
+    return me;
+  }
+  function glow(x0,x1,z0,z1,y,m){ var me=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,0.06,z1-z0),m||cyan); me.position.set((x0+x1)/2,y,(z0+z1)/2); scene.add(me); }
+  function deck(x0,x1,z0,z1,y){
+    rbox(x0,x1,z0,z1,y-0.4,y,matD,false); TM.decks.push({minx:x0,maxx:x1,minz:z0,maxz:z1,y:y});
+    glow(x0,x1,z0,z0+0.25,y-0.2,cyan); glow(x0,x1,z1-0.25,z1,y-0.2,cyan); glow(x0,x0+0.25,z0,z1,y-0.2,mag); glow(x1-0.25,x1,z0,z1,y-0.2,mag);
+  }
+  /* rail along an edge (waist-high solid for people on the deck, open underneath) */
+  function rail(x0,x1,z0,z1,y){ rbox(x0,x1,z0,z1,y,y+1.1,matR); glow(x0,x1,z0,z1,y+1.1,cyan); }
+  /* ramp from the ground up to a deck; ax 'z' or 'x'; a0 is the low end, a1 the high end */
+  function ramp(ax,lo,hi,c0,c1,y){
+    var run=Math.abs(hi-lo), L=Math.hypot(run,y), ang=Math.atan2(y,run), up=hi>lo?1:-1, w=c1-c0, mid=(lo+hi)/2;
+    var me=new THREE.Mesh(new THREE.BoxGeometry(ax==='z'?w:L,0.4,ax==='z'?L:w),matD); uvBox(me.geometry,ax==='z'?w:L,0.4,ax==='z'?L:w,4);
+    if(ax==='z'){ me.position.set((c0+c1)/2,y/2-0.2,mid); me.rotation.x=-up*ang; }
+    else{ me.position.set(mid,y/2-0.2,(c0+c1)/2); me.rotation.z=up*ang; }
+    scene.add(me); coverMeshes.push(me);
+    var mn=Math.min(lo,hi), mx=Math.max(lo,hi);
+    TM.decks.push(ax==='z'?{minx:c0,maxx:c1,minz:mn,maxz:mx,y:y,ramp:{ax:'z',a0:lo,a1:hi,y0:0,y1:y}}:{minx:mn,maxx:mx,minz:c0,maxz:c1,y:y,ramp:{ax:'x',a0:lo,a1:hi,y0:0,y1:y}});
+    /* stepped rails along both sides */
+    var n=6, k;
+    for(k=0;k<n;k++){
+      var a0=lo+(hi-lo)*k/n, a1=lo+(hi-lo)*(k+1)/n, ya=y*(k)/n;
+      if(ax==='z'){ rbox(c0-0.12,c0,Math.min(a0,a1),Math.max(a0,a1),ya,ya+1.2,matR); rbox(c1,c1+0.12,Math.min(a0,a1),Math.max(a0,a1),ya,ya+1.2,matR); }
+      else{ rbox(Math.min(a0,a1),Math.max(a0,a1),c0-0.12,c0,ya,ya+1.2,matR); rbox(Math.min(a0,a1),Math.max(a0,a1),c1,c1+0.12,ya,ya+1.2,matR); }
+    }
+  }
+  /* central citadel */
+  deck(-22,22,-16,16,Y);
+  rail(-22,-6.6,-16.2,-16,Y); rail(6.6,22,-16.2,-16,Y); rail(-22,-6.6,16,16.2,Y); rail(6.6,22,16,16.2,Y);
+  rail(-22.2,-22,-16,-3.4,Y); rail(-22.2,-22,3.4,16,Y); rail(22,22.2,-16,-3.4,Y); rail(22,22.2,3.4,16,Y);
+  ramp('z',-34,-16,-6,6,Y); ramp('z',34,16,-6,6,Y);
+  /* bridges and towers, mirrored east and west */
+  [-1,1].forEach(function(sg){
+    var xa=sg>0?22:-52, xb=sg>0?52:-22;
+    deck(xa,xb,-3,3,Y); rail(xa,xb,-3.2,-3,Y); rail(xa,xb,3,3.2,Y);
+    var t0=sg>0?52:-80, t1=sg>0?80:-52;
+    deck(t0,t1,-14,14,Y);
+    var inner=sg>0?t0:t1, outer=sg>0?t1:t0;
+    rail(outer,outer+(sg>0?0.2:-0.2)*1,-14,14,Y); rail(t0,t1,-14.2,-14,Y); rail(t0,t1,14,14.2,Y);
+    rail(inner+(sg>0?0:-0.2),inner+(sg>0?0.2:0),-14,-3.4,Y); rail(inner+(sg>0?0:-0.2),inner+(sg>0?0.2:0),3.4,14,Y);
+    var rx0=sg>0?62:-70, rx1=sg>0?70:-62;
+    ramp('z',-32,-14,rx0,rx1,Y); ramp('z',32,14,rx0,rx1,Y);
+    /* a squat energy pylon on each tower */
+    rbox((t0+t1)/2-1.6,(t0+t1)/2+1.6,-1.6,1.6,Y,Y+3.2,matW); glow((t0+t1)/2-1.7,(t0+t1)/2+1.7,-1.7,1.7,Y+3.25,mag);
+  });
+  /* tall columns to the ceiling, and low crates to fight behind */
+  [[-40,-38],[40,-38],[-40,38],[40,38],[-88,-24],[88,-24],[-88,24],[88,24],[0,-56],[0,56]].forEach(function(a){
+    rbox(a[0]-1.6,a[0]+1.6,a[1]-1.6,a[1]+1.6,0,50,matW); glow(a[0]-1.7,a[0]+1.7,a[1]-1.7,a[1]+1.7,0.05,cyan);
+  });
+  [[-14,-30],[14,-30],[-14,30],[14,30],[-30,-18],[30,18],[-30,18],[30,-18],[-58,-40],[58,40],[-58,40],[58,-40],[-84,0],[84,0],[0,-42],[0,42]].forEach(function(a){
+    rbox(a[0]-1.8,a[0]+1.8,a[1]-1.1,a[1]+1.1,0,1.5,matW); glow(a[0]-1.8,a[0]+1.8,a[1]-1.1,a[1]-1,1.55,mag);
+  });
+  /* lane lights on the floor */
+  [-30,30,-70,70].forEach(function(x){ glow(x-0.15,x+0.15,-56,56,0.07,cyan); });
+  [-48,48].forEach(function(z){ glow(-70,70,z-0.15,z+0.15,0.07,mag); });
+  /* the ceiling, with light panels */
+  var cg=new THREE.PlaneGeometry(420,540); uvPlane(cg,420,540,4); var ce=new THREE.Mesh(cg,new THREE.MeshLambertMaterial({map:buildTex('cvd'),side:THREE.DoubleSide})); ce.rotation.x=Math.PI/2; ce.position.y=50; scene.add(ce);
+  var lm=new THREE.MeshBasicMaterial({color:0xd8ccff}), ix, iz;
+  for(ix=-4;ix<=4;ix++) for(iz=-6;iz<=6;iz++){ var lp=new THREE.Mesh(new THREE.BoxGeometry(8,0.3,2.2),lm); lp.position.set(ix*24,49.8,iz*30); scene.add(lp); }
 }
 /* snowy-biome scatter: trees, rocks and boulders on a fixed seed so every player gets the same layout */
 function tmScatter(){
@@ -6890,7 +6986,7 @@ function tmBase(t){
 
 /* a big enterable hall in front of each Forerunner base: wide gates at both ends and in the side walls, pillars and low crates inside to fight around */
 function tmHall(t,Z,dz){
-  var tc=TEAMS[t].c, wallM=new THREE.MeshLambertMaterial({map:buildTex('wall',TM.desert)}), colM=new THREE.MeshLambertMaterial({map:buildTex('col',TM.desert)});
+  var tc=TEAMS[t].c, wallM=new THREE.MeshLambertMaterial({map:buildTex(TM.ship?'cvw':'wall',TM.desert)}), colM=new THREE.MeshLambertMaterial({map:buildTex(TM.ship?'cvw':'col',TM.desert)});
   var V0=27, V1=57, U=22, TH=1.4, H=8;
   function wz(v){ return Z+dz*v; }
   function wall(u0,u1,v0,v1,h,m){ var za=wz(v0), zb=wz(v1); addBox((u0+u1)/2,(za+zb)/2,u1-u0,Math.abs(zb-za),h,m||wallM,false); }
@@ -6915,7 +7011,7 @@ function tmHall(t,Z,dz){
   wall(-14,-9.5,45.6,46.8,1.4,colM); wall(9.5,14,45.6,46.8,1.4,colM); wall(-3.2,3.2,43.6,44.8,1.4,colM);
   wall(-14,-12.8,34,38.5,1.4,colM); wall(12.8,14,34,38.5,1.4,colM);
   /* second level: a sniper deck along each end of the front wall, up a ladder, shooting out of the windows */
-  var DY=3.7, DV0=51.2, DV1=V1-TH, deckM=new THREE.MeshLambertMaterial({map:buildTex('deck',TM.desert)}), railM=new THREE.MeshLambertMaterial({color:0x2a3038}), tcM=new THREE.MeshBasicMaterial({color:tc});
+  var DY=3.7, DV0=51.2, DV1=V1-TH, deckM=new THREE.MeshLambertMaterial({map:buildTex(TM.ship?'cvd':'deck',TM.desert)}), railM=new THREE.MeshLambertMaterial({color:0x2a3038}), tcM=new THREE.MeshBasicMaterial({color:tc});
   if(t===0||!TM.decks) TM.decks=TM.decks||[];
   [[-U+TH,-7.5,-16.5],[7.5,U-TH,16.5]].forEach(function(sd){
     var x0=sd[0], x1=sd[1], lx=sd[2], za=wz(DV0), zb=wz(DV1), zc=(za+zb)/2, dw=Math.abs(zb-za);
@@ -6935,12 +7031,12 @@ function tmHall(t,Z,dz){
   });
 
   /* roof slab (visual, solid to bullets), team-coloured trim and gate lintels */
-  var rgG=new THREE.BoxGeometry(2*U,0.6,V1-V0); uvBox(rgG,2*U,0.6,V1-V0,4); var rg=new THREE.Mesh(rgG,new THREE.MeshLambertMaterial({map:buildTex('roof',TM.desert)}));
+  var rgG=new THREE.BoxGeometry(2*U,0.6,V1-V0); uvBox(rgG,2*U,0.6,V1-V0,4); var rg=new THREE.Mesh(rgG,new THREE.MeshLambertMaterial({map:buildTex(TM.ship?'cvd':'roof',TM.desert)}));
   rg.position.set(0,H+0.3,wz((V0+V1)/2)); scene.add(rg); coverMeshes.push(rg);
   var tm=new THREE.MeshBasicMaterial({color:tc});
   var st=new THREE.Mesh(new THREE.BoxGeometry(2*U+0.4,0.5,0.35),tm); st.position.set(0,H+0.35,wz(V1)); scene.add(st);
   var st2=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.5,V1-V0),tm); st2.position.set(-U,H+0.35,wz((V0+V1)/2)); scene.add(st2); var st3=st2.clone(); st3.position.x=U; scene.add(st3);
-  var flG=new THREE.PlaneGeometry(2*U-TH*2,V1-V0-TH*2); uvPlane(flG,2*U-TH*2,V1-V0-TH*2,4); var fl=new THREE.Mesh(flG,new THREE.MeshLambertMaterial({map:buildTex('floor',TM.desert)})); fl.rotation.x=-Math.PI/2; fl.position.set(0,0.06,wz((V0+V1)/2)); scene.add(fl);
+  var flG=new THREE.PlaneGeometry(2*U-TH*2,V1-V0-TH*2); uvPlane(flG,2*U-TH*2,V1-V0-TH*2,4); var fl=new THREE.Mesh(flG,new THREE.MeshLambertMaterial({map:buildTex(TM.ship?'cvf':'floor',TM.desert)})); fl.rotation.x=-Math.PI/2; fl.position.set(0,0.06,wz((V0+V1)/2)); scene.add(fl);
   [[0,V1-TH/2,12,2.4],[0,V0+TH/2,6,2.4]].forEach(function(g){ var lg=new THREE.BoxGeometry(g[2]+0.6,2.4,TH); uvBox(lg,g[2]+0.6,2.4,TH,4); var l=new THREE.Mesh(lg,wallM); l.position.set(g[0],H-1.2,wz(g[1])); scene.add(l); coverMeshes.push(l); });
   [[-U+TH/2,40,8],[U-TH/2,40,8]].forEach(function(g){ var lg=new THREE.BoxGeometry(TH,2.4,g[2]+0.6); uvBox(lg,TH,2.4,g[2]+0.6,4); var l=new THREE.Mesh(lg,wallM); l.position.set(g[0],H-1.2,wz(g[1])); scene.add(l); coverMeshes.push(l); });
   /* sliding gates: two panels per opening that retract into the walls when anyone comes near */
@@ -7083,7 +7179,8 @@ function tmLoose(){
   [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmWallRack(Z,dz,t); var ty=dz>0?Math.PI:0; spawnTurret(-16,Z+dz*63,ty); spawnTurret(16,Z+dz*63,ty); });
 }
 function tmEnter(team){
-  TM.noTr=!!(mp.opt&&mp.opt.tr===0); TM.desert=!!(mp.opt&&mp.opt.map===1);
+  if(mp.opt&&mp.opt.map===2) mp.opt.vj=0; /* no Hornets inside the ship */
+  TM.noTr=!!(mp.opt&&mp.opt.tr===0); TM.desert=!!(mp.opt&&mp.opt.map===1); TM.ship=!!(mp.opt&&mp.opt.map===2);
   teamPaint(fpMaterials(),team); TP.rigId=null;
   var prev=scene.children.length;
   TM.on=true; TM.team=team; TM.hid=[];
@@ -7103,11 +7200,12 @@ function tmEnter(team){
   packSpots.push([40,0,60],[-40,0,-60]);
   spawnPacks(); tmLoose();
   TM.mesh=tmBuildTerrain(); scene.add(TM.mesh);
-  tmScatter(); tmSnowInit();
+  if(TM.ship) tmShip(); else{ tmScatter(); tmSnowInit(); }
   TM.wx={bg:scene.background.clone(),fog:scene.fog.color.clone(),fn:scene.fog.near,ff:scene.fog.far,hi:hemi.intensity,hc:hemi.color.clone(),hg:hemi.groundColor.clone(),si:sun.intensity,sc:sun.color.clone(),sk:skyDome?skyDome.material.color.clone():null};
   scene.background.setHex(0xc6d0da); scene.fog.color.setHex(0xc6d0da); scene.fog.near=18; scene.fog.far=300;
   hemi.intensity=0.8; hemi.color.setHex(0xdfe8f2); hemi.groundColor.setHex(0xaab6c4); sun.intensity=0.55; if(skyDome) skyDome.material.color.setRGB(0.72,0.77,0.83);
   if(TM.desert){ scene.background.setHex(0xe8cfa6); scene.fog.color.setHex(0xe8cfa6); scene.fog.near=34; scene.fog.far=470; hemi.intensity=0.95; hemi.color.setHex(0xfff1d6); hemi.groundColor.setHex(0xc79d68); sun.intensity=1.05; sun.color.setHex(0xffe0ae); tmDesertSky(); if(skyDome) skyDome.material.color.setRGB(0.98,0.86,0.66); }
+  if(TM.ship){ scene.background.setHex(0x0c0718); scene.fog.color.setHex(0x1b1230); scene.fog.near=24; scene.fog.far=250; hemi.intensity=0.95; hemi.color.setHex(0xb4a6ff); hemi.groundColor.setHex(0x3a2a5c); sun.intensity=0.45; sun.color.setHex(0xa8b4ff); if(skyDome) skyDome.visible=false; }
   CTF.on=false; if(mp.ctf) ctfInit();
   KH.on=false; if(mp.koth) khInit();
   TM.wire=null; /* barbed wire removed */
@@ -7485,19 +7583,19 @@ var KH={on:false,x:0,z:0,r:13,own:-1,t:0,col:-99,ringM:null,beamM:null,hs:{}};
 function khCol(o){ return o===0?TEAMS[0].c:o===1?TEAMS[1].c:o===2?0xffc040:0xffffff; }
 function khInit(){
   KH.on=true; KH.own=-1; KH.t=0; KH.col=-99; KH.hs={};
-  var N=72, i, gy=lyG(KH.x,KH.z);
+  var N=72, i, gy=TM.ship?6:lyG(KH.x,KH.z);
   KH.ringM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.85,fog:false});
   var im=new THREE.InstancedMesh(new THREE.BoxGeometry(0.55,0.3,2.1),KH.ringM,N), d=new THREE.Object3D();
   for(i=0;i<N;i++){
     var a=i/N*Math.PI*2, x=KH.x+Math.cos(a)*KH.r, z=KH.z+Math.sin(a)*KH.r;
-    d.position.set(x,groundH(x,z)+0.2,z); d.rotation.set(0,-a,0); d.updateMatrix(); im.setMatrixAt(i,d.matrix);
+    d.position.set(x,(TM.ship?6:groundH(x,z))+0.2,z); d.rotation.set(0,-a,0); d.updateMatrix(); im.setMatrixAt(i,d.matrix);
   }
   im.frustumCulled=false; scene.add(im);
   KH.beamM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.09,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false});
   var cyl=new THREE.Mesh(new THREE.CylinderGeometry(KH.r,KH.r,60,40,1,true),KH.beamM); cyl.position.set(KH.x,gy+30,KH.z); cyl.frustumCulled=false; scene.add(cyl);
   var flag=new THREE.Mesh(new THREE.OctahedronGeometry(0.9),new THREE.MeshBasicMaterial({color:0xffffff,fog:false})); flag.position.set(KH.x,gy+3.2,KH.z); scene.add(flag); KH.core=flag;
 }
-function khInHill(x,z,y){ return Math.hypot(x-KH.x,z-KH.z)<KH.r&&Math.abs(y-groundH(x,z))<6; }
+function khInHill(x,z,y){ return Math.hypot(x-KH.x,z-KH.z)<KH.r&&Math.abs(y-(TM.ship?6:groundH(x,z)))<(TM.ship?3:6); }
 function khScore(){
   if(!mp.host||!KH.on||mp.over) return;
   var c=[0,0], ids=[], id;
