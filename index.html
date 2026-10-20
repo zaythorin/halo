@@ -489,7 +489,6 @@ body{letter-spacing:.02em}
       <button type="button" class="go alt" id="pCtl">CONTROLS</button>
       <button type="button" class="go alt" id="pView">CAMERA: FIRST PERSON</button>
       <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
-      <button type="button" class="go alt" id="pAimS">AIM STICK: OFF</button>
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
       <button type="button" class="go alt" id="toMenu">MAIN MENU</button>
     </div>
@@ -6384,11 +6383,10 @@ lookEl.addEventListener('pointercancel',endLook);
 
 
 /* ---------- touch aiming: an aim joystick (right thumb) and a gentle aim assist ---------- */
-var AIMS={stick:coarsePtr,assist:coarsePtr,id:null,ox:0,oy:0,dx:0,dy:0}, AIM_R=60, AIM_SPD=3.4, AIM_CONE=0.13;
-try{ var _a=localStorage.getItem('halo-aimstick'); if(_a!==null) AIMS.stick=_a==='1'; _a=localStorage.getItem('halo-assist'); if(_a!==null) AIMS.assist=_a==='1'; }catch(e){}
-function aimLabels(){ $('pAimS').textContent='AIM STICK: '+(AIMS.stick?'ON':'OFF'); $('pAssist').textContent='AIM ASSIST: '+(AIMS.assist?'ON':'OFF'); }
+var AIMS={stick:false,assist:coarsePtr,id:null,ox:0,oy:0,dx:0,dy:0}, AIM_R=60, AIM_SPD=3.4, AIM_CONE=0.13;
+try{ var _a=localStorage.getItem('halo-assist'); if(_a!==null) AIMS.assist=_a==='1'; }catch(e){}
+function aimLabels(){ $('pAssist').textContent='AIM ASSIST: '+(AIMS.assist?'ON':'OFF'); }
 aimLabels();
-$('pAimS').addEventListener('click',function(){ AIMS.stick=!AIMS.stick; aimEnd(); try{ localStorage.setItem('halo-aimstick',AIMS.stick?'1':'0'); }catch(e){} aimLabels(); });
 $('pAssist').addEventListener('click',function(){ AIMS.assist=!AIMS.assist; try{ localStorage.setItem('halo-assist',AIMS.assist?'1':'0'); }catch(e){} aimLabels(); });
 function aimStart(ev){
   if(AIMS.id!==null) aimEnd();
@@ -6438,6 +6436,9 @@ function moveStick(ev){
 stickZone.addEventListener('pointerdown',function(ev){
   if(ev.pointerType==='mouse'){ lookDown(ev); return; }
   if(state!=='play') return;
+  if(stickId!==null&&ev.pointerId!==stickId&&touchCount>=1){ /* second finger on the left half: drag to aim */
+    ev.preventDefault(); try{ stickZone.setPointerCapture(ev.pointerId); }catch(e){} lookPtrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY}); return;
+  }
   if(stickId!==null) resetStick(); /* a lost finger-up must never lock the stick out */
   ev.preventDefault(); stickId=ev.pointerId; stickT=performance.now();
   try{ stickZone.setPointerCapture(ev.pointerId); }catch(e){}
@@ -6445,7 +6446,12 @@ stickZone.addEventListener('pointerdown',function(ev){
   stickBase.style.left=(sx-r.left)+'px'; stickBase.style.top=(sy-r.top)+'px';
   stickBase.classList.add('on'); moveStick(ev);
 });
-stickZone.addEventListener('pointermove',function(ev){ if(ev.pointerId===stickId){ stickT=performance.now(); moveStick(ev); } });
+stickZone.addEventListener('pointermove',function(ev){
+  if(ev.pointerId===stickId){ stickT=performance.now(); moveStick(ev); return; }
+  var l=lookPtrs.get(ev.pointerId); if(l){ lookDX+=(ev.clientX-l.x)*TSENS; lookDY+=(ev.clientY-l.y)*TSENS; l.x=ev.clientX; l.y=ev.clientY; }
+});
+function endStickLook(ev){ lookPtrs.delete(ev.pointerId); }
+stickZone.addEventListener('pointerup',endStickLook); stickZone.addEventListener('pointercancel',endStickLook);
 function endStick(ev){
   if(ev.pointerId!==stickId) return;
   resetStick();
