@@ -7110,7 +7110,7 @@ function tmEnter(team){
   if(TM.desert){ scene.background.setHex(0xe8cfa6); scene.fog.color.setHex(0xe8cfa6); scene.fog.near=34; scene.fog.far=470; hemi.intensity=0.95; hemi.color.setHex(0xfff1d6); hemi.groundColor.setHex(0xc79d68); sun.intensity=1.05; sun.color.setHex(0xffe0ae); tmDesertSky(); if(skyDome) skyDome.material.color.setRGB(0.98,0.86,0.66); }
   CTF.on=false; if(mp.ctf) ctfInit();
   KH.on=false; if(mp.koth) khInit();
-  TM.wire=null; if(!TM.noTr) tmWire();
+  TM.wire=null; /* barbed wire removed */
   TM.objs=scene.children.slice(n0).concat([TM.mesh]);
   /* team-coloured vehicles */
   TM.tint=[]; tmTintRover(rover,TEAMS[team].c,true); tmTintJet(jetObj.group,TEAMS[team].c,true);
