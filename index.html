@@ -749,8 +749,47 @@ var white=new THREE.MeshLambertMaterial({color:0xc9c6b9}), glass=new THREE.MeshL
 var glowM=new THREE.MeshBasicMaterial({color:0x86b9c2});
 var trimMat=glowM;
 var edgeMat=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.22});
+
+/* ---------- building textures (drawn on a canvas, tiled in world units) ---------- */
+function uvBox(geo,w,h,d,T){
+  var uv=geo.attributes.uv, f, k, dims=[[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
+  for(f=0;f<6;f++) for(k=0;k<4;k++){ var i=f*4+k; uv.setXY(i,uv.getX(i)*dims[f][0]/T,uv.getY(i)*dims[f][1]/T); }
+  uv.needsUpdate=true;
+}
+function uvPlane(geo,w,h,T){ var uv=geo.attributes.uv; for(var i=0;i<uv.count;i++) uv.setXY(i,uv.getX(i)*w/T,uv.getY(i)*h/T); uv.needsUpdate=true; }
+var BTEX={};
+function buildTex(kind,desert){
+  var key=kind+(desert?'d':'s'); if(BTEX[key]) return BTEX[key];
+  var c=document.createElement('canvas'); c.width=c.height=256; var g=c.getContext('2d'), i, sd=kind.length*977+(desert?13:5);
+  function rnd(){ sd=(sd*16807)%2147483647; return sd/2147483647; }
+  var B={wall:desert?[222,192,146]:[205,211,218],col:desert?[196,160,114]:[183,191,200],roof:desert?[176,142,98]:[170,179,189],floor:desert?[150,126,90]:[100,108,120],deck:desert?[160,130,88]:[120,130,142]}[kind]||[200,200,200];
+  function col(k){ k=Math.max(0,Math.min(1.4,k)); return 'rgb('+Math.round(B[0]*k)+','+Math.round(B[1]*k)+','+Math.round(B[2]*k)+')'; }
+  g.fillStyle=col(1); g.fillRect(0,0,256,256);
+  if(desert&&(kind==='wall'||kind==='col')){
+    /* sandstone blocks with mortar */
+    var rh=32, bw=64, r, b2;
+    for(r=0;r<8;r++){ var off=(r%2)*bw/2; for(b2=-1;b2<5;b2++){ g.fillStyle=col(0.88+rnd()*0.2); g.fillRect(b2*bw+off+2,r*rh+2,bw-3,rh-3); } }
+    g.fillStyle='rgba(70,50,30,0.55)'; for(r=0;r<8;r++){ g.fillRect(0,r*rh,256,2); for(b2=-1;b2<5;b2++) g.fillRect(b2*bw+(r%2)*bw/2,r*rh,2,rh); }
+  }else if(kind==='deck'){
+    for(i=0;i<256;i+=16){ g.fillStyle='rgba(0,0,0,0.35)'; g.fillRect(i,0,3,256); g.fillStyle='rgba(255,255,255,0.12)'; g.fillRect(i+3,0,1,256); }
+    g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,0,256,3); g.fillRect(0,128,256,3);
+  }else if(kind==='floor'){
+    var t2, u2; for(t2=0;t2<4;t2++) for(u2=0;u2<4;u2++){ g.fillStyle=col(0.9+rnd()*0.2); g.fillRect(u2*64+1,t2*64+1,62,62); }
+    g.fillStyle='rgba(0,0,0,0.4)'; for(i=0;i<256;i+=64){ g.fillRect(i,0,2,256); g.fillRect(0,i,256,2); }
+  }else{
+    /* poured concrete panels: seams, bolts, rain streaks */
+    var px, py; for(px=0;px<2;px++) for(py=0;py<2;py++){ g.fillStyle=col(0.94+rnd()*0.1); g.fillRect(px*128+2,py*128+2,124,124); }
+    g.fillStyle='rgba(20,30,40,0.5)'; g.fillRect(0,0,256,3); g.fillRect(0,128,256,3); g.fillRect(0,0,3,256); g.fillRect(128,0,3,256);
+    g.fillStyle='rgba(30,40,50,0.55)'; [[12,12],[116,12],[12,116],[116,116],[140,12],[244,12],[140,116],[244,116],[12,140],[116,140],[12,244],[116,244],[140,140],[244,140],[140,244],[244,244]].forEach(function(a){ g.beginPath(); g.arc(a[0],a[1],2.2,0,6.3); g.fill(); });
+    for(i=0;i<14;i++){ var sx=rnd()*256, sl=20+rnd()*80; var gr=g.createLinearGradient(0,0,0,sl); gr.addColorStop(0,'rgba(30,40,50,0.22)'); gr.addColorStop(1,'rgba(30,40,50,0)'); g.fillStyle=gr; g.save(); g.translate(sx,rnd()*160); g.fillRect(0,0,3,sl); g.restore(); }
+  }
+  for(i=0;i<2200;i++){ g.fillStyle=rnd()<0.5?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.07)'; g.fillRect(rnd()*256,rnd()*256,1+rnd()*2,1+rnd()*2); }
+  var tx=new THREE.CanvasTexture(c); tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.anisotropy=4; tx.userData={tile:4};
+  return (BTEX[key]=tx);
+}
 function addBox(x,z,w,d,h,mat,trim){
   var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  if(mat.map&&mat.map.userData&&mat.map.userData.tile) uvBox(m.geometry,w,h,d,mat.map.userData.tile);
   m.position.set(x,BASEY+h/2,z); scene.add(m); coverMeshes.push(m);
   var e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),edgeMat);
   e.position.copy(m.position); scene.add(e);
@@ -6799,7 +6838,7 @@ function tmBase(t){
 
 /* a big enterable hall in front of each Forerunner base: wide gates at both ends and in the side walls, pillars and low crates inside to fight around */
 function tmHall(t,Z,dz){
-  var tc=TEAMS[t].c, wallM=new THREE.MeshLambertMaterial({color:TM.desert?0xd9b98a:0xcfd5db}), colM=new THREE.MeshLambertMaterial({color:TM.desert?0xb8946a:0xb7bfc8});
+  var tc=TEAMS[t].c, wallM=new THREE.MeshLambertMaterial({map:buildTex('wall',TM.desert)}), colM=new THREE.MeshLambertMaterial({map:buildTex('col',TM.desert)});
   var V0=27, V1=57, U=22, TH=1.4, H=8;
   function wz(v){ return Z+dz*v; }
   function wall(u0,u1,v0,v1,h,m){ var za=wz(v0), zb=wz(v1); addBox((u0+u1)/2,(za+zb)/2,u1-u0,Math.abs(zb-za),h,m||wallM,false); }
@@ -6808,7 +6847,7 @@ function tmHall(t,Z,dz){
   var WY0=4.7, WY1=6.3;
   function wallY(u0,u1,v0,v1,y0,y1,m){
     var za=wz(v0), zb=wz(v1), x=(u0+u1)/2, z=(za+zb)/2, w=u1-u0, d=Math.abs(zb-za), h=y1-y0;
-    var me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||wallM); me.position.set(x,y0+h/2,z); scene.add(me); coverMeshes.push(me);
+    var me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||wallM); if((m||wallM).map) uvBox(me.geometry,w,h,d,4); me.position.set(x,y0+h/2,z); scene.add(me); coverMeshes.push(me);
     var e=new THREE.LineSegments(new THREE.EdgesGeometry(me.geometry),edgeMat); e.position.copy(me.position); scene.add(e);
     boxes.push({minx:x-w/2,maxx:x+w/2,minz:z-d/2,maxz:z+d/2,h:y1,y0:y0>0?y0:undefined});
   }
@@ -6824,11 +6863,11 @@ function tmHall(t,Z,dz){
   wall(-14,-9.5,45.6,46.8,1.4,colM); wall(9.5,14,45.6,46.8,1.4,colM); wall(-3.2,3.2,43.6,44.8,1.4,colM);
   wall(-14,-12.8,34,38.5,1.4,colM); wall(12.8,14,34,38.5,1.4,colM);
   /* second level: a sniper deck along each end of the front wall, up a ladder, shooting out of the windows */
-  var DY=3.7, DV0=51.2, DV1=V1-TH, deckM=new THREE.MeshLambertMaterial({color:TM.desert?0x9a7c52:0x7d8794}), railM=new THREE.MeshLambertMaterial({color:0x2a3038}), tcM=new THREE.MeshBasicMaterial({color:tc});
+  var DY=3.7, DV0=51.2, DV1=V1-TH, deckM=new THREE.MeshLambertMaterial({map:buildTex('deck',TM.desert)}), railM=new THREE.MeshLambertMaterial({color:0x2a3038}), tcM=new THREE.MeshBasicMaterial({color:tc});
   if(t===0||!TM.decks) TM.decks=TM.decks||[];
   [[-U+TH,-7.5,-16.5],[7.5,U-TH,16.5]].forEach(function(sd){
     var x0=sd[0], x1=sd[1], lx=sd[2], za=wz(DV0), zb=wz(DV1), zc=(za+zb)/2, dw=Math.abs(zb-za);
-    var slab=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,0.3,dw),deckM); slab.position.set((x0+x1)/2,DY-0.15,zc); scene.add(slab); coverMeshes.push(slab);
+    var slabG=new THREE.BoxGeometry(x1-x0,0.3,dw); uvBox(slabG,x1-x0,0.3,dw,4); var slab=new THREE.Mesh(slabG,deckM); slab.position.set((x0+x1)/2,DY-0.15,zc); scene.add(slab); coverMeshes.push(slab);
     var tr=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,0.08,0.12),tcM); tr.position.set((x0+x1)/2,DY-0.1,za); scene.add(tr);
     [x0+0.5,x1-0.5].forEach(function(px){ var pl=new THREE.Mesh(new THREE.BoxGeometry(0.35,DY-0.3,0.35),railM); pl.position.set(px,(DY-0.3)/2,za+(dz>0?0.3:-0.3)); scene.add(pl); coverMeshes.push(pl); });
     function rail(u0,u1,v0,v1){ wallY(u0,u1,v0,v1,DY,DY+1.0,railM); }
@@ -6844,14 +6883,14 @@ function tmHall(t,Z,dz){
   });
 
   /* roof slab (visual, solid to bullets), team-coloured trim and gate lintels */
-  var rg=new THREE.Mesh(new THREE.BoxGeometry(2*U,0.6,V1-V0),new THREE.MeshLambertMaterial({color:TM.desert?0xa8875c:0xaab3bd}));
+  var rgG=new THREE.BoxGeometry(2*U,0.6,V1-V0); uvBox(rgG,2*U,0.6,V1-V0,4); var rg=new THREE.Mesh(rgG,new THREE.MeshLambertMaterial({map:buildTex('roof',TM.desert)}));
   rg.position.set(0,H+0.3,wz((V0+V1)/2)); scene.add(rg); coverMeshes.push(rg);
   var tm=new THREE.MeshBasicMaterial({color:tc});
   var st=new THREE.Mesh(new THREE.BoxGeometry(2*U+0.4,0.5,0.35),tm); st.position.set(0,H+0.35,wz(V1)); scene.add(st);
   var st2=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.5,V1-V0),tm); st2.position.set(-U,H+0.35,wz((V0+V1)/2)); scene.add(st2); var st3=st2.clone(); st3.position.x=U; scene.add(st3);
-  var fl=new THREE.Mesh(new THREE.PlaneGeometry(2*U-TH*2,V1-V0-TH*2),new THREE.MeshLambertMaterial({color:TM.desert?0x8c7655:0x58606b})); fl.rotation.x=-Math.PI/2; fl.position.set(0,0.06,wz((V0+V1)/2)); scene.add(fl);
-  [[0,V1-TH/2,12,2.4],[0,V0+TH/2,6,2.4]].forEach(function(g){ var l=new THREE.Mesh(new THREE.BoxGeometry(g[2]+0.6,2.4,TH),wallM); l.position.set(g[0],H-1.2,wz(g[1])); scene.add(l); coverMeshes.push(l); });
-  [[-U+TH/2,40,8],[U-TH/2,40,8]].forEach(function(g){ var l=new THREE.Mesh(new THREE.BoxGeometry(TH,2.4,g[2]+0.6),wallM); l.position.set(g[0],H-1.2,wz(g[1])); scene.add(l); coverMeshes.push(l); });
+  var flG=new THREE.PlaneGeometry(2*U-TH*2,V1-V0-TH*2); uvPlane(flG,2*U-TH*2,V1-V0-TH*2,4); var fl=new THREE.Mesh(flG,new THREE.MeshLambertMaterial({map:buildTex('floor',TM.desert)})); fl.rotation.x=-Math.PI/2; fl.position.set(0,0.06,wz((V0+V1)/2)); scene.add(fl);
+  [[0,V1-TH/2,12,2.4],[0,V0+TH/2,6,2.4]].forEach(function(g){ var lg=new THREE.BoxGeometry(g[2]+0.6,2.4,TH); uvBox(lg,g[2]+0.6,2.4,TH,4); var l=new THREE.Mesh(lg,wallM); l.position.set(g[0],H-1.2,wz(g[1])); scene.add(l); coverMeshes.push(l); });
+  [[-U+TH/2,40,8],[U-TH/2,40,8]].forEach(function(g){ var lg=new THREE.BoxGeometry(TH,2.4,g[2]+0.6); uvBox(lg,TH,2.4,g[2]+0.6,4); var l=new THREE.Mesh(lg,wallM); l.position.set(g[0],H-1.2,wz(g[1])); scene.add(l); coverMeshes.push(l); });
   /* sliding gates: two panels per opening that retract into the walls when anyone comes near */
   var GH=H-2.4, gm=new THREE.MeshPhongMaterial({color:TM.desert?0x6a5438:0x454c55,emissive:tc,emissiveIntensity:0.3,shininess:30}), sm=new THREE.MeshBasicMaterial({color:tc});
   function gate(ax,cx,cz,w){
