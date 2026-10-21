@@ -6384,10 +6384,10 @@ function trWallRack(side,items){
     var tpl=trWeaponModel(it.wi,it.cv), sz=tpl.userData.sz, L=Math.max(0.6,sz.x), g=new THREE.Group(), inner=tpl;
     inner.rotation.z=Math.PI/2; g.add(inner);
     var plate=new THREE.Mesh(new THREE.BoxGeometry(0.34,L+0.3,0.05),new THREE.MeshLambertMaterial({color:0x0b0d12})); plate.position.z=-0.3; g.add(plate);
-    var strip=new THREE.Mesh(new THREE.BoxGeometry(0.05,L+0.3,0.06),new THREE.MeshBasicMaterial({color:it.cv?0x7dff5a:0x00e5ff,fog:false})); strip.position.set(0.2,0,-0.29); g.add(strip);
+    var strip=new THREE.Mesh(new THREE.BoxGeometry(0.05,L+0.3,0.06),new THREE.MeshBasicMaterial({color:(it.cv||it.cov)?0x7dff5a:0x00e5ff,fog:false})); strip.position.set(0.2,0,-0.29); g.add(strip);
     var hl=new THREE.Mesh(new THREE.BoxGeometry(0.7,L+0.35,0.3),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.22,depthWrite:false,blending:THREE.AdditiveBlending}));
     hl.visible=false; g.add(hl);
-    var y=1.0+(L+0.3)/2+0.35, lb=trLabel(it.name,1.7,0.3,it.cv?'#8dff6a':'#5fe9ff'); lb.position.set(0,-(L+0.3)/2-0.3,0.03); g.add(lb);
+    var y=1.0+(L+0.3)/2+0.35, lb=trLabel(it.name,1.7,0.3,(it.cv||it.cov)?'#8dff6a':'#5fe9ff'); lb.position.set(0,-(L+0.3)/2-0.3,0.03); g.add(lb);
     var x=side*(hx-0.55), z=z0+i*gap; g.position.set(x,y,z); g.rotation.y=rotY; scene.add(g); TRN.objs.push(g);
     wpicks.push({wi:it.wi,g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0,wall:true,tr:true,cv:it.cv});
   });
@@ -6511,8 +6511,8 @@ function trEnter(){
     var L=new THREE.PointLight(a[1],1.4,70); L.position.set(a[0]*hx*0.9,9,-hz*0.45+k*hz*0.5); add(L); TRN.lights.push(L);
   });
   /* weapon walls: every human gun on the left, the four Covenant guns on the right */
-  var H=[0,1,2,3,4,5,6,7,8,9].map(function(wi){ return {wi:wi,cv:false,name:weapons[wi].name}; });
-  var C=[{wi:0,cv:true,name:'PLASMA RIFLE'},{wi:2,cv:true,name:'BEAM RIFLE'},{wi:7,cv:true,name:'CARBINE'},{wi:6,cv:true,name:'NEEDLER'},{wi:3,cv:true,name:'FUEL ROD CANNON'}];
+  var H=[0,1,2,3,4,6,7,8,9].map(function(wi){ return {wi:wi,cv:false,name:weapons[wi].name}; });
+  var C=[{wi:0,cv:true,name:'PLASMA RIFLE'},{wi:2,cv:true,name:'BEAM RIFLE'},{wi:7,cv:true,name:'CARBINE'},{wi:6,cv:true,name:'NEEDLER'},{wi:3,cv:true,name:'FUEL ROD CANNON'},{wi:5,cov:true,name:'ENERGY SWORD'}];
   trWallRack(-1,H); trWallRack(1,C);
   var cl=trLabel('COVENANT',4,0.7,'#8dff6a'); cl.position.set(hx-0.2,5.2,0); cl.rotation.y=-Math.PI/2; add(cl);
   var hl2=trLabel('UNSC',4,0.7,'#5fe9ff'); hl2.position.set(-hx+0.2,8.2,0); hl2.rotation.y=Math.PI/2; add(hl2);
@@ -7743,7 +7743,7 @@ function tmLooseWeapon(x,z,wi,fy,fall){
 /* weapons hang upright on the inner back wall of each hall, like a gun rack: look at one and press E */
 function tmWallRack(Z,dz,t){
   var ws=[2,1,4,0,7,6,8,9], xs=[-18,-14,-10,-6,6,10,14,18], zz=Z+dz*28.45+dz*0.42, i, tc=TEAMS[t].c;
-  if(covOn){ ws.push(3); xs.push(-8); tmLooseWeapon(-3,Z+dz*18,7); tmLooseWeapon(3,Z+dz*18,3); }
+  if(covOn){ ws.push(3,5); xs.push(-8,8); tmLooseWeapon(-3,Z+dz*18,7); tmLooseWeapon(3,Z+dz*18,3); }
   for(i=0;i<ws.length;i++){
     if(!wAllowed(ws[i])) continue;
     var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,sz.x), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
