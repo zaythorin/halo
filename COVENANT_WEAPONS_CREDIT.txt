@@ -21,3 +21,27 @@ Model License:
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 This work is based on "Halo - Plasma Rifle" (https://sketchfab.com/3d-models/halo-plasma-rifle-5d2057dfef4041489f3207ce27e825f1) by 3DRaven (https://sketchfab.com/3DRaven) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+=== Carbine (Covenant Ship map) ===
+Model Information:
+* title:	Halo - Carbine
+* source:	https://sketchfab.com/3d-models/halo-carbine-427db67b54934adc950f2f8b6a84c1e8
+* author:	3DRaven (https://sketchfab.com/3DRaven)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Halo - Carbine" (https://sketchfab.com/3d-models/halo-carbine-427db67b54934adc950f2f8b6a84c1e8) by 3DRaven (https://sketchfab.com/3DRaven) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+=== Fuel Rod Gun (Covenant Ship map) ===
+Model Information:
+* title:	Weapons>Covenant>Halo 2 Anniversary>Fuel Rod Gun
+* source:	https://sketchfab.com/3d-models/weaponscovenanthalo-2-anniversaryfuel-rod-gun-abc2adc928b743a3a6f151ffa92b604c
+* author:	Bornstellar Makes Eternallasting (https://sketchfab.com/jameslucino117)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Weapons>Covenant>Halo 2 Anniversary>Fuel Rod Gun" (https://sketchfab.com/3d-models/weaponscovenanthalo-2-anniversaryfuel-rod-gun-abc2adc928b743a3a6f151ffa92b604c) by Bornstellar Makes Eternallasting (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
