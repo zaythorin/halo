@@ -2042,12 +2042,12 @@ function pisFire(w){
   var dist=hit?hit.distance:80, aim=origin.clone().addScaledVector(dir,Math.max(6,dist)).sub(mz).normalize();
   pbSpawn(mz,aim,hit&&(hit.object.userData.enemy||hit.object.userData.dm)?hit:null);
   if(mp.on) mpFx('cball',mz,mz.clone().addScaledVector(aim,70));
-  sample('covPChargeFire',1); covHeat(w); w.heat=Math.min(1,w.heat+0.3); fireCool=0.6;
+  sample('covPChargeFire',1); covHeat(w); w.bat=Math.max(0,w.bat-10); w.heat=Math.min(1,w.heat+0.3); fireCool=0.6;
   recoilKick(w); setFlash(w); vmKick=Math.min(0.2,vmKick+0.1); p.pitch+=0.02; noiseT=tAcc; noiseR=60;
 }
 function pisTick(dt){
   var w=weapons[0]; if(!w.chg||!w.cov) return;
-  var ud=w.group.userData, ok=cur===0&&!reloading&&swapT<=0&&meleeT<=0&&throwT<=0&&state==='play'&&!p.inVeh&&w.ohT<=0&&!dwOn(w), held=ok&&(ctrl.fire||gpFire);
+  var ud=w.group.userData, ok=cur===0&&!reloading&&swapT<=0&&meleeT<=0&&throwT<=0&&state==='play'&&!p.inVeh&&w.ohT<=0&&w.bat>=11&&!dwOn(w), held=ok&&(ctrl.fire||gpFire);
   if(held){
     w.pT=(w.pT||0)+dt; var c=Math.max(0,Math.min(1,(w.pT-0.32)/PB.CH));
     if(c>0&&w.cT===0) pisSnd(w,true);
@@ -2069,8 +2069,8 @@ var COV_OH=3.0;
 var covW=[false,false,false,false,false,false,false,false,false,false,false], covSv={};
 var COVA=function(h,b){ return {restHand:h,port:[0,0,0],magRest:[0,0,0],magOff:[0,0,0],events:[],mag:{attach:0,drop:0,reappear:0,insert:0},rot:[],base:b,slideOnFire:false,holdOpen:false}; };
 function covDef(i){
-  if(i===0) return {fl:null,w:{name:'PLASMA PISTOL',auto:false,dmg:14,head:1.5,rate:0.2,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.004,bloomMax:0.02,kick:0.01,vmKick:0.03,sfx:'cpist',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.05,cool:0.35,lastF:-9,chg:true,cT:0,pT:0,flv:[0x7dff5a,1.0,2.2,0.05]},anim:COVA([-0.02,-0.09,-0.13],[0,0.02,0])};
-  if(i===1) return {fl:null,w:{name:'PLASMA RIFLE',flv:[0x58b4ff,1.3,2.6,0.05],auto:true,dmg:17,head:1.5,rate:0.12,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.003,bloomMax:0.02,kick:0.012,vmKick:0.03,sfx:'cplas',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.04,cool:0.4,lastF:-9},anim:COVA([-0.02,-0.09,-0.13],[0,0.02,0])};
+  if(i===0) return {fl:null,w:{name:'PLASMA PISTOL',auto:false,dmg:14,head:1.5,rate:0.2,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.004,bloomMax:0.02,kick:0.01,vmKick:0.03,sfx:'cpist',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.05,cool:0.35,lastF:-9,chg:true,cT:0,pT:0,bat:100,bc:1.4,flv:[0x7dff5a,1.0,2.2,0.05]},anim:COVA([-0.02,-0.09,-0.13],[0,0.02,0])};
+  if(i===1) return {fl:null,w:{name:'PLASMA RIFLE',bat:100,bc:0.55,flv:[0x58b4ff,1.3,2.6,0.05],auto:true,dmg:17,head:1.5,rate:0.12,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.003,bloomMax:0.02,kick:0.012,vmKick:0.03,sfx:'cplas',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.04,cool:0.4,lastF:-9},anim:COVA([-0.02,-0.09,-0.13],[0,0.02,0])};
   if(i===2) return {fl:'sniper',flv:[0xbfe6ff,1.7,3.2,0.08],w:{name:'BEAM RIFLE',dmg:100,head:2.5,rate:0.8,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.002,kick:0.12,vmKick:0.26,sfx:'cbeam',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.28,cool:0.18,lastF:-9},anim:COVA([0,-0.08,-0.3],[0,0,0])};
   if(i===3){ var a3=reloadAnim([0.0,-0.3,-0.2],[0,-0.3,0.1],[0,0.06,0],AR_ROT,false); a3.events=[]; a3.base=[0.24,-0.1,-0.52]; a3.baseRot=[0.04,0.06,-0.04];
     return {fl:'rocket',flv:[0x7dff5a,2.4,4,0.12],w:{name:'FUEL ROD CANNON',mag:4,magSize:4,reserve:12,maxRes:20,reload:3.43,reloadDur:3.43,rate:0.55,sfx:'cfuel',fuel:true,rsnd:'covFlakReload'},anim:a3}; }
@@ -2085,7 +2085,7 @@ function covSetW(i,on){
   if(covW[i]===on) return; var D=covDef(i); if(!D) return;
   var w=weapons[i];
   if(on){
-    var sv={w:{},anim:w.anim,fl:D.fl?FL[D.fl]:null,hadFl:D.fl?(D.fl in FL):false}; Object.keys(D.w).concat(['cov','cg','fuel','needle','rsnd','burst','auto','kickDecay','zoomMul','chg','cT','pT','flv']).forEach(function(k){ sv.w[k]=w[k]; }); covSv[i]=sv;
+    var sv={w:{},anim:w.anim,fl:D.fl?FL[D.fl]:null,hadFl:D.fl?(D.fl in FL):false}; Object.keys(D.w).concat(['cov','cg','fuel','needle','rsnd','burst','auto','kickDecay','zoomMul','chg','cT','pT','flv','bat','bc']).forEach(function(k){ sv.w[k]=w[k]; }); covSv[i]=sv;
     covW[i]=true; Object.assign(w,D.w); w.anim=D.anim; if(D.fl) FL[D.fl]=D.flv;
   }else{
     var o=covSv[i]; covW[i]=false; if(i===0){ pisSnd(w,false); w.cT=0; w.pT=0; }
@@ -2109,6 +2109,7 @@ function covSetW(i,on){
 /* whole-map switch: the ship map and the training ground's Covenant armoury */
 function covSwap(on){ [0,1,2,3,6,7].forEach(function(i){ covSetW(i,on); }); covOn=on; }
 function covHeat(w){
+  if(w.bc) w.bat=Math.max(0,w.bat-w.bc);
   w.heat=Math.min(1,w.heat+w.hps); w.lastF=tAcc;
   if(w.heat>=1){ w.ohT=COV_OH; sfx.cheat(); showToast('OVERHEATED'); }
 }
@@ -2557,7 +2558,7 @@ function hud(){
   setText('score',String(score));
   setText('wname',w.name);
   setText('mag',w.cov?(w.ohT>0?'HOT':Math.round(w.heat*100)+'%'):w.inf?'∞':w.laser?Math.round(w.mag)+'%':(dwOn(w)?dwG[0].mag+'|'+dwG[1].mag:String(w.mag)));
-  setText('res',p.air?'MSL '+jet.msl:(w.cov?(w.ohT>0?'OVERHEAT':'HEAT'):w.inf?'\u221e':w.laser?'CHARGE':(dwOn(w)?dwW(0).reserve+'|'+dwW(1).reserve:String(w.reserve))));
+  setText('res',p.air?'MSL '+jet.msl:(w.cov?(w.ohT>0?'OVERHEAT':(w.bc?'BATT '+Math.round(w.bat)+'%':'HEAT')):w.inf?'\u221e':w.laser?'CHARGE':(dwOn(w)?dwW(0).reserve+'|'+dwW(1).reserve:String(w.reserve))));
   magStripes(w);
   var sd=p.shield<=0&&!p.inVeh; if(hudCache.sd!==sd){ hudCache.sd=sd; els.status.classList.toggle('sdown',sd); }
   if(sd&&p.health>0){ shBeepT-=frameDt; if(shBeepT<=0){ shBeepT=0.7; tone(1250,1250,0.07,'square',0.045); } } else shBeepT=0;
@@ -4890,7 +4891,7 @@ function updateWpicks(dt){
   else if(near!==wpNear && near>=0){ var nwi=wpicks[near].wi, cw0=slots[sel]; showToast(dwElig(nwi)?'E  TAKE '+weapons[nwi].name+'   T  DUAL WIELD':'E  TAKE '+weapons[nwi].name); }
   wpNear=near;
 }
-function topUp(wi){ var w=weapons[wi]; w.reserve=Math.min(w.maxRes,w.reserve+AMMO_PK[wi]); if(w.laser) w.mag=w.magSize; }
+function topUp(wi){ var w=weapons[wi]; if(w.cov&&w.bc) w.bat=100; w.reserve=Math.min(w.maxRes,w.reserve+AMMO_PK[wi]); if(w.laser) w.mag=w.magSize; }
 function takeWeapon(i,dual){
   var pk=wpicks[i]; if(!pk||pk.taken||swapT>0||meleeT>0||throwT>0) return;
   if(pk.mount){ turMan(pk); return; }
@@ -5797,6 +5798,7 @@ function updateWeapon(dt){
     if(want){
       if(w.sword){ startMelee(); fireEdgeT=0; }
       else if(w.laser){ /* charge handled in laserTick */ }
+      else if(w.cov&&w.bc&&w.bat<=0){ sfx.click(); fireEdgeT=0; fireCool=0.35; showToast('BATTERY EMPTY  GRAB ANOTHER PLASMA WEAPON'); }
       else if(w.cov&&w.ohT>0){ if(fireEdgeT>0){ sfx.click(); fireEdgeT=0; fireCool=0.3; } }
       else if(w.mag>0){
         burstSnd=!(w.burst&&burstLeft>0); fireWeapon(w,w.group.userData.muzzle,false); fireEdgeT=0;
