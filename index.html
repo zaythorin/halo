@@ -1855,7 +1855,7 @@ function covSwap(on){
     covSave={w:{},a:{},fl:{magnum:FL.magnum,sniper:FL.sniper,br:FL.br,rocket:FL.rocket},sc3:W3.group.scale.x};
     [0,2,3,7].forEach(function(i){ var o={}; KEYS.forEach(function(k){ o[k]=weapons[i][k]; }); covSave.w[i]=o; covSave.a[i]=weapons[i].anim; });
     var A=function(h,b){ return {restHand:h,port:[0,0,0],magRest:[0,0,0],magOff:[0,0,0],events:[],mag:{attach:0,drop:0,reappear:0,insert:0},rot:[],base:b,slideOnFire:false,holdOpen:false}; };
-    Object.assign(W0,{name:'PLASMA PISTOL',auto:true,dmg:17,head:1.5,rate:0.12,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.003,bloomMax:0.02,kick:0.012,vmKick:0.03,sfx:'cplas',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.04,cool:0.4,lastF:-9});
+    Object.assign(W0,{name:'PLASMA RIFLE',auto:true,dmg:17,head:1.5,rate:0.12,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.003,bloomMax:0.02,kick:0.012,vmKick:0.03,sfx:'cplas',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.04,cool:0.4,lastF:-9});
     Object.assign(W2,{name:'BEAM RIFLE',dmg:100,head:2.5,rate:0.8,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.002,kick:0.12,vmKick:0.26,sfx:'cbeam',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.28,cool:0.18,lastF:-9});
     Object.assign(W7,{name:'CARBINE',burst:0,auto:false,dmg:30,head:2.2,rate:0.2,mag:18,magSize:18,reserve:90,maxRes:144,reload:2.64,reloadDur:2.64,spread:0.003,bloomAdd:0.005,bloomMax:0.025,kick:0.02,vmKick:0.05,sfx:'ccarb',noEject:true,cg:true,rsnd:'covCarbReload'});
     Object.assign(W3,{name:'FUEL ROD CANNON',mag:4,magSize:4,reserve:12,maxRes:20,reload:3.43,reloadDur:3.43,rate:0.55,sfx:'cfuel',fuel:true,rsnd:'covFlakReload'});
@@ -1897,7 +1897,7 @@ function covCool(dt){
   });
 }
 /* beams and plasma bolts */
-var COVFX={beams:[],bolts:[],tex:null,cg:null};
+var COVFX={beams:[],bolts:[],lines:[],tex:null,cg:null};
 function covBeamFx(a,b){
   if(!COVFX.cg){ COVFX.cg=new THREE.CylinderGeometry(1,1,1,8,1,true); COVFX.cg.rotateX(Math.PI/2); }
   var s=null,i; for(i=0;i<COVFX.beams.length;i++) if(COVFX.beams[i].t<=0){ s=COVFX.beams[i]; break; }
@@ -1909,8 +1909,21 @@ function covBeamFx(a,b){
   }
   var d=new V3().subVectors(b,a), L=d.length(); s.g.position.copy(a).addScaledVector(d,0.5); s.g.scale.set(1,1,Math.max(0.01,L)); s.g.lookAt(b); s.g.visible=true; s.t=0.22;
 }
+function covLineFx(a,b){
+  if(!COVFX.lg){ COVFX.lg=new THREE.CylinderGeometry(1,1,1,6,1,true); COVFX.lg.rotateX(Math.PI/2); }
+  var d=new V3().subVectors(b,a), L=d.length(); if(L<0.5) return; d.divideScalar(L);
+  var s=null,i; for(i=0;i<COVFX.lines.length;i++) if(!COVFX.lines[i].on){ s=COVFX.lines[i]; break; }
+  if(!s){
+    var g=new THREE.Group(), core=new THREE.Mesh(COVFX.lg,new THREE.MeshBasicMaterial({color:0xeaffd8,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide})),
+        halo=new THREE.Mesh(COVFX.lg,new THREE.MeshBasicMaterial({color:0x3fe03a,transparent:true,opacity:0.75,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+    core.scale.set(0.012,0.012,2.4); halo.scale.set(0.045,0.045,2.4); g.add(halo); g.add(core); g.frustumCulled=false; scene.add(g);
+    s={g:g,on:false,pos:new V3(),dir:new V3(),left:0}; COVFX.lines.push(s);
+  }
+  s.pos.copy(a); s.dir.copy(d); s.left=L; s.on=true; s.g.visible=true; s.g.position.copy(a).addScaledVector(d,1.2); s.g.lookAt(s.g.position.clone().add(d));
+}
 function covPlasmaFx(a,b,green){
-  if(green&&!COVFX.gtex){
+  if(green){ covLineFx(a,b); return; }
+  if(false&&!COVFX.gtex){
     var gc=document.createElement('canvas'); gc.width=gc.height=64; var gx=gc.getContext('2d'), gg=gx.createRadialGradient(32,32,0,32,32,32);
     gg.addColorStop(0,'rgba(255,255,255,1)'); gg.addColorStop(0.2,'rgba(190,255,150,0.95)'); gg.addColorStop(0.55,'rgba(70,230,60,0.45)'); gg.addColorStop(1,'rgba(30,200,40,0)'); gx.fillStyle=gg; gx.fillRect(0,0,64,64);
     COVFX.gtex=new THREE.CanvasTexture(gc);
@@ -1932,12 +1945,13 @@ function covPlasmaFx(a,b,green){
 }
 function covTick(dt){
   var i;
+  for(i=0;i<COVFX.lines.length;i++){ var ln=COVFX.lines[i]; if(!ln.on) continue; var st2=Math.min(ln.left,230*dt); ln.pos.addScaledVector(ln.dir,st2); ln.left-=st2; ln.g.position.copy(ln.pos).addScaledVector(ln.dir,-1.2); if(ln.left<=0.01){ ln.on=false; ln.g.visible=false; } }
   for(i=0;i<COVFX.beams.length;i++){ var s=COVFX.beams[i]; if(s.t>0){ s.t-=dt; var k=Math.max(0,s.t/0.22); s.core.material.opacity=k; s.halo.material.opacity=k*0.7; if(s.t<=0) s.g.visible=false; } }
   for(i=0;i<COVFX.bolts.length;i++){ var b=COVFX.bolts[i]; if(!b.on) continue;
     var st=Math.min(b.left,150*dt); b.pos.addScaledVector(b.dir,st); b.left-=st; b.h.position.copy(b.pos); b.t.position.copy(b.pos).addScaledVector(b.dir,-0.7);
     if(b.left<=0.01){ b.on=false; b.h.visible=false; b.t.visible=false; } }
 }
-function covClear(){ var i; for(i=0;i<COVFX.beams.length;i++){ COVFX.beams[i].t=0; COVFX.beams[i].g.visible=false; } for(i=0;i<COVFX.bolts.length;i++){ COVFX.bolts[i].on=false; COVFX.bolts[i].h.visible=false; COVFX.bolts[i].t.visible=false; } }
+function covClear(){ var i; for(i=0;i<COVFX.lines.length;i++){ COVFX.lines[i].on=false; COVFX.lines[i].g.visible=false; } for(i=0;i<COVFX.beams.length;i++){ COVFX.beams[i].t=0; COVFX.beams[i].g.visible=false; } for(i=0;i<COVFX.bolts.length;i++){ COVFX.bolts[i].on=false; COVFX.bolts[i].h.visible=false; COVFX.bolts[i].t.visible=false; } }
 function buildMagnum(){
   if(covOn) return buildPlasmaPistol();
   var g=new THREE.Group(), def=MODELS.magnum, mp=modelParts(def), mc=def.magCentre;
@@ -7400,6 +7414,7 @@ function tmLooseWeapon(x,z,wi,fy,fall){
 /* weapons hang upright on the inner back wall of each hall, like a gun rack: look at one and press E */
 function tmWallRack(Z,dz,t){
   var ws=[2,1,4,0,7,6,8,9], xs=[-18,-14,-10,-6,6,10,14,18], zz=Z+dz*28.45+dz*0.42, i, tc=TEAMS[t].c;
+  if(covOn){ ws.push(3); xs.push(0); tmLooseWeapon(-3,Z+dz*18,7); tmLooseWeapon(3,Z+dz*18,3); }
   for(i=0;i<ws.length;i++){
     if(!wAllowed(ws[i])) continue;
     var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,sz.x), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
