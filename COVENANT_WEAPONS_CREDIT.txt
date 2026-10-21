@@ -45,3 +45,15 @@ Model License:
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 This work is based on "Weapons>Covenant>Halo 2 Anniversary>Fuel Rod Gun" (https://sketchfab.com/3d-models/weaponscovenanthalo-2-anniversaryfuel-rod-gun-abc2adc928b743a3a6f151ffa92b604c) by Bornstellar Makes Eternallasting (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+=== Needler (Covenant Ship map) ===
+Model Information:
+* title:	Halo - Needler
+* source:	https://sketchfab.com/3d-models/halo-needler-380612b9f49f44ffa474b8d1b8c846a2
+* author:	3DRaven (https://sketchfab.com/3DRaven)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Halo - Needler" (https://sketchfab.com/3d-models/halo-needler-380612b9f49f44ffa474b8d1b8c846a2) by 3DRaven (https://sketchfab.com/3DRaven) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
