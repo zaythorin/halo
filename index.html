@@ -2355,7 +2355,6 @@ function setFlash(w){
 /* spring recoil: [back, rise, roll, side impulses, stiffness, damping] per weapon, so every gun kicks and settles differently */
 var rc={z:0,vz:0,r:0,vr:0,x:0,vx:0,l:0,vl:0}, climb=0, lastShot=-9, swayIn={x:0,y:0}, sway={x:0,y:0,l:0};
 var RCT={laser:[0.9,1.7,0.3,0.08,24,0.5],magnum:[0.58,1.6,0.5,0.12,34,0.55],ar:[0.19,0.23,0.12,0.04,90,0.6],sniper:[0.82,2.06,0.4,0.1,22,0.5],rocket:[0.77,1.8,0.3,0.1,26,0.5],shotgun:[1.02,2.4,0.8,0.15,40,0.5]};
-covInit();
 function recoilKick(w){
   var t=RCT[w.id]; if(!t) return; var zk=zoomed?0.4:1;
   rc.vz+=t[0]*zk; rc.vr+=t[1]*zk; rc.vl+=(Math.random()-0.5)*2*t[2]*zk; rc.vx+=(Math.random()-0.5)*2*t[3]*zk;
@@ -2571,6 +2570,7 @@ function hud(){
 
 /* ---------- combat behaviour: patrols, cover, grenades, flinch reactions, and allied troopers ---------- */
 var NOISE={laser:90,magnum:60,ar:45,sniper:70,shotgun:55,rocket:85,sword:6}, noiseT=-9, noiseR=0, garrSites=[], _cv1=new V3(), _cv2=new V3(), _a1=new V3(), _a2=new V3(), _a3=new V3(), _a4=new V3();
+covInit();
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
 /* a straight line against the solid boxes (tree trunks, racks, walls) so they hide things like the terrain does */
 function segBox(from,to){
