@@ -1864,7 +1864,7 @@ function covSwap(on){
     Object.assign(W3,{name:'FUEL ROD CANNON',mag:4,magSize:4,reserve:12,maxRes:20,reload:3.43,reloadDur:3.43,rate:0.55,sfx:'cfuel',fuel:true,rsnd:'covFlakReload'});
     W0.anim=A([-0.02,-0.09,-0.13],[0,0.02,0]); W2.anim=A([0,-0.08,-0.3],[0,0,0]);
     W7.anim=reloadAnim([-0.02,-0.13,-0.27],[COVM.carb.M[0],COVM.carb.M[1],COVM.carb.M[2]],[0.035,0.03,0],AR_ROT,false); W7.anim.events=[];
-    W3.anim=reloadAnim([0.0,-0.3,-0.2],[0,-0.3,0.1],[0,0.06,0],AR_ROT,false); W3.anim.events=[]; W3.anim.base=[0.3,-0.36,-0.22]; W3.anim.baseRot=[0.1,0.1,-0.1];
+    W3.anim=reloadAnim([0.0,-0.3,-0.2],[0,-0.3,0.1],[0,0.06,0],AR_ROT,false); W3.anim.events=[]; W3.anim.base=[0.24,-0.1,-0.52]; W3.anim.baseRot=[0.04,0.06,-0.04];
     FL.magnum=[0x58b4ff,1.3,2.6,0.05]; FL.sniper=[0xbfe6ff,1.7,3.2,0.08]; FL.br=[0x7dff5a,1.0,2.0,0.05]; FL.rocket=[0x7dff5a,2.4,4,0.12];
   }else if(covSave){
     var o=covSave; [0,2,3,7].forEach(function(i){ var w=weapons[i], sv=o.w[i]; Object.keys(sv).forEach(function(k){ if(sv[k]===undefined) delete w[k]; else w[k]=sv[k]; }); w.anim=o.a[i]; });
@@ -1873,7 +1873,7 @@ function covSwap(on){
   var BL=[[0,buildMagnum],[2,buildSniper],[3,buildRocket],[7,buildBR]];
   BL.forEach(function(a){
     var old=weapons[a[0]].group, par=old.parent, ng=a[1]();
-    ng.visible=old.visible; if(a[0]===3) ng.scale.setScalar(on?0.75:1.3); if(par){ par.remove(old); par.add(ng); } weapons[a[0]].group=ng;
+    ng.visible=old.visible; if(a[0]===3) ng.scale.setScalar(on?1.1:1.3); if(par){ par.remove(old); par.add(ng); } weapons[a[0]].group=ng;
   });
   setWeapon(cur);
   rackTpl=null;
