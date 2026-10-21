@@ -2057,6 +2057,11 @@ function pisTick(dt){
     if(w.cT>0) pisSnd(w,false);
     w.pT=0; w.cT=0;
   }
+  if(w.cT>0){
+    rumble(90,0.15+0.75*w.cT,0.1+0.5*w.cT);
+    if(navigator.vibrate&&tAcc>(w.vibT||0)){ w.vibT=tAcc+0.09; try{ navigator.vibrate(18+45*w.cT); }catch(e){} }
+    shakeAmp=Math.max(shakeAmp,0.003+0.011*w.cT); shakeT=0.45;
+  }
   if(ud.cglow){ var k=w.cT; ud.cglow.visible=k>0; if(k>0){ var sz=0.05+0.28*k*k+0.02*Math.sin(tAcc*60); ud.cglow.scale.set(sz,sz,1); } }
 }
 var COV_OH=3.0;
