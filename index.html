@@ -7629,7 +7629,7 @@ function tmLooseWeapon(x,z,wi,fy,fall){
 /* weapons hang upright on the inner back wall of each hall, like a gun rack: look at one and press E */
 function tmWallRack(Z,dz,t){
   var ws=[2,1,4,0,7,6,8,9], xs=[-18,-14,-10,-6,6,10,14,18], zz=Z+dz*28.45+dz*0.42, i, tc=TEAMS[t].c;
-  if(covOn){ ws.push(3); xs.push(0); tmLooseWeapon(-3,Z+dz*18,7); tmLooseWeapon(3,Z+dz*18,3); }
+  if(covOn){ ws.push(3); xs.push(-8); tmLooseWeapon(-3,Z+dz*18,7); tmLooseWeapon(3,Z+dz*18,3); }
   for(i=0;i<ws.length;i++){
     if(!wAllowed(ws[i])) continue;
     var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,sz.x), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
