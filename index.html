@@ -1768,8 +1768,8 @@ function buildGunFrom(k,mzZ,magPos,rhPos,lo){
   g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh};
   return g;
 }
-function buildSMG(){ if(covOn) return buildNeedler(); return buildGunFrom('smg',-0.45,[0,-0.09,0.09],[0.01,-0.12,0.09],{c:2.2,s:1.1,q:[0.3759,-0.5707,-0.4175,0.5989]}); }
-function buildBR(){ if(covOn) return buildCarbine(); return buildGunFrom('br',-0.69,[0,-0.09,0.27],[0.01,-0.085,0.07]); }
+function buildSMG(){ if(covW[6]) return buildNeedler(); return buildGunFrom('smg',-0.45,[0,-0.09,0.09],[0.01,-0.12,0.09],{c:2.2,s:1.1,q:[0.3759,-0.5707,-0.4175,0.5989]}); }
+function buildBR(){ if(covW[7]) return buildCarbine(); return buildGunFrom('br',-0.69,[0,-0.09,0.27],[0.01,-0.085,0.07]); }
 function buildSalt(){ return buildGunFrom('salt',-0.69,[0,-0.09,0.27],[0.01,-0.085,0.07]); }
 function buildMMG(){
   var g=new THREE.Group(), body=wpnBody('mmgH'); g.add(body);
@@ -1952,49 +1952,49 @@ function buildPlasmaPistol(){
   lh.visible=false; g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh,magCentre:[0,0,0],spin:spin,lhVis:false};
   return g;
 }
-var COV_OH=3.0, covSave=null;
-var COV_BUILD=[[0,'buildMagnum'],[2,'buildSniper'],[3,'buildRocket'],[7,'buildBR']];
-function covSwap(on){
-  if(on===covOn) return;
-  covOn=on;
-  var W0=weapons[0], W2=weapons[2], W3=weapons[3], W7=weapons[7], W6=weapons[6];
-  var KEYS=['name','auto','dmg','head','rate','mag','magSize','reserve','maxRes','reload','reloadDur','spread','bloomAdd','bloomMax','kick','vmKick','sfx','inf','noEject','kickDecay','burst','cov','cg','fuel','needle','rsnd','heat','ohT','hps','cool','lastF','zoomMul'];
+var COV_OH=3.0;
+/* every Covenant weapon swaps in on its own: a Covenant gun and a UNSC gun can be carried together */
+var covW=[false,false,false,false,false,false,false,false,false,false,false], covSv={};
+var COVA=function(h,b){ return {restHand:h,port:[0,0,0],magRest:[0,0,0],magOff:[0,0,0],events:[],mag:{attach:0,drop:0,reappear:0,insert:0},rot:[],base:b,slideOnFire:false,holdOpen:false}; };
+function covDef(i){
+  if(i===0) return {fl:'magnum',flv:[0x58b4ff,1.3,2.6,0.05],w:{name:'PLASMA RIFLE',auto:true,dmg:17,head:1.5,rate:0.12,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.003,bloomMax:0.02,kick:0.012,vmKick:0.03,sfx:'cplas',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.04,cool:0.4,lastF:-9},anim:COVA([-0.02,-0.09,-0.13],[0,0.02,0])};
+  if(i===2) return {fl:'sniper',flv:[0xbfe6ff,1.7,3.2,0.08],w:{name:'BEAM RIFLE',dmg:100,head:2.5,rate:0.8,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.002,kick:0.12,vmKick:0.26,sfx:'cbeam',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.28,cool:0.18,lastF:-9},anim:COVA([0,-0.08,-0.3],[0,0,0])};
+  if(i===3){ var a3=reloadAnim([0.0,-0.3,-0.2],[0,-0.3,0.1],[0,0.06,0],AR_ROT,false); a3.events=[]; a3.base=[0.24,-0.1,-0.52]; a3.baseRot=[0.04,0.06,-0.04];
+    return {fl:'rocket',flv:[0x7dff5a,2.4,4,0.12],w:{name:'FUEL ROD CANNON',mag:4,magSize:4,reserve:12,maxRes:20,reload:3.43,reloadDur:3.43,rate:0.55,sfx:'cfuel',fuel:true,rsnd:'covFlakReload'},anim:a3}; }
+  if(i===6){ var a6=reloadAnim([-0.25,-0.35,-0.05],[0,-0.05,0],[0.03,0.03,0],AR_ROT,false); a6.events=[]; a6.mag={attach:0,drop:0,reappear:0,insert:0.48};
+    return {fl:'smg',flv:[0xff6fd8,0.9,2.0,0.04],w:{name:'NEEDLER',auto:true,dmg:3,head:1,rate:0.1,mag:24,magSize:24,reserve:120,maxRes:192,reload:1.61,reloadDur:1.61,spread:0.012,bloomAdd:0.003,bloomMax:0.03,kick:0.006,vmKick:0.02,sfx:'cneedle',noEject:true,needle:true,rsnd:'covNeedReload'},anim:a6}; }
+  if(i===7){ var a7=reloadAnim([-0.02,-0.13,-0.27],[COVM.carb.M[0],COVM.carb.M[1],COVM.carb.M[2]],[0.035,0.03,0],AR_ROT,false); a7.events=[];
+    return {fl:'br',flv:[0x7dff5a,1.0,2.0,0.05],w:{name:'CARBINE',burst:0,auto:false,dmg:30,head:2.2,rate:0.2,mag:18,magSize:18,reserve:90,maxRes:144,reload:2.64,reloadDur:2.64,spread:0.003,bloomAdd:0.005,bloomMax:0.025,kick:0.02,vmKick:0.05,sfx:'ccarb',noEject:true,cg:true,rsnd:'covCarbReload'},anim:a7}; }
+  return null;
+}
+function covBuilder(i){ return i===0?buildMagnum:i===2?buildSniper:i===3?buildRocket:i===6?buildSMG:buildBR; }
+function covSetW(i,on){
+  if(covW[i]===on) return; var D=covDef(i); if(!D) return;
+  var w=weapons[i];
   if(on){
-    covSave={w:{},a:{},fl:{magnum:FL.magnum,sniper:FL.sniper,br:FL.br,rocket:FL.rocket,smg:FL.smg},sc3:W3.group.scale.x};
-    [0,2,3,6,7].forEach(function(i){ var o={}; KEYS.forEach(function(k){ o[k]=weapons[i][k]; }); covSave.w[i]=o; covSave.a[i]=weapons[i].anim; });
-    var A=function(h,b){ return {restHand:h,port:[0,0,0],magRest:[0,0,0],magOff:[0,0,0],events:[],mag:{attach:0,drop:0,reappear:0,insert:0},rot:[],base:b,slideOnFire:false,holdOpen:false}; };
-    Object.assign(W0,{name:'PLASMA RIFLE',auto:true,dmg:17,head:1.5,rate:0.12,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.006,bloomAdd:0.003,bloomMax:0.02,kick:0.012,vmKick:0.03,sfx:'cplas',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.04,cool:0.4,lastF:-9});
-    Object.assign(W2,{name:'BEAM RIFLE',dmg:100,head:2.5,rate:0.8,mag:100,magSize:100,reserve:0,maxRes:0,spread:0.002,kick:0.12,vmKick:0.26,sfx:'cbeam',inf:true,noEject:true,cov:true,heat:0,ohT:0,hps:0.28,cool:0.18,lastF:-9});
-    Object.assign(W7,{name:'CARBINE',burst:0,auto:false,dmg:30,head:2.2,rate:0.2,mag:18,magSize:18,reserve:90,maxRes:144,reload:2.64,reloadDur:2.64,spread:0.003,bloomAdd:0.005,bloomMax:0.025,kick:0.02,vmKick:0.05,sfx:'ccarb',noEject:true,cg:true,rsnd:'covCarbReload'});
-    Object.assign(W6,{name:'NEEDLER',auto:true,dmg:3,head:1,rate:0.1,mag:24,magSize:24,reserve:120,maxRes:192,reload:1.61,reloadDur:1.61,spread:0.012,bloomAdd:0.003,bloomMax:0.03,kick:0.006,vmKick:0.02,sfx:'cneedle',noEject:true,needle:true,rsnd:'covNeedReload'});
-    Object.assign(W3,{name:'FUEL ROD CANNON',mag:4,magSize:4,reserve:12,maxRes:20,reload:3.43,reloadDur:3.43,rate:0.55,sfx:'cfuel',fuel:true,rsnd:'covFlakReload'});
-    W6.anim=reloadAnim([-0.25,-0.35,-0.05],[0,-0.05,0],[0.03,0.03,0],AR_ROT,false); W6.anim.events=[]; W6.anim.mag={attach:0,drop:0,reappear:0,insert:0.48};
-    W0.anim=A([-0.02,-0.09,-0.13],[0,0.02,0]); W2.anim=A([0,-0.08,-0.3],[0,0,0]);
-    W7.anim=reloadAnim([-0.02,-0.13,-0.27],[COVM.carb.M[0],COVM.carb.M[1],COVM.carb.M[2]],[0.035,0.03,0],AR_ROT,false); W7.anim.events=[];
-    W3.anim=reloadAnim([0.0,-0.3,-0.2],[0,-0.3,0.1],[0,0.06,0],AR_ROT,false); W3.anim.events=[]; W3.anim.base=[0.24,-0.1,-0.52]; W3.anim.baseRot=[0.04,0.06,-0.04];
-    FL.magnum=[0x58b4ff,1.3,2.6,0.05]; FL.sniper=[0xbfe6ff,1.7,3.2,0.08]; FL.br=[0x7dff5a,1.0,2.0,0.05]; FL.smg=[0xff6fd8,0.9,2.0,0.04]; FL.rocket=[0x7dff5a,2.4,4,0.12];
-  }else if(covSave){
-    var o=covSave; [0,2,3,6,7].forEach(function(i){ var w=weapons[i], sv=o.w[i]; Object.keys(sv).forEach(function(k){ if(sv[k]===undefined) delete w[k]; else w[k]=sv[k]; }); w.anim=o.a[i]; });
-    W0.cov=false; W2.cov=false; FL.magnum=o.fl.magnum; FL.sniper=o.fl.sniper; if(o.fl.br===undefined) delete FL.br; else FL.br=o.fl.br; FL.rocket=o.fl.rocket; if(o.fl.smg===undefined) delete FL.smg; else FL.smg=o.fl.smg; covSave=null;
+    var sv={w:{},anim:w.anim,fl:FL[D.fl],hadFl:D.fl in FL}; Object.keys(D.w).concat(['cov','cg','fuel','needle','rsnd','burst','auto','kickDecay','zoomMul']).forEach(function(k){ sv.w[k]=w[k]; }); covSv[i]=sv;
+    covW[i]=true; Object.assign(w,D.w); w.anim=D.anim; FL[D.fl]=D.flv;
+  }else{
+    var o=covSv[i]; covW[i]=false;
+    if(o){ Object.keys(o.w).forEach(function(k){ if(o.w[k]===undefined) delete w[k]; else w[k]=o.w[k]; }); w.anim=o.anim; if(o.hadFl) FL[D.fl]=o.fl; else delete FL[D.fl]; covSv[i]=null; }
+    w.cov=false;
   }
-  var BL=[[0,buildMagnum],[2,buildSniper],[3,buildRocket],[6,buildSMG],[7,buildBR]];
-  BL.forEach(function(a){
-    var old=weapons[a[0]].group, par=old.parent, ng=a[1]();
-    ng.visible=old.visible; if(a[0]===3) ng.scale.setScalar(on?1.1:1.3); if(par){ par.remove(old); par.add(ng); } weapons[a[0]].group=ng;
-  });
+  covOn=covW.some(function(v){ return v; });
+  var old=w.group, par=old.parent, ng=covBuilder(i)();
+  ng.visible=old.visible; if(i===3) ng.scale.setScalar(on?1.1:1.3); if(par){ par.remove(old); par.add(ng); } w.group=ng;
   setWeapon(cur);
   rackTpl=null;
   if(typeof mp!=='undefined'&&mp.peers){
     for(var id in mp.peers){ var av=mp.peers[id].avatar; if(!av||!av.userData.wg) continue;
       var wr=av.userData.wr; HREG=false;
-      BL.forEach(function(a){
-        var old=av.userData.wg[a[0]], ng=a[1](); if(ng.userData.leftHand) ng.userData.leftHand.visible=false; if(ng.userData.rightHand) ng.userData.rightHand.visible=false;
-        ng.visible=old.visible; wr.remove(old); wr.add(ng); av.userData.wg[a[0]]=ng;
-      });
+      var oa=av.userData.wg[i], na=covBuilder(i)(); if(na.userData.leftHand) na.userData.leftHand.visible=false; if(na.userData.rightHand) na.userData.rightHand.visible=false;
+      na.visible=oa.visible; wr.remove(oa); wr.add(na); av.userData.wg[i]=na;
       HREG=true;
     }
   }
 }
+/* whole-map switch: the ship map and the training ground's Covenant armoury */
+function covSwap(on){ [0,2,3,6,7].forEach(function(i){ covSetW(i,on); }); covOn=on; }
 function covHeat(w){
   w.heat=Math.min(1,w.heat+w.hps); w.lastF=tAcc;
   if(w.heat>=1){ w.ohT=COV_OH; sfx.cheat(); showToast('OVERHEATED'); }
@@ -2064,7 +2064,7 @@ function covTick(dt){
 }
 function covClear(){ var i; needleClear(); for(i=0;i<COVFX.lines.length;i++){ COVFX.lines[i].on=false; COVFX.lines[i].g.visible=false; } for(i=0;i<COVFX.beams.length;i++){ COVFX.beams[i].t=0; COVFX.beams[i].g.visible=false; } for(i=0;i<COVFX.bolts.length;i++){ COVFX.bolts[i].on=false; COVFX.bolts[i].h.visible=false; COVFX.bolts[i].t.visible=false; } }
 function buildMagnum(){
-  if(covOn) return buildPlasmaPistol();
+  if(covW[0]) return buildPlasmaPistol();
   var g=new THREE.Group(), def=MODELS.magnum, mp=modelParts(def), mc=def.magCentre;
   /* brighter, silvery finish like the Combat Evolved pistol */
   [mp.body,mp.mag].forEach(function(grp){ grp.traverse(function(o){ if(o.isMesh&&o.material&&o.material.map){ o.material.emissive=new THREE.Color(0x7a7a7a); o.material.emissiveMap=o.material.map; o.material.specular=new THREE.Color(0x555a60); o.material.shininess=45; } }); });
@@ -2107,7 +2107,7 @@ function buildLaser(){
   return g;
 }
 function buildSniper(){
-  if(covOn) return buildBeamRifle();
+  if(covW[2]) return buildBeamRifle();
   var g=new THREE.Group(), mp=modelParts(MODELS.sniper), darker=0x232b33;
   g.add(mp.body);
   var mag=new THREE.Group(); mag.add(boxMesh(0.04,0.1,0.07,darker,0,0,0)); mag.add(basicBox(0.046,0.014,0.076,0xffb347,0,-0.055,0));
@@ -2120,7 +2120,7 @@ function buildSniper(){
   return g;
 }
 function buildRocket(){
-  if(covOn) return buildFuelRod();
+  if(covW[3]) return buildFuelRod();
   /* oversized launcher: the tube is scaled up and carried so its rear half rests on the right shoulder */
   var S=2.6, g=new THREE.Group(), mp=modelParts(MODELS.rl);
   mp.body.scale.setScalar(S); g.add(mp.body);
@@ -4780,7 +4780,7 @@ function topUp(wi){ var w=weapons[wi]; w.reserve=Math.min(w.maxRes,w.reserve+AMM
 function takeWeapon(i,dual){
   var pk=wpicks[i]; if(!pk||pk.taken||swapT>0||meleeT>0||throwT>0) return;
   if(pk.mount){ turMan(pk); return; }
-  if(pk.cv!==undefined&&pk.cv!==covOn) covSwap(pk.cv);
+  if(pk.cv!==undefined&&covW[pk.wi]!==pk.cv) covSetW(pk.wi,pk.cv);
   var wi=pk.wi, j, cw=slots[sel];
   if(dual&&dwElig(wi)){
     pk.taken=true; pk.rt=(pk.wi===3?240:25); pk.g.visible=false; pk.hl.visible=false; wpNear=-1;
@@ -5517,7 +5517,7 @@ var dwOnF=false, dwG=[{wi:0,mag:0},{wi:6,mag:0}], dwCd=[0,0], dwT=[0,0], dwDn=[0
 function dwCan(w){ return w===weapons[0]||w===weapons[6]; }
 function dwOn(w){ return dwOnF&&w===weapons[dwG[0].wi]; }
 function dwW(h){ return weapons[dwG[h].wi]; }
-function dwElig(wi){ if(covOn&&(wi===0||wi===6||slots[sel]===0||slots[sel]===6)) return false; var cw=slots[sel]; return !dwOnF&&(cw===0||cw===6)&&(wi===0||wi===6); }
+function dwElig(wi){ if((wi===0||wi===6)&&covW[wi]) return false; if((slots[sel]===0||slots[sel]===6)&&covW[slots[sel]]) return false; var cw=slots[sel]; return !dwOnF&&(cw===0||cw===6)&&(wi===0||wi===6); }
 function dwNear(){ return wpNear>=0&&wpicks[wpNear]&&dwElig(wpicks[wpNear].wi); }
 [0,6].forEach(function(i){
   var g=(i===0?buildMagnum:buildSMG)(); g.userData.leftHand.visible=false; g.scale.x=-1; g.visible=false; vm.add(g); weapons[i].group2=g;
@@ -5617,7 +5617,7 @@ function fingerAnim(w,g,dt){
 }
 function dwAnimate(w){
   var on=dwOn(w), sp=MA.sprint, i, ri=dwG[0].wi, li=dwG[1].wi;
-  for(i=0;i<2;i++){ var wi=i?6:0; weapons[wi].group.userData.leftHand.visible=covOn?!!weapons[wi].group.userData.lhVis:!(dwOnF&&ri===wi); weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
+  for(i=0;i<2;i++){ var wi=i?6:0; weapons[wi].group.userData.leftHand.visible=covW[wi]?!!weapons[wi].group.userData.lhVis:!(dwOnF&&ri===wi); weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
   var b=$('bDual'); if(b){
     var near=dwNear(), cap=(dwOnF||near)&&!p.inVeh; if(b._c!==cap){ b._c=cap; b.classList.toggle('avail',cap); }
     var lab=dwOnF?'DROP 1':'DUAL'; if(b._l!==lab){ b._l=lab; b.textContent=lab; }
@@ -6369,9 +6369,9 @@ function trLabel(txt,w,h,col){
   return m;
 }
 function trWeaponModel(wi,cv){
-  var oc=covOn, oh=HREG; covOn=cv; HREG=false;
+  var oc=covW[wi], oh=HREG; covW[wi]=!!cv; HREG=false;
   var bs=[buildMagnum,buildAR,buildSniper,buildRocket,buildShotgun,buildSword,buildSMG,buildBR,buildLaser,buildSalt,buildMMG], sc=[1.3,1.25,1.1,1.0,1.45,1.5,1.5,1.25,0.78,1.25,0.9];
-  var m=bs[wi](); covOn=oc; HREG=oh;
+  var m=bs[wi](); covW[wi]=oc; HREG=oh;
   m.remove(m.userData.leftHand); m.remove(m.userData.rightHand);
   m.rotation.set(0,Math.PI/2,0); m.scale.setScalar(sc[wi]); m.userData={};
   var h=new THREE.Group(); h.add(m); h.updateMatrixWorld(true);
