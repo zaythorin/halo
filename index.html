@@ -4221,7 +4221,7 @@ function updatePlayer(dt){
   CR+=(((keys.KeyC&&!p.inVeh)?1:0)-CR)*Math.min(1,dt*12);
   MA.want=sprintHeld&&mz>0.3&&!zoomed&&!ctrl.fire&&p.onGround&&CR<0.3;
   if(ctrl.sprintTouch&&len<0.12){ MA.sprIdle=(MA.sprIdle||0)+dt; if(MA.sprIdle>0.2){ ctrl.sprintTouch=false; $('bSprint').classList.remove('on'); } } else MA.sprIdle=0;
-  var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1);
+  var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1)*(TM.on&&TM.ship?1.5:1);
   sp*=1-0.45*CR;
   if(TM.on&&TM.wire&&!p.inVeh){
     var wn=false, wi2, W2;
