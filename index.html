@@ -532,6 +532,7 @@ body{letter-spacing:.02em}
       </div>
     </div>
     <button type="button" class="go" id="mpHost">HOST A GAME</button>
+    <button type="button" class="go" id="mpSolo">SOLO TEST (NO FRIEND NEEDED)</button>
     <div class="mpRow"><input id="mpCode" maxlength="5" placeholder="ROOM CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button type="button" class="go alt" id="mpJoin">JOIN</button></div>
     <div id="mpStatus"></div>
     <button type="button" class="ghost" id="mpBack">BACK</button>
@@ -8886,6 +8887,11 @@ $('mpDM').addEventListener('click',function(){ mpSetMode('dm'); });
 $('mpCTF').addEventListener('click',function(){ mpSetMode('dm',true); });
 $('mpKOTH').addEventListener('click',function(){ mpSetMode('dm',false,true); });
 $('mpHost').addEventListener('click',function(){ mp.mode=mpMode; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead(); mpHost(); });
+$('mpSolo').addEventListener('click',function(){
+  mpClose(); mp.mode='dm'; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead();
+  mp.host=true; mp.id=0; mp.team=0; mp.conns=[]; mp.conn=null; mp.peer=null; mp.roster=[]; mp.score=[0,0]; mp.code='SOLO';
+  mpBegin();
+});
 $('mpJoin').addEventListener('click',mpJoin);
 $('mpBack').addEventListener('click',function(){ if(!mp.on) mpClose(); $('mp').hidden=true; });
 mpBuildOpts(); mpSetMode('ff');
