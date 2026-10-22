@@ -7482,9 +7482,9 @@ function tmShip(){
     geo.computeBoundingSphere();
     var me=new THREE.Mesh(geo,mats[md.m]); scene.add(me);
     var nm=MIDM.mats[md.m];
-    if(!nm.glass&&!nm.bright){
-      coverMeshes.push(me);
-      for(j=0;j<I.length;j+=3){ var a=I[j]*3, b=I[j+1]*3, c=I[j+2]*3; TM.fl.push([[P[a],P[a+1],P[a+2]],[P[b],P[b+1],P[b+2]],[P[c],P[c+1],P[c+2]]],false); }
+    if(!nm.glass){
+      if(!nm.bright) coverMeshes.push(me);
+      for(j=0;j<I.length;j+=3){ var a=I[j]*3, b=I[j+1]*3, c=I[j+2]*3; TM.fl.push([[P[a],P[a+1],P[a+2]],[P[b],P[b+1],P[b+2]],[P[c],P[c+1],P[c+2]]],!!nm.bright); }
     }
   });
   tmFinishBases();
@@ -7717,7 +7717,7 @@ function tmFinishBases(){
     var ux=B[0]-A[0],uy=B[1]-A[1],uz=B[2]-A[2],vx=C[0]-A[0],vy=C[1]-A[1],vz=C[2]-A[2];
     var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx, nl=Math.sqrt(nx*nx+ny*ny+nz*nz);
     if(nl<1e-6) continue;
-    var up=Math.abs(ny)/nl>=0.3&&ny!==0;
+    var up=Math.abs(ny)/nl>=(TM.ship?0.66:0.3)&&ny!==0;
     if(up){
       var det=(B[2]-C[2])*(A[0]-C[0])+(C[0]-B[0])*(A[2]-C[2]);
       if(Math.abs(det)<1e-9) continue;
