@@ -7521,6 +7521,29 @@ function tmShip(){
   var archM=new THREE.MeshLambertMaterial({map:wm,emissive:0x240e34}), ai;
   for(ai=-3;ai<=3;ai++){ var ar=new THREE.Mesh(new THREE.TorusGeometry(100,1.8,8,48,Math.PI),archM); ar.position.set(0,-48,ai*22); scene.add(ar); }
 
+  /* ---- team landing platforms at each end: a raised gilded deck with energy crystals, reached by ramps ---- */
+  var crM=new THREE.MeshPhongMaterial({color:0x8f7bff,emissive:0x5a3cff,emissiveIntensity:0.9,transparent:true,opacity:0.82,shininess:90,specular:0xffffff});
+  [0,1].forEach(function(t){
+    var sg=t===0?-1:1, Zc=sg*96, YP=3.2, tcol=new THREE.MeshBasicMaterial({color:TEAMS[t].c});
+    deck(-18,18,Zc-8,Zc+8,YP);
+    ramp('z',sg*74,sg*88,-4,4,YP);
+    ramp('x',32,18,Zc-3,Zc+3,YP); ramp('x',-32,-18,Zc-3,Zc+3,YP);
+    glow(-17.6,17.6,Zc-0.3,Zc+0.3,YP+0.04,tcol);
+    var ring=new THREE.Mesh(new THREE.RingGeometry(5.5,6.3,40),new THREE.MeshBasicMaterial({color:TEAMS[t].c,transparent:true,opacity:0.7,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); ring.rotation.x=-Math.PI/2; ring.position.set(0,YP+0.05,Zc+sg*0.0); scene.add(ring);
+    /* crystal clusters at the corners, set on plinths */
+    [[-15,Zc-sg*5],[15,Zc-sg*5],[-15,Zc+sg*5],[15,Zc+sg*5]].forEach(function(a,ci){
+      rbox(a[0]-1.1,a[0]+1.1,a[1]-1.1,a[1]+1.1,YP,YP+1.4,matW); glow(a[0]-1.2,a[0]+1.2,a[1]-1.2,a[1]+1.2,YP+1.45,mag);
+      [[0,0,6.5,0],[0.9,0.5,4.2,0.25],[-0.8,-0.6,3.4,-0.3]].forEach(function(c){
+        var cr=new THREE.Mesh(new THREE.ConeGeometry(0.85,c[2],6),crM); cr.position.set(a[0]+c[0],YP+1.4+c[2]/2,a[1]+c[1]); cr.rotation.z=c[3]; scene.add(cr);
+      });
+      if(ci<2){ var pl=new THREE.PointLight(0x8f7bff,0.9,40); pl.position.set(a[0],YP+5,a[1]); scene.add(pl); }
+    });
+    /* back wall of gilded plating behind the platform, with a team banner */
+    rbox(-34,34,Zc+sg*10,Zc+sg*12,0,18,matW);
+    rbox(-14,14,Zc+sg*9.8,Zc+sg*10,6,14,tcol,false);
+    /* low plating either side, to fight behind */
+    [[-26,Zc-sg*14],[26,Zc-sg*14]].forEach(function(a){ rbox(a[0]-3,a[0]+3,a[1]-1,a[1]+1,0,1.6,matW); glow(a[0]-3,a[0]+3,a[1]-1,a[1]-0.9,1.65,mag); });
+  });
   for(ix=-4;ix<=4;ix++) for(iz=-6;iz<=6;iz++){ var lp=new THREE.Mesh(new THREE.BoxGeometry(8,0.3,2.2),lm); lp.position.set(ix*24,49.8,iz*30); scene.add(lp); }
 }
 /* snowy-biome scatter: trees, rocks and boulders on a fixed seed so every player gets the same layout */
@@ -7856,13 +7879,25 @@ function tmWallRack(Z,dz,t){
 function tmLoose(){
   if(!rackTpl) buildRackTpl();
   TUR.list=[];
+  if(TM.ship){ tmShipLoose(); return; }
   var S0=[[-18,-84,6],[18,-84,7],[-30,-44,7],[30,-44,6],[-6,-62,6],[-30,-80,1],[26,-70,4],[-12,-52,2],[40,-30,0],[-40,-20,5],[10,-14,1],[-22,-96,4],[22,-100,2],[14,-26,3],[-56,-52,3]], i;
   S0.forEach(function(a){ if(a[2]===3){ if(a[0]===14) tmLooseWeapon(a[0],a[1],a[2]); return; } tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); }); /* only ONE rocket launcher lies on the whole map */
   [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; tmWallRack(Z,dz,t); var ty=dz>0?Math.PI:0; spawnTurret(-16,Z+dz*63,ty); spawnTurret(16,Z+dz*63,ty); [11,12,13,14,15,16,5].forEach(function(cw,ci){ tmLooseWeapon(-9+ci*3,Z+dz*14,cw); }); });
   [[-16,-84,11],[16,-84,12],[-28,-44,14],[28,-44,15],[-4,-62,13]].forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); }); tmLooseWeapon(-14,26,16);
 }
+/* Covenant ship: every weapon sits on a plinth on the end platforms or the central citadel, nothing like the UNSC bases */
+function tmShipLoose(){
+  [0,1].forEach(function(t){
+    var s=t===0?-1:1, Zc=s*96, ws=[11,12,13,14,15,16,5];
+    ws.forEach(function(wi,i){ tmLooseWeapon(-9+i*3,Zc,wi,3.2); });
+    tmLooseWeapon(-14,s*60,4); tmLooseWeapon(14,s*60,8);
+  });
+  tmLooseWeapon(0,-9,13,6); tmLooseWeapon(0,9,13,6); tmLooseWeapon(-12,0,16,6);
+  tmLooseWeapon(16,0,14,6); tmLooseWeapon(-16,10,12,6); tmLooseWeapon(16,-10,15,6);
+  [[-66,0,14],[66,0,15],[-66,8,11],[66,-8,12],[-40,-40,15],[40,40,15],[-40,40,14],[40,-40,14],[0,-30,12],[0,30,11],[-60,-26,13],[60,26,13]].forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2],(Math.abs(a[0])>=52&&Math.abs(a[1])<=14)?6:undefined); });
+}
 function tmEnter(team){
-  if(mp.opt&&mp.opt.map===2) mp.opt.vj=0; /* no Hornets inside the ship */
+  if(mp.opt&&mp.opt.map===2){ mp.opt.vj=0; mp.opt.vr=0; } /* no Hornets inside the ship */
   TM.noTr=!!(mp.opt&&mp.opt.tr===0); TM.desert=!!(mp.opt&&mp.opt.map===1); TM.ship=!!(mp.opt&&mp.opt.map===2);
   if(TM.ship){ slots=[11,12]; sel=0; setWeapon(11); }
   teamPaint(fpMaterials(),team); TP.rigId=null;
@@ -7879,8 +7914,9 @@ function tmEnter(team){
   nav.active=false; nav.src=-1;
   var n0=scene.children.length;
   TM.spawns=[[],[]];
-  tmBase(0); tmBase(1);
-  tmFinishBases(); TM.sn=EM_NAV; EM_NAV=null;
+  TM_AZ=TM.ship?170:200;
+  if(TM.ship){ TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null; TM.home=[{r:{x:0,z:-100,h:0},j:{x:0,z:-100,yaw:0}},{r:{x:0,z:100,h:Math.PI},j:{x:0,z:100,yaw:Math.PI}}]; for(var sq=0;sq<4;sq++){ TM.spawns[0].push({x:-9+6*sq,z:-62}); TM.spawns[1].push({x:-9+6*sq,z:62}); } }
+  else{ tmBase(0); tmBase(1); tmFinishBases(); TM.sn=EM_NAV; EM_NAV=null; }
   packSpots.push([40,0,60],[-40,0,-60]);
   spawnPacks(); tmLoose();
   TM.mesh=tmBuildTerrain(); scene.add(TM.mesh);
@@ -8154,7 +8190,7 @@ var pLocal=p;
 
 /* ---------- capture the flag (team battle variant, host decides) ---------- */
 var CTF={on:false,F:[null,null],cool:0};
-function ctfHome(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; return {x:0,z:Z+dz*33}; }
+function ctfHome(t){ if(TM.ship) return {x:0,z:(t===0?-1:1)*96}; var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; return {x:0,z:Z+dz*33}; }
 function ctfBuildFlag(t){
   var h=ctfHome(t), c=TEAMS[t].c, gy=lyG(h.x,h.z);
   var st=new THREE.Group();
