@@ -7465,87 +7465,112 @@ function tmShip(){
       else{ rbox(Math.min(a0,a1),Math.max(a0,a1),c0-0.12,c0,ya,ya+1.2,matR); rbox(Math.min(a0,a1),Math.max(a0,a1),c1,c1+0.12,ya,ya+1.2,matR); }
     }
   }
-  /* central citadel */
-  deck(-22,22,-16,16,Y);
-  rail(-22,-6.6,-16.2,-16,Y); rail(6.6,22,-16.2,-16,Y); rail(-22,-6.6,16,16.2,Y); rail(6.6,22,16,16.2,Y);
-  rail(-22.2,-22,-16,-3.4,Y); rail(-22.2,-22,3.4,16,Y); rail(22,22.2,-16,-3.4,Y); rail(22,22.2,3.4,16,Y);
-  ramp('z',-34,-16,-6,6,Y); ramp('z',34,16,-6,6,Y);
-  /* bridges and towers, mirrored east and west */
-  [-1,1].forEach(function(sg){
-    var xa=sg>0?22:-52, xb=sg>0?52:-22;
-    deck(xa,xb,-3,3,Y); rail(xa,xb,-3.2,-3,Y); rail(xa,xb,3,3.2,Y);
-    var t0=sg>0?52:-80, t1=sg>0?80:-52;
-    deck(t0,t1,-14,14,Y);
-    var inner=sg>0?t0:t1, outer=sg>0?t1:t0;
-    rail(outer,outer+(sg>0?0.2:-0.2)*1,-14,14,Y); rail(t0,t1,-14.2,-14,Y); rail(t0,t1,14,14.2,Y);
-    rail(inner+(sg>0?0:-0.2),inner+(sg>0?0.2:0),-14,-3.4,Y); rail(inner+(sg>0?0:-0.2),inner+(sg>0?0.2:0),3.4,14,Y);
-    var rx0=sg>0?62:-70, rx1=sg>0?70:-62;
-    ramp('z',-32,-14,rx0,rx1,Y); ramp('z',32,14,rx0,rx1,Y);
-    /* a squat energy pylon on each tower */
-    rbox((t0+t1)/2-1.6,(t0+t1)/2+1.6,-1.6,1.6,Y,Y+3.2,matW); glow((t0+t1)/2-1.7,(t0+t1)/2+1.7,-1.7,1.7,Y+3.25,mag);
+  /* ---------- the ship, as rooms: team bays at each end, a great hall in the middle with an upper ring and bridges, and a wing on each side ---------- */
+  var H=28, U=8, CY=4, sg, sz;
+  function wl(ax,c,a0,a1,gaps){
+    var cuts=[a0], i; gaps.forEach(function(g){ cuts.push(g[0],g[1]); }); cuts.push(a1);
+    for(i=0;i<cuts.length;i+=2){ var s0=cuts[i], s1=cuts[i+1]; if(s1-s0<0.01) continue; if(ax==='x') rbox(s0,s1,c-1,c+1,0,H,matW); else rbox(c-1,c+1,s0,s1,0,H,matW); }
+    gaps.forEach(function(g){
+      if(ax==='x'){ rbox(g[0],g[1],c-1,c+1,12,H,matW); glow(g[0],g[1],c-1.1,c-0.9,12,cyan); glow(g[0],g[1],c+0.9,c+1.1,12,cyan); glow(g[0]-0.3,g[0],c-1.2,c+1.2,0.06,mag); glow(g[1],g[1]+0.3,c-1.2,c+1.2,0.06,mag); }
+      else{ rbox(c-1,c+1,g[0],g[1],12,H,matW); glow(c-1.1,c-0.9,g[0],g[1],12,cyan); glow(c+0.9,c+1.1,g[0],g[1],12,cyan); glow(c-1.2,c+1.2,g[0]-0.3,g[0],0.06,mag); glow(c-1.2,c+1.2,g[1],g[1]+0.3,0.06,mag); }
+    });
+  }
+  /* outer hull */
+  rbox(-102,-100,-130,130,0,H,matW); rbox(100,102,-130,130,0,H,matW); rbox(-102,102,-132,-130,0,H,matW); rbox(-102,102,130,132,0,H,matW);
+  /* bay walls (z = +-88) with a wide door to the hall and a door to each wing's rear room */
+  wl('x',-88,-100,100,[[-76,-60],[-9,9],[60,76]]); wl('x',88,-100,100,[[-76,-60],[-9,9],[60,76]]);
+  /* hall side walls, with a wide opening to each wing and a door near each end */
+  wl('z',-36,-88,88,[[-86,-78],[-6,6],[78,86]]); wl('z',36,-88,88,[[-86,-78],[-6,6],[78,86]]);
+  /* bay side walls with a door through to the rear rooms */
+  [-1,1].forEach(function(s){ var z0=Math.min(s*88,s*128), z1=Math.max(s*88,s*128), g=[[s>0?100:-110,s>0?110:-100]]; wl('z',-36,z0,z1,g); wl('z',36,z0,z1,g); });
+  /* dividing wall between each wing and its rear rooms is the z=+-88 wall above */
+
+  /* ===== great hall ===== */
+  deck(-14,14,-14,14,CY);
+  rail(-14,-5.4,-14.2,-14,CY); rail(5.4,14,-14.2,-14,CY); rail(-14,-5.4,14,14.2,CY); rail(5.4,14,14,14.2,CY);
+  rail(-14.2,-14,-14,-5.4,CY); rail(-14.2,-14,5.4,14,CY); rail(14,14.2,-14,-5.4,CY); rail(14,14.2,5.4,14,CY);
+  ramp('z',-28,-14,-5,5,CY); ramp('z',28,14,-5,5,CY); ramp('x',-26,-14,-5,5,CY); ramp('x',26,14,-5,5,CY);
+  var rg2=new THREE.Mesh(new THREE.RingGeometry(8.4,9.4,48),new THREE.MeshBasicMaterial({color:0xc46bff,transparent:true,opacity:0.8,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); rg2.rotation.x=-Math.PI/2; rg2.position.set(0,CY+0.06,0); scene.add(rg2);
+  /* the upper ring: a balcony down each side of the hall, tied together by two bridges */
+  [-1,1].forEach(function(s){
+    var a=s>0?27:-36, b=s>0?36:-27;
+    deck(a,b,-54,54,U);
+    ramp('z',74,54,a+1,b-1,U); ramp('z',-74,-54,a+1,b-1,U);
+    var ie=s>0?27:-27.2;
+    rail(ie,ie+0.2,-54,-37,U); rail(ie,ie+0.2,-31,31,U); rail(ie,ie+0.2,37,54,U);
+    rail(a,b,-54.2,-54,U); rail(a,b,54,54.2,U);
+    /* a wide bridge through each wing opening */
+    var x0=s>0?36:-62, x1=s>0?62:-36;
+    deck(x0,x1,-4,4,U); rail(x0,x1,-4.2,-4,U); rail(x0,x1,4,4.2,U);
   });
-  /* tall columns to the ceiling, and low crates to fight behind */
-  [[-40,-38],[40,-38],[-40,38],[40,38],[-88,-24],[88,-24],[-88,24],[88,24],[0,-56],[0,56]].forEach(function(a){
-    rbox(a[0]-1.6,a[0]+1.6,a[1]-1.6,a[1]+1.6,0,50,matW); glow(a[0]-1.7,a[0]+1.7,a[1]-1.7,a[1]+1.7,0.05,cyan);
-  });
-  [[-14,-30],[14,-30],[-14,30],[14,30],[-30,-18],[30,18],[-30,18],[30,-18],[-58,-40],[58,40],[-58,40],[58,-40],[-84,0],[84,0],[0,-42],[0,42]].forEach(function(a){
-    rbox(a[0]-1.8,a[0]+1.8,a[1]-1.1,a[1]+1.1,0,1.5,matW); glow(a[0]-1.8,a[0]+1.8,a[1]-1.1,a[1]-1,1.55,mag);
-  });
-  /* lane lights on the floor */
-  [-30,30,-70,70].forEach(function(x){ glow(x-0.15,x+0.15,-56,56,0.07,cyan); });
-  [-48,48].forEach(function(z){ glow(-70,70,z-0.15,z+0.15,0.07,mag); });
-  /* the ceiling, with light panels */
-  var cg=new THREE.PlaneGeometry(420,540); uvPlane(cg,420,540,8); var ce=new THREE.Mesh(cg,new THREE.MeshLambertMaterial({map:buildTex('cvg'),emissive:0x2a1c08,side:THREE.DoubleSide})); ce.rotation.x=Math.PI/2; ce.position.y=50; scene.add(ce);
-  var lm=new THREE.MeshBasicMaterial({color:0xd8ccff}), ix, iz;
-  /* ---- looks from the reference: ribbed organic pillars, blue energy fountains, big struts, gilded arches ---- */
-  var pil=[], prof=[], pk;
-  for(pk=0;pk<=50;pk+=1){ var rr=1.75+0.28*Math.sin(pk*2.1)+(pk<5?(5-pk)*0.28:0)+(pk>44?(pk-44)*0.2:0); prof.push(new THREE.Vector2(rr,pk)); }
+  [-34,34].forEach(function(z){ deck(-27,27,z-3,z+3,U); rail(-27,27,z-3.2,z-3,U); rail(-27,27,z+3,z+3.2,U); });
+  /* ceiling ribs over the hall */
+  [-60,-20,20,60].forEach(function(z){ var st=new THREE.Mesh(new THREE.BoxGeometry(72,1.4,2),matW); uvBox(st.geometry,72,1.4,2,4); st.position.set(0,H-1.5,z); scene.add(st); var gl=new THREE.Mesh(new THREE.BoxGeometry(72,0.1,0.4),cyan); gl.position.set(0,H-2.25,z); scene.add(gl); });
+  /* columns: ribbed, organic, reaching the ceiling */
+  var prof=[], pk;
+  for(pk=0;pk<=H;pk+=1){ var rr=1.6+0.26*Math.sin(pk*2.1)+(pk<5?(5-pk)*0.26:0)+(pk>H-6?(pk-(H-6))*0.2:0); prof.push(new THREE.Vector2(rr,pk)); }
   var pg=new THREE.LatheGeometry(prof,14), pmat=new THREE.MeshLambertMaterial({map:wm,emissive:0x1a0a2c});
   var pu=pg.attributes.uv; for(pk=0;pk<pu.count;pk++) pu.setXY(pk,pu.getX(pk)*3,pu.getY(pk)*8);
-  [[-40,-38],[40,-38],[-40,38],[40,38],[-88,-24],[88,-24],[-88,24],[88,24],[0,-56],[0,56]].forEach(function(a){ var pm=new THREE.Mesh(pg,pmat); pm.position.set(a[0],0,a[1]); scene.add(pm); });
-  /* blue energy fountains */
+  function column(x,z){ var pm=new THREE.Mesh(pg,pmat); pm.position.set(x,0,z); scene.add(pm); rbox(x-1.5,x+1.5,z-1.5,z+1.5,0,H,matW,true).visible=false; }
+  [[-22,-60],[22,-60],[-22,60],[22,60],[-22,-22],[22,-22],[-22,22],[22,22]].forEach(function(a){ column(a[0],a[1]); });
+  function crate(x,z,w,d,h){ rbox(x-w/2,x+w/2,z-d/2,z+d/2,0,h||1.5,matW); glow(x-w/2,x+w/2,z-d/2,z-d/2+0.1,(h||1.5)+0.05,mag); }
+  [[-8,-40],[8,-40],[-8,40],[8,40],[-20,-44],[20,44],[-20,44],[20,-44]].forEach(function(a){ crate(a[0],a[1],3.6,2.2); });
+  /* blue energy fountains in the hall */
   var fm=new THREE.MeshBasicMaterial({color:0x4fb8ff,transparent:true,opacity:0.38,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}), fc=document.createElement('canvas'); fc.width=fc.height=128;
   var fg=fc.getContext('2d'), fr=fg.createRadialGradient(64,64,0,64,64,64); fr.addColorStop(0,'rgba(170,230,255,0.9)'); fr.addColorStop(1,'rgba(60,140,255,0)'); fg.fillStyle=fr; fg.fillRect(0,0,128,128);
   var ftex=new THREE.CanvasTexture(fc), fi=0;
-  [[-62,-8],[62,8],[-22,46],[22,-46]].forEach(function(a){
-    var col=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.5,11,14,1,true),fm); col.position.set(a[0],5.8,a[1]); scene.add(col);
-    var base=new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.8,0.7,14),matR); base.position.set(a[0],0.35,a[1]); scene.add(base);
-    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:ftex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false})); sp.position.set(a[0],6,a[1]); sp.scale.set(9,13,1); scene.add(sp);
-    if(fi<3){ var pl=new THREE.PointLight(0x58b8ff,0.9,46); pl.position.set(a[0],4,a[1]); scene.add(pl); } fi++;
-  });
-  /* great struts across the hall, with glowing pods, and gilded arches overhead */
-  [-30,30].forEach(function(z){
-    var st=new THREE.Mesh(new THREE.BoxGeometry(190,2.4,2.8),matW); uvBox(st.geometry,190,2.4,2.8,4); st.position.set(0,26,z); scene.add(st);
-    var gl=new THREE.Mesh(new THREE.BoxGeometry(190,0.12,0.5),cyan); gl.position.set(0,24.7,z); scene.add(gl);
-    [-60,-20,20,60].forEach(function(x){ var pod=new THREE.Mesh(new THREE.SphereGeometry(2.2,12,8),mag); pod.scale.y=0.45; pod.position.set(x,24.4,z); scene.add(pod); });
-  });
-  var archM=new THREE.MeshLambertMaterial({map:wm,emissive:0x240e34}), ai;
-  for(ai=-3;ai<=3;ai++){ var ar=new THREE.Mesh(new THREE.TorusGeometry(100,1.8,8,48,Math.PI),archM); ar.position.set(0,-48,ai*22); scene.add(ar); }
-
-  /* ---- team landing platforms at each end: a raised gilded deck with energy crystals, reached by ramps ---- */
+  function fountain(x,z,lit){
+    var col=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.5,11,14,1,true),fm); col.position.set(x,5.8,z); scene.add(col);
+    var base=new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.8,0.7,14),matR); base.position.set(x,0.35,z); scene.add(base); boxes.push({minx:x-2,maxx:x+2,minz:z-2,maxz:z+2,h:0.7});
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:ftex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false})); sp.position.set(x,6,z); sp.scale.set(9,13,1); scene.add(sp);
+    if(lit){ var pl=new THREE.PointLight(0x58b8ff,0.9,46); pl.position.set(x,4,z); scene.add(pl); }
+  }
+  fountain(0,-62,true); fountain(0,62,false);
+  /* crystals crowning the centre platform */
   var crM=new THREE.MeshPhongMaterial({color:0x8f7bff,emissive:0x5a3cff,emissiveIntensity:0.9,transparent:true,opacity:0.82,shininess:90,specular:0xffffff});
-  [0,1].forEach(function(t){
-    var sg=t===0?-1:1, Zc=sg*96, YP=3.2, tcol=new THREE.MeshBasicMaterial({color:TEAMS[t].c});
-    deck(-18,18,Zc-8,Zc+8,YP);
-    ramp('z',sg*74,sg*88,-4,4,YP);
-    ramp('x',32,18,Zc-3,Zc+3,YP); ramp('x',-32,-18,Zc-3,Zc+3,YP);
-    glow(-17.6,17.6,Zc-0.3,Zc+0.3,YP+0.04,tcol);
-    var ring=new THREE.Mesh(new THREE.RingGeometry(5.5,6.3,40),new THREE.MeshBasicMaterial({color:TEAMS[t].c,transparent:true,opacity:0.7,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); ring.rotation.x=-Math.PI/2; ring.position.set(0,YP+0.05,Zc+sg*0.0); scene.add(ring);
-    /* crystal clusters at the corners, set on plinths */
-    [[-15,Zc-sg*5],[15,Zc-sg*5],[-15,Zc+sg*5],[15,Zc+sg*5]].forEach(function(a,ci){
-      rbox(a[0]-1.1,a[0]+1.1,a[1]-1.1,a[1]+1.1,YP,YP+1.4,matW); glow(a[0]-1.2,a[0]+1.2,a[1]-1.2,a[1]+1.2,YP+1.45,mag);
-      [[0,0,6.5,0],[0.9,0.5,4.2,0.25],[-0.8,-0.6,3.4,-0.3]].forEach(function(c){
-        var cr=new THREE.Mesh(new THREE.ConeGeometry(0.85,c[2],6),crM); cr.position.set(a[0]+c[0],YP+1.4+c[2]/2,a[1]+c[1]); cr.rotation.z=c[3]; scene.add(cr);
-      });
-      if(ci<2){ var pl=new THREE.PointLight(0x8f7bff,0.9,40); pl.position.set(a[0],YP+5,a[1]); scene.add(pl); }
-    });
-    /* back wall of gilded plating behind the platform, with a team banner */
-    rbox(-34,34,Zc+sg*10,Zc+sg*12,0,18,matW);
-    rbox(-14,14,Zc+sg*9.8,Zc+sg*10,6,14,tcol,false);
-    /* low plating either side, to fight behind */
-    [[-26,Zc-sg*14],[26,Zc-sg*14]].forEach(function(a){ rbox(a[0]-3,a[0]+3,a[1]-1,a[1]+1,0,1.6,matW); glow(a[0]-3,a[0]+3,a[1]-1,a[1]-0.9,1.65,mag); });
+  function crystals(x,z,y,k){ [[0,0,6.5,0],[0.9,0.5,4.2,0.25],[-0.8,-0.6,3.4,-0.3]].forEach(function(c){ var cr=new THREE.Mesh(new THREE.ConeGeometry(0.85*(k||1),c[2]*(k||1),6),crM); cr.position.set(x+c[0],y+c[2]*(k||1)/2,z+c[1]); cr.rotation.z=c[3]; scene.add(cr); }); }
+  rbox(-2.2,2.2,-2.2,2.2,CY,CY+1.2,matW); glow(-2.3,2.3,-2.3,2.3,CY+1.25,mag); crystals(0,0,CY+1.2,1.3);
+  var hl=new THREE.PointLight(0xa58bff,1.1,60); hl.position.set(0,CY+8,0); scene.add(hl);
+
+  /* ===== wings, one each side: ground floor with cover, and an overlook deck on the upper level ===== */
+  [-1,1].forEach(function(s){
+    var in0=s>0?62:-98, in1=s>0?98:-62;
+    deck(in0,in1,-40,40,U);
+    var ie=s>0?62:-62.2;
+    rail(ie,ie+0.2,-40,-5,U); rail(ie,ie+0.2,5,40,U);
+    rail(s>0?62:-84,s>0?84:-62,-40.2,-40,U); rail(s>0?62:-84,s>0?84:-62,40,40.2,U);
+    rail(s>0?94:-98,s>0?98:-94,-40.2,-40,U); rail(s>0?94:-98,s>0?98:-94,40,40.2,U);
+    ramp('z',72,40,s*89-5,s*89+5,U); ramp('z',-72,-40,s*89-5,s*89+5,U);
+    column(s*50,-30); column(s*50,30); column(s*80,-62); column(s*80,62);
+    fountain(s*48,0,s>0);
+    [[s*52,-14],[s*52,14],[s*80,-24],[s*80,24],[s*90,0],[s*70,-70],[s*70,70],[s*46,-60],[s*46,60]].forEach(function(a){ crate(a[0],a[1],3.6,2.4); });
+    glow(s*62-0.2,s*62+0.2,-40,40,U-0.45,mag);
   });
-  for(ix=-4;ix<=4;ix++) for(iz=-6;iz<=6;iz++){ var lp=new THREE.Mesh(new THREE.BoxGeometry(8,0.3,2.2),lm); lp.position.set(ix*24,49.8,iz*30); scene.add(lp); }
+
+  /* ===== rear rooms (four): a raised dais with crystals, plus cover ===== */
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(a){
+    var sx=a[0], szz=a[1], cx=sx*68, cz=szz*108;
+    crate(cx-10,cz-8,3.6,2.4); crate(cx+10,cz+8,3.6,2.4); crate(cx+8,cz-10,2.4,3.6);
+    rbox(cx-1.4,cx+1.4,cz-1.4,cz+1.4,0,1.2,matW); glow(cx-1.5,cx+1.5,cz-1.5,cz+1.5,1.25,mag); crystals(cx,cz,1.2,0.9);
+  });
+
+  /* ===== team bays ===== */
+  [0,1].forEach(function(t){
+    var s=t===0?-1:1, Zc=s*112, tcol=new THREE.MeshBasicMaterial({color:TEAMS[t].c});
+    glow(-35,35,Zc-0.3,Zc+0.3,0.07,tcol); glow(-35,35,Zc-10.3,Zc-9.7,0.07,tcol);
+    var ring=new THREE.Mesh(new THREE.RingGeometry(8,9,40),new THREE.MeshBasicMaterial({color:TEAMS[t].c,transparent:true,opacity:0.7,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); ring.rotation.x=-Math.PI/2; ring.position.set(0,0.08,Zc); scene.add(ring);
+    [[-30,Zc-s*8],[30,Zc-s*8],[-30,Zc+s*8],[30,Zc+s*8]].forEach(function(a2,ci){
+      rbox(a2[0]-1.2,a2[0]+1.2,a2[1]-1.2,a2[1]+1.2,0,1.2,matW); glow(a2[0]-1.3,a2[0]+1.3,a2[1]-1.3,a2[1]+1.3,1.25,mag); crystals(a2[0],a2[1],1.2,1);
+    });
+    var pl=new THREE.PointLight(TEAMS[t].c,0.9,60); pl.position.set(0,12,Zc); scene.add(pl);
+    rbox(-14,14,Zc+s*14.7,Zc+s*15,5,20,tcol,false);
+    crate(-24,Zc-s*18,5,2.2); crate(24,Zc-s*18,5,2.2);
+  });
+
+  /* ---- ceiling and light panels ---- */
+  var cg=new THREE.PlaneGeometry(220,270); uvPlane(cg,220,270,8); var ce=new THREE.Mesh(cg,new THREE.MeshLambertMaterial({map:buildTex('cvg'),emissive:0x2a1c08,side:THREE.DoubleSide})); ce.rotation.x=Math.PI/2; ce.position.y=H; scene.add(ce);
+  var lm=new THREE.MeshBasicMaterial({color:0xd8ccff}), ix, iz;
+  for(ix=-3;ix<=3;ix++) for(iz=-5;iz<=5;iz++){ var lp=new THREE.Mesh(new THREE.BoxGeometry(6,0.3,2),lm); lp.position.set(ix*28,H-0.2,iz*24); scene.add(lp); }
 }
 /* snowy-biome scatter: trees, rocks and boulders on a fixed seed so every player gets the same layout */
 function tmScatter(){
@@ -7889,13 +7914,14 @@ function tmLoose(){
 /* Covenant ship: every weapon sits on a plinth on the end platforms or the central citadel, nothing like the UNSC bases */
 function tmShipLoose(){
   [0,1].forEach(function(t){
-    var s=t===0?-1:1, Zc=s*96, ws=[11,12,13,14,15,16,5];
-    ws.forEach(function(wi,i){ tmLooseWeapon(-9+i*3,Zc,wi,3.2); });
-    tmLooseWeapon(-14,s*60,4); tmLooseWeapon(14,s*60,8);
+    var s=t===0?-1:1, Zc=s*124;
+    [11,12,13,14,15,16,5].forEach(function(wi,i){ tmLooseWeapon(-9+i*3,Zc,wi); });
+    tmLooseWeapon(-14,s*100,4); tmLooseWeapon(14,s*100,8);
   });
-  tmLooseWeapon(0,-9,13,6); tmLooseWeapon(0,9,13,6); tmLooseWeapon(-12,0,16,6);
-  tmLooseWeapon(16,0,14,6); tmLooseWeapon(-16,10,12,6); tmLooseWeapon(16,-10,15,6);
-  [[-66,0,14],[66,0,15],[-66,8,11],[66,-8,12],[-40,-40,15],[40,40,15],[-40,40,14],[40,-40,14],[0,-30,12],[0,30,11],[-60,-26,13],[60,26,13]].forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2],(Math.abs(a[0])>=52&&Math.abs(a[1])<=14)?6:undefined); });
+  tmLooseWeapon(0,-8,13,4); tmLooseWeapon(0,8,13,4); tmLooseWeapon(-8,0,16,4); tmLooseWeapon(8,0,14,4);
+  tmLooseWeapon(31,0,11,8); tmLooseWeapon(-31,0,12,8); tmLooseWeapon(31,-44,15,8); tmLooseWeapon(-31,44,15,8); tmLooseWeapon(-31,-44,14,8); tmLooseWeapon(31,44,14,8);
+  tmLooseWeapon(80,0,13,8); tmLooseWeapon(-80,0,13,8); tmLooseWeapon(88,-20,16,8); tmLooseWeapon(-88,20,16,8);
+  [[68,-100,15],[-68,-100,14],[68,100,14],[-68,100,15],[60,0,12],[-60,0,11],[0,-70,12],[0,70,11],[-14,-50,13],[14,50,13],[76,-54,14],[-76,54,14],[76,54,15],[-76,-54,15]].forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2]); });
 }
 function tmEnter(team){
   if(mp.opt&&mp.opt.map===2){ mp.opt.vj=0; mp.opt.vr=0; } /* no Hornets inside the ship */
@@ -7915,10 +7941,10 @@ function tmEnter(team){
   nav.active=false; nav.src=-1;
   var n0=scene.children.length;
   TM.spawns=[[],[]];
-  TM_AZ=TM.ship?170:200;
-  if(TM.ship){ TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null; TM.home=[{r:{x:0,z:-100,h:0},j:{x:0,z:-100,yaw:0}},{r:{x:0,z:100,h:Math.PI},j:{x:0,z:100,yaw:Math.PI}}]; for(var sq=0;sq<4;sq++){ TM.spawns[0].push({x:-9+6*sq,z:-62}); TM.spawns[1].push({x:-9+6*sq,z:62}); } }
+  TM_AX=TM.ship?200:125; TM_AZ=TM.ship?250:200;
+  if(TM.ship){ TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null; TM.home=[{r:{x:0,z:-112,h:0},j:{x:0,z:-112,yaw:0}},{r:{x:0,z:112,h:Math.PI},j:{x:0,z:112,yaw:Math.PI}}]; for(var sq=0;sq<4;sq++){ TM.spawns[0].push({x:-9+6*sq,z:-112}); TM.spawns[1].push({x:-9+6*sq,z:112}); } }
   else{ tmBase(0); tmBase(1); tmFinishBases(); TM.sn=EM_NAV; EM_NAV=null; }
-  packSpots.push([40,0,60],[-40,0,-60]);
+  if(TM.ship) packSpots.push([-20,0,-70],[20,0,70],[66,0,-72],[-66,0,72],[0,0,-100],[0,0,100],[60,0,20],[-60,0,-20]); else packSpots.push([40,0,60],[-40,0,-60]);
   spawnPacks(); tmLoose();
   TM.mesh=tmBuildTerrain(); scene.add(TM.mesh);
   if(TM.ship) tmShip(); else{ tmScatter(); tmSnowInit(); }
@@ -8191,7 +8217,7 @@ var pLocal=p;
 
 /* ---------- capture the flag (team battle variant, host decides) ---------- */
 var CTF={on:false,F:[null,null],cool:0};
-function ctfHome(t){ if(TM.ship) return {x:0,z:(t===0?-1:1)*96}; var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; return {x:0,z:Z+dz*33}; }
+function ctfHome(t){ if(TM.ship) return {x:0,z:(t===0?-1:1)*112}; var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; return {x:0,z:Z+dz*33}; }
 function ctfBuildFlag(t){
   var h=ctfHome(t), c=TEAMS[t].c, gy=lyG(h.x,h.z);
   var st=new THREE.Group();
@@ -8305,19 +8331,19 @@ var KH={on:false,x:0,z:0,r:13,own:-1,t:0,col:-99,ringM:null,beamM:null,hs:{}};
 function khCol(o){ return o===0?TEAMS[0].c:o===1?TEAMS[1].c:o===2?0xffc040:0xffffff; }
 function khInit(){
   KH.on=true; KH.own=-1; KH.t=0; KH.col=-99; KH.hs={};
-  var N=72, i, gy=TM.ship?6:lyG(KH.x,KH.z);
+  var N=72, i, gy=TM.ship?4:lyG(KH.x,KH.z);
   KH.ringM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.85,fog:false});
   var im=new THREE.InstancedMesh(new THREE.BoxGeometry(0.55,0.3,2.1),KH.ringM,N), d=new THREE.Object3D();
   for(i=0;i<N;i++){
     var a=i/N*Math.PI*2, x=KH.x+Math.cos(a)*KH.r, z=KH.z+Math.sin(a)*KH.r;
-    d.position.set(x,(TM.ship?6:groundH(x,z))+0.2,z); d.rotation.set(0,-a,0); d.updateMatrix(); im.setMatrixAt(i,d.matrix);
+    d.position.set(x,(TM.ship?4:groundH(x,z))+0.2,z); d.rotation.set(0,-a,0); d.updateMatrix(); im.setMatrixAt(i,d.matrix);
   }
   im.frustumCulled=false; scene.add(im);
   KH.beamM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.09,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false});
   var cyl=new THREE.Mesh(new THREE.CylinderGeometry(KH.r,KH.r,60,40,1,true),KH.beamM); cyl.position.set(KH.x,gy+30,KH.z); cyl.frustumCulled=false; scene.add(cyl);
   var flag=new THREE.Mesh(new THREE.OctahedronGeometry(0.9),new THREE.MeshBasicMaterial({color:0xffffff,fog:false})); flag.position.set(KH.x,gy+3.2,KH.z); scene.add(flag); KH.core=flag;
 }
-function khInHill(x,z,y){ return Math.hypot(x-KH.x,z-KH.z)<KH.r&&Math.abs(y-(TM.ship?6:groundH(x,z)))<(TM.ship?3:6); }
+function khInHill(x,z,y){ return Math.hypot(x-KH.x,z-KH.z)<KH.r&&Math.abs(y-(TM.ship?4:groundH(x,z)))<(TM.ship?3:6); }
 function khScore(){
   if(!mp.host||!KH.on||mp.over) return;
   var c=[0,0], ids=[], id;
