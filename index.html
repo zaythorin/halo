@@ -461,8 +461,7 @@ body{letter-spacing:.02em}
   <div id="menuLogoBox"><img id="menuLogo" alt="HALO" hidden><h1 class="logo" id="menuLogoTxt">HALO</h1></div>
   <div class="menuWrap">
     <div class="tag" id="tagLine">HOLD THE RING</div>
-    <button type="button" class="go mb" id="deploy">DEPLOY</button>
-    <button type="button" class="ghost mb" id="trainBtn">TRAINING GROUND</button>
+    <button type="button" class="go mb" id="trainBtn">TRAINING GROUND</button>
     <button type="button" class="ghost mb" id="charBtn">CHARACTER: MASTER CHIEF</button>
     <button type="button" class="ghost mb" id="mpBtn">PLAY ONLINE</button>
     <button type="button" class="ghost mb" id="ctlBtn">CONTROLS</button>
@@ -6993,7 +6992,6 @@ $('charBtn').addEventListener('click',function(){
   });
 });
 try{ var savedCh=localStorage.getItem('halo-char'); if(savedCh&&savedCh!=='chief'&&CHAR_FILE[savedCh]) loadChar(savedCh,function(ok){ if(ok){ setChar(savedCh); charLabel(); } }); }catch(e){}
-$('deploy').addEventListener('click',startGame);
 $('trainBtn').addEventListener('click',startTraining);
 $('redeploy').addEventListener('click',startGame);
 $('restart').addEventListener('click',startGame);
@@ -7004,7 +7002,7 @@ $('ctlBtn').addEventListener('click',openControls);
 $('pCtl').addEventListener('click',openControls);
 $('ctlClose').addEventListener('click',function(){ $('controls').hidden=true; });
 playTheme();
-try{ $('deploy').focus(); }catch(e){}
+try{ $('trainBtn').focus(); }catch(e){}
 
 /* ---------- input ---------- */
 var lookEl=$('look'), lookPtrs=new Map();
