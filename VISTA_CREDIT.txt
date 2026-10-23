@@ -1,0 +1,13 @@
+Model Information:
+* title:	Halo 2>Multiplayer>Vista>District
+* source:	https://sketchfab.com/3d-models/halo-2multiplayervistadistrict-65af64dd5d5a4a8fbee278a57dcf35c6
+* author:	jameslucino117 (https://sketchfab.com/jameslucino117)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Halo 2>Multiplayer>Vista>District" (https://sketchfab.com/3d-models/halo-2multiplayervistadistrict-65af64dd5d5a4a8fbee278a57dcf35c6) by jameslucino117 (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+---
+Used in "Halo Warzone Alpha" as the online map "New Mombasa". The model was recentred, its textures were downsized and its geometry was repacked for the game; nothing else about it was changed.
