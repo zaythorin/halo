@@ -8104,8 +8104,7 @@ function momCutPrep(){
   var pg=new THREE.Group(); pg.rotation.order='YXZ';
   vehParts('pelican').parts.forEach(function(pt){ pg.add(new THREE.Mesh(pt.geo,pt.mat)); });
   pg.visible=false; scene.add(pg);
-  var av=[], i;
-  for(i=0;i<3;i++){ var a=buildChiefAvatar(); a.rotation.order='YXZ'; tmTintAvatar(a,TM.team); a.visible=false; scene.add(a); av.push(a); }
+  var av=[];
   var lt=new THREE.PointLight(0xff6a4a,0,18); scene.add(lt);
   CUT.prep={pg:pg,av:av,lt:lt}; CUT.on=false;
   try{ renderer.compile(scene,camera); }catch(e){}
@@ -8126,8 +8125,18 @@ function cutStart(){
   CUT.c0=[sx-H.x*D,118,sz-H.z*D]; CUT.th=Math.atan2(-H.z,H.x);
   var o=cutRot([1.5,-2.65,0],CUT.th); CUT.o0=[CUT.c0[0]-o[0],118+2.65,CUT.c0[2]-o[2]];
   CUT.aft=Math.atan2(H.x,H.z); CUT.fwd=Math.atan2(-H.x,-H.z);
-  CUT.tj=[CUT_JT+0.15,CUT_JT+0.5,CUT_JT+0.85]; CUT.bay=[[2.4,-4.4,1.8],[3.9,-4.4,-1.8],[5.4,-4.4,1.8]]; CUT.off=[[7,3.4,-1.5],[10,-3.2,0.5],[13,0.5,-3.0]]; CUT.ast=[null,null,null];
-  P.pg.visible=true; P.av.forEach(function(a){ a.visible=true; }); P.lt.intensity=1.3;
+  /* only the teammates who are really in this match ride along (up to six) */
+  P.av.forEach(function(a){ scene.remove(a); }); P.av=[];
+  for(var id in mp.peers){
+    var pe=mp.peers[id]; if(pe.team!==mp.team||P.av.length>=6) continue;
+    var a=buildChiefAvatar(); a.rotation.order='YXZ'; tmTintAvatar(a,mp.team); a.visible=true; scene.add(a); P.av.push(a);
+  }
+  var n=P.av.length; CUT.tj=[]; CUT.bay=[]; CUT.off=[]; CUT.ast=[];
+  for(var q=0;q<n;q++){
+    CUT.tj.push(CUT_JT+0.15+0.28*q); CUT.bay.push([2.6+(q>>1)*1.5,-4.4,(q%2?-1:1)*1.8]);
+    CUT.off.push([6+(q*3)%10,(q%2?-1:1)*(2.4+q*0.9),-1.2*(q%3)]); CUT.ast.push(null);
+  }
+  P.pg.visible=true; P.lt.intensity=1.3;
   CUT.cv=camera.children.map(function(c){ var v=c.visible; c.visible=false; return v; });
   $('ui').hidden=true; try{ $('mpHud').hidden=true; }catch(e){}
   CUT.fn=scene.fog.near; CUT.ff=scene.fog.far; scene.fog.near=30; scene.fog.far=380;
@@ -8167,15 +8176,18 @@ function cutFrame(dt){
   }
   camera.position.set(px,py,pz); camera.rotation.set(pit,yaw,rol);
   /* the squad: standing in the bay, then running out the back and diving after you */
-  for(i=0;i<3;i++){
+  for(i=0;i<P.av.length;i++){
     var a=P.av[i], au=a.userData, tj=CUT.tj[i];
     if(t>=CUT_BLK){ a.visible=false; continue; }
     if(t<tj){
       var lc=CUT.bay[i].slice(), run=cutSS(tj-0.8,tj,t);
       lc[0]=lc[0]+(-2.5-lc[0])*run; lc[2]=lc[2]*(1-run);
-      var wv=cutRot(lc,th); a.position.set(po[0]+wv[0],po[1]+wv[1],po[2]+wv[2]);
+      var wv=cutRot(lc,th), sw=Math.sin(t*1.7+i*1.3), idle=1-run;
+      a.position.set(po[0]+wv[0],po[1]+wv[1]+0.04*Math.abs(Math.sin(t*3.1+i))*idle,po[2]+wv[2]);
       var fx=run>0.01?-1:0, fz=run>0.01?0:(CUT.bay[i][2]>0?-1:1);
-      a.rotation.set(0,th+Math.atan2(fx,fz),0); au.air=0; poseAvatar(a,t*7*(run>0.01?1:0),run>0.01?1:0);
+      /* braced against the turbulence and glancing around, then a sprint for the ramp */
+      a.rotation.set(0.05*sw*idle,th+Math.atan2(fx,fz)+0.35*Math.sin(t*0.9+i*2.1)*idle,0.07*Math.sin(t*2.3+i)*idle+0.08*run*Math.sin(t*14));
+      au.air=0; poseAvatar(a,t*(run>0.01?15:2.2+i*0.3),run>0.01?1:0.16);
     }else{
       var cq=cutPath(t);
       if(!CUT.ast[i]){
@@ -8184,7 +8196,7 @@ function cutFrame(dt){
       }
       var e=cutSS(tj,tj+1.6,t), f=CUT.off[i], os=CUT.ast[i], ox=H.x*f[0]-H.z*f[1], oz=H.z*f[0]+H.x*f[1];
       a.position.set(cq[0]+os[0]*(1-e)+ox*e,cq[1]+os[1]*(1-e)+f[2]*e,cq[2]+os[2]*(1-e)+oz*e);
-      a.rotation.set(1.3*e,Math.atan2(H.x,H.z),0); au.air=1; poseAvatar(a,t*5,1);
+      a.rotation.set(1.3*e+0.35*Math.sin(t*2.2+i*1.7)*e,Math.atan2(H.x,H.z)+0.5*Math.sin(t*1.3+i)*e,0.45*Math.sin(t*1.9+i*2.4)*e); au.air=0; poseAvatar(a,t*13+i*2,1); /* flailing in free-fall */
     }
   }
   /* weather keeps going around the camera, high above the city too */
@@ -8212,7 +8224,7 @@ function cutFrame(dt){
 }
 function cutEnd(quiet){
   if(!CUT.on) return; CUT.on=false;
-  var P=CUT.prep; if(P){ P.pg.visible=false; P.av.forEach(function(a){ a.visible=false; }); P.lt.intensity=0; }
+  var P=CUT.prep; if(P){ P.pg.visible=false; P.av.forEach(function(a){ scene.remove(a); }); P.av=[]; P.lt.intensity=0; }
   CUT.el.forEach(function(e){ e.remove(); }); CUT.el=[];
   camera.children.forEach(function(c,i){ if(CUT.cv[i]!==undefined) c.visible=CUT.cv[i]; });
   try{ ['eng','osc','wind'].forEach(function(k){ if(CUT.au&&CUT.au[k]) CUT.au[k].stop(0); }); }catch(e){} CUT.au=null;
