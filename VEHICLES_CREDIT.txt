@@ -1,0 +1,14 @@
+Vehicle models used in Halo Warzone Alpha (parked vehicles on New Mombasa and the Pelican in its opening cutscene).
+All are licensed CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/). Models were repacked and textures downsized for the game; nothing else was changed.
+
+-----
+This work is based on "Halo 2 D77-TC Pelican" (https://sketchfab.com/3d-models/halo-2-d77-tc-pelican-595fffcae26648a4a80c855461516bbc) by 42manako (https://sketchfab.com/42manako) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+-----
+This work is based on "Vehicles>Human>Civilian>Halo 2>Bus" (https://sketchfab.com/3d-models/vehicleshumancivilianhalo-2bus-b90f4e9c30fb4123a2a250b986947b6a) by Bornstellar Makes Eternallasting (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+-----
+This work is based on "Vehicles>Human>Civilian>Halo 2>Car" (https://sketchfab.com/3d-models/vehicleshumancivilianhalo-2car-986d622056c74e76a4838f957606b7da) by Bornstellar Makes Eternallasting (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+-----
+This work is based on "Vehicles>Human>Civilian>Halo 3>Trucks" (https://sketchfab.com/3d-models/vehicleshumancivilianhalo-3trucks-18cc6e027d464fc0ab868bfd6df0b096) by Bornstellar Makes Eternallasting (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
