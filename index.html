@@ -491,7 +491,7 @@ body{letter-spacing:.02em}
     <button type="button" class="ghost mb" id="mpBtn">PLAY ONLINE</button>
     <button type="button" class="ghost mb" id="ctlBtn">CONTROLS</button>
     <button type="button" class="ghost mb" id="sndBtn">MUSIC: ON</button>
-    <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">SMG: &ldquo;M7S Caseless SMG (Halo 3 ODST) Misriah Armory&rdquo; by CannonMonkey (sketchfab.com/CannonMonkey), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Battle Rifle: &ldquo;BR-80 Battle Rifle&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Battlecruiser: &ldquo;CCS Class Battlecruiser&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button></div></details>
+    <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">SMG: &ldquo;M7S Caseless SMG (Halo 3 ODST) Misriah Armory&rdquo; by CannonMonkey (sketchfab.com/CannonMonkey), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Battle Rifle: &ldquo;BR-80 Battle Rifle&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Battlecruiser: &ldquo;CCS Class Battlecruiser&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button><br>Code <input type="text" class="devCode" maxlength="12" autocomplete="off" placeholder="code" style="width:6em;font:inherit;padding:4px"> <button type="button" class="ghost devCodeGo" style="display:inline-block;padding:4px 12px">ENTER</button> <span class="devMsg"></span></div></details>
   </div>
   <div class="hint" id="sndHint" hidden>CLICK ANYWHERE FOR MUSIC</div>
   <div class="menuFoot">
@@ -517,7 +517,7 @@ body{letter-spacing:.02em}
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
       <button type="button" class="go alt" id="toMenu">MAIN MENU</button>
     </div>
-    <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button></div></details>
+    <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button><br>Code <input type="text" class="devCode" maxlength="12" autocomplete="off" placeholder="code" style="width:6em;font:inherit;padding:4px"> <button type="button" class="ghost devCodeGo" style="display:inline-block;padding:4px 12px">ENTER</button> <span class="devMsg"></span></div></details>
   </div>
 </div>
 
@@ -2597,6 +2597,14 @@ function hud(){
 /* ---------- combat behaviour: patrols, cover, grenades, flinch reactions, and allied troopers ---------- */
 var NOISE={laser:90,magnum:60,ar:45,sniper:70,shotgun:55,rocket:85,sword:6}, noiseT=-9, noiseR=0, garrSites=[], _cv1=new V3(), _cv2=new V3(), _a1=new V3(), _a2=new V3(), _a3=new V3(), _a4=new V3();
 covInit();
+/* NUKE LASER: a gold Spartan Laser that calls down a nuke. Only appears in-game after typing 117 in DEV MODE */
+(function(){
+  var b=weapons[8], w=Object.assign({},b); w.id='nuke'; w.name='NUKE LASER'; w.nuke=true; w.slideKick=0; w.group=buildLaser();
+  w.group.traverse(function(o){ if(o.material){ o.material=o.material.clone(); if(o.material.color&&!o.userData.noTint) o.material.color.multiply(new THREE.Color(1.0,0.78,0.25)); } });
+  w._i={mag:100,reserve:0}; w.mag=100; w.reserve=0; w.maxRes=0;
+  weapons.push(w); vm.add(w.group); w.group.visible=false;
+  RCT.nuke=RCT.laser; NOISE.nuke=140; AMMO_PK.push(0); AMMO_WAVE.push(0);
+})();
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
 /* a straight line against the solid boxes (tree trunks, racks, walls) so they hide things like the terrain does */
 function segBox(from,to){
@@ -4851,6 +4859,7 @@ function buildRackTpl(){
     var bb=new THREE.Box3().setFromObject(h), c=bb.getCenter(new V3()); m.position.sub(c); h.userData.sz=bb.getSize(new V3());
     rackTpl.push(h);
   }
+  rackTpl[17]=rackTpl[8];
 }
 function spawnRacks(){
   if(!rackTpl) buildRackTpl();
@@ -5480,7 +5489,8 @@ function laserOrigin(origin,dir){
 }
 function fireLaser(w){
   noiseT=tAcc; noiseR=NOISE.laser;
-  w.mag=Math.max(0,w.mag-LZ.cost);
+  w.mag=Math.max(0,w.mag-(w.nuke?100:LZ.cost));
+  LZ.beam.material.color.setHex(w.nuke?0xffc030:0xff2a18); LZ.core.material.color.setHex(w.nuke?0xfff2c0:0xffd6cc);
   var origin=new V3(), dir=new V3(), i; laserOrigin(origin,dir);
   var tr=laserTrace(origin,dir), hits=tr.hits, cover=tr.cover;
   var seen=[], kills=0, any=false, mpDone=false;
@@ -5498,9 +5508,100 @@ function fireLaser(w){
   LZ.from=tmpMuzzle.clone(); LZ.to=end; LZ.len=shown; LZ.beamT=LZ.BT; mpFx('laser',LZ.from,end);
   if(cover<2999){ impactFx(end,tr.coverHit,dir,w); for(var k=0;k<8;k++) spawnSpark(end,'metal'); puffSmoke(end,1.1,0.8,0x7a6a60); }
   if(any){ if(kills){ marker('kill'); sfx.kill(); } else{ marker('hit'); sfx.hit(); } }
+  if(w.nuke) nukeDrop(end,cover<2999);
   sfx.laser(); setFlash(w); rumble(400,1,0.6);
   p.pitch+=w.kick; vmKick=Math.min(0.34,vmKick+w.vmKick); shakeAmp=Math.max(shakeAmp,0.06); shakeT=0.6;
   recoilKick(w); p.vx+=Math.sin(p.yaw)*2; p.vz+=Math.cos(p.yaw)*2;
+}
+
+/* ---------- NUKE: a bomb falls from the sky onto the laser's target ---------- */
+var NUKE={n:'NUKE',R:110,inner:55,dmg:9999,direct:9999,pierce:true,FALL:3.2,H:180};
+var NK={bombs:[],fx:null,flash:null,sirenT:0};
+function nukeBombMesh(){
+  var g=new THREE.Group(), mt=new THREE.MeshBasicMaterial({color:0x4a5238}), mf=new THREE.MeshBasicMaterial({color:0x2a2e22});
+  var body=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,3.2,12),mt), nose=new THREE.Mesh(new THREE.ConeGeometry(0.55,1.3,12),mf);
+  nose.position.y=-2.25; nose.rotation.x=Math.PI; g.add(body); g.add(nose);
+  for(var i=0;i<4;i++){ var f=new THREE.Mesh(new THREE.BoxGeometry(0.06,1.1,0.9),mf); f.position.y=1.5; var a=i*Math.PI/2; f.position.x=Math.cos(a)*0.7; f.position.z=Math.sin(a)*0.7; f.rotation.y=-a; g.add(f); }
+  var gl=new THREE.Mesh(new THREE.SphereGeometry(1.6,10,8),new THREE.MeshBasicMaterial({color:0xffb040,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})); gl.position.y=2.2; g.add(gl);
+  g.scale.setScalar(1.6); g.frustumCulled=false; return g;
+}
+function nukeAddBomb(x,y,z,local){
+  var m=nukeBombMesh(); scene.add(m);
+  NK.bombs.push({m:m,x:x,z:z,y:y,t:0,local:local});
+  showToast('NUKE INBOUND'); tone(500,900,0.5,'sawtooth',0.12);
+}
+function nukeDrop(end,hit){
+  var x=end.x, z=end.z, y=hit?end.y:groundH(x,z);
+  nukeAddBomb(x,y,z,true);
+  if(mp.on) mpSend({t:'nk',x:r2(x),y:r2(y),z:r2(z)});
+}
+function nukeExplode(P){
+  var R=NUKE.R, i;
+  nukeVisual(P);
+  if(TRN.on) trBlast(P,R,NUKE);
+  for(i=0;i<enemies.length;i++){
+    var e=enemies[i]; if(e.dead) continue;
+    var dx=e.x-P.x, dy=e.group.position.y+1.1*e.sc-P.y, dz=e.z-P.z;
+    if(Math.sqrt(dx*dx+dy*dy+dz*dz)>R) continue;
+    var hd=Math.hypot(dx,dz)||1;
+    if(damageEnemy(e,NUKE.dmg)){ e.kv=new V3(dx/hd*30,0,dz/hd*30); e.hop=1.5; onKill(e,false); }
+  }
+  for(i=0;i<allies.length;i++){ var al=allies[i]; if(!al.dead&&Math.hypot(al.x-P.x,al.fy+1-P.y,al.z-P.z)<R) damageAlly(al,NUKE.dmg); }
+  if(jet.alive&&Math.hypot(jet.x-P.x,jet.y-P.y,jet.z-P.z)<R) damageJet(NUKE.dmg);
+  if(veh.alive&&Math.hypot(veh.x-P.x,groundH(veh.x,veh.z)+0.9-P.y,veh.z-P.z)<R) damageVehicle(NUKE.dmg);
+  var pdx=p.x-P.x, pdz=p.z-P.z, pd=Math.sqrt(pdx*pdx+(p.y+1-P.y)*(p.y+1-P.y)+pdz*pdz);
+  if(pd<R&&state==='play'){ hitDir.x=pdx; hitDir.z=pdz; hurt(pd<NUKE.inner?9999:Math.max(40,260*(1-(pd-NUKE.inner)/(R-NUKE.inner)))); }
+  if(mp.on){
+    mpSend({t:'boom',x:r2(P.x),y:r2(P.y),z:r2(P.z),k:'nuke',R:R,u:0});
+    if(mp.mode==='dm') tmBlastDamage(P,R,NUKE);
+  }
+  showToast('NUKE DETONATED');
+}
+function nukeVisual(P){
+  var dp=distToPlayer(P), i;
+  if(!NK.flash){ var f=document.createElement('div'); f.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:#fff;opacity:0;pointer-events:none;z-index:60'; document.body.appendChild(f); NK.flash=f; }
+  NK.flash.style.transition='none'; NK.flash.style.opacity=String(dp>400?0.3:1); void NK.flash.offsetWidth;
+  NK.flash.style.transition='opacity 3.2s ease-out'; NK.flash.style.opacity='0';
+  if(!NK.fx){
+    var g=new THREE.Group(), mk=function(geo,col,op,add){ var m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false,fog:false,side:THREE.DoubleSide,blending:add?THREE.AdditiveBlending:THREE.NormalBlending})); m.frustumCulled=false; g.add(m); return m; };
+    NK.shock=mk(new THREE.SphereGeometry(1,28,18),0xffe0a0,0.5,true);
+    NK.ball=mk(new THREE.SphereGeometry(1,20,14),0xffa030,0.95,true);
+    NK.stem=mk(new THREE.CylinderGeometry(1,1.5,1,16,1,true),0x6a4a30,0.9,false);
+    NK.cap=mk(new THREE.SphereGeometry(1,20,14),0xd0702a,0.92,false);
+    NK.torus=mk(new THREE.TorusGeometry(1,0.32,10,28),0x8a5a38,0.9,false); NK.torus.rotation.x=Math.PI/2;
+    NK.fx=g; scene.add(g);
+  }
+  NK.P=P.clone(); NK.fx.position.set(P.x,P.y,P.z); NK.fx.visible=true; NK.t=0; NK.on=true;
+  spawnBlastFx(P,'frag',NUKE.R*0.5,false);
+  blastLight.color.setHex(0xffd090); blastLight.position.set(P.x,P.y+10,P.z); blastLight.intensity=10; blastLightT=1.4;
+  var v=Math.max(0.25,1-dp/450);
+  noise(0.5,v,'lowpass',9000,400); noise(4,v,'lowpass',1000,50); tone(75,22,4,'sine',0.9*v); tone(40,18,5,'sine',0.7*v);
+  shakeAmp=Math.max(shakeAmp,0.03+0.3*Math.max(0,1-dp/350)); shakeT=3.2;
+}
+function nukeStep(dt){
+  var i, b;
+  for(i=NK.bombs.length-1;i>=0;i--){
+    b=NK.bombs[i]; b.t+=dt; var f=Math.min(1,b.t/NUKE.FALL);
+    b.m.position.set(b.x,b.y+NUKE.H*(1-f*f),b.z); b.m.rotation.y+=dt*3;
+    NK.sirenT-=dt; if(NK.sirenT<=0){ NK.sirenT=0.55; tone(520,880,0.5,'sawtooth',0.06); }
+    if(b.t>=NUKE.FALL){ scene.remove(b.m); NK.bombs.splice(i,1); if(b.local) nukeExplode(new V3(b.x,b.y+0.5,b.z)); }
+  }
+  if(NK.on){
+    NK.t+=dt; var t=NK.t, E=function(x){ x=Math.min(1,Math.max(0,x)); return 1-(1-x)*(1-x); };
+    var sr=NUKE.R*1.4*E(t/2.4); NK.shock.scale.setScalar(Math.max(0.01,sr)); NK.shock.material.opacity=0.55*Math.max(0,1-t/2.4); NK.shock.visible=t<2.4;
+    var bs=46*E(t/1.4); NK.ball.position.y=bs*0.6; NK.ball.scale.setScalar(Math.max(0.01,bs)); NK.ball.material.opacity=Math.max(0,0.95*(1-(t-1.2)/2.4)); NK.ball.visible=t<3.6;
+    var gr=E(t/7), h=95*E(t/6), fade=t>9?Math.max(0,1-(t-9)/5):1, dark=Math.min(1,t/9);
+    var col=function(m,r,g2,b2){ m.material.color.setRGB(r*(1-dark*0.55),g2*(1-dark*0.6),b2*(1-dark*0.5)); m.material.opacity=0.9*fade; };
+    NK.stem.position.y=h/2; NK.stem.scale.set(7+4*gr,Math.max(0.01,h),7+4*gr); col(NK.stem,0.55,0.34,0.2);
+    NK.cap.position.y=h+8*gr; NK.cap.scale.set(Math.max(0.01,30*gr),Math.max(0.01,19*gr),Math.max(0.01,30*gr)); col(NK.cap,0.9,0.45,0.15);
+    NK.torus.position.y=h-2; NK.torus.scale.setScalar(Math.max(0.01,25*gr)); col(NK.torus,0.6,0.36,0.22);
+    NK.stem.visible=NK.cap.visible=NK.torus.visible=t>0.6;
+    if(t>=14){ NK.on=false; NK.fx.visible=false; }
+  }
+}
+function nukeClear(){
+  for(var i=0;i<NK.bombs.length;i++) scene.remove(NK.bombs[i].m);
+  NK.bombs.length=0; NK.on=false; if(NK.fx) NK.fx.visible=false; if(NK.flash){ NK.flash.style.transition='none'; NK.flash.style.opacity='0'; }
 }
 function laserBeamStep(dt){
   if(LZ.beamT>0){
@@ -5519,14 +5620,15 @@ function laserTick(w,dt){
     if(!LZ.on){
       if(fireEdgeT>0&&fireCool<=0){
         fireEdgeT=0;
-        if(w.mag>=LZ.cost-0.01){ LZ.on=true; LZ.t=0; sfx.laserCharge(); }
+        if(w.mag>=(w.nuke?100:LZ.cost)-0.01){ LZ.on=true; LZ.t=0; sfx.laserCharge(); if(w.nuke) showToast('CHARGING NUKE'); }
         else{ sfx.click(); fireCool=0.4; showToast(w.mag>0?'LOW CHARGE':'NO CHARGE'); }
       }
     }else if(!ctrl.fire&&!gpFire){ LZ.on=false; }
-    else{ LZ.t+=dt; if(LZ.t>=LZ.CH){ LZ.on=false; fired=true; fireLaser(w); fireCool=w.rate; } }
+    else{ LZ.t+=dt; if(LZ.t>=(w.nuke?4.2:LZ.CH)){ LZ.on=false; fired=true; fireLaser(w); fireCool=w.rate; } }
   }else LZ.on=false;
   if(!LZ.on&&lzLoop) laserLoopStop();
-  var k=LZ.on?LZ.t/LZ.CH:0;
+  if(w.nuke&&!LZ.on&&state==='play'&&w.mag<100) w.mag=Math.min(100,w.mag+8*dt);
+  var k=LZ.on?LZ.t/(w.nuke?4.2:LZ.CH):0;
   if(gl){ gl.visible=k>0; if(k>0){ var sz=0.06+0.34*k*k+0.025*Math.sin(tAcc*60); gl.scale.set(sz,sz,sz); } }
   /* green aiming laser while charging */
   if(LZ.on){
@@ -6448,7 +6550,7 @@ function updateRockets(dt){
   }
 }
 function clearRockets(){
-  var i; for(i=0;i<ghosts.length;i++) scene.remove(ghosts[i].m); ghosts.length=0; mwClear(); for(i=0;i<rockets.length;i++) scene.remove(rockets[i].m); rockets.length=0;
+  var i; for(i=0;i<ghosts.length;i++) scene.remove(ghosts[i].m); ghosts.length=0; mwClear(); for(i=0;i<rockets.length;i++) scene.remove(rockets[i].m); rockets.length=0; nukeClear();
   for(i=0;i<smokeFx.length;i++){ smokeFx[i].on=false; smokeFx[i].m.visible=false; }
 }
 
@@ -6856,7 +6958,7 @@ function startTraining(){
   initAudio(); tmExit(); trExit(); resetGame(); $('oTitle').textContent='ELIMINATED';
   state='play';
   $('menu').hidden=true; $('over').hidden=true; $('pause').hidden=true; $('controls').hidden=true; $('ui').hidden=false;
-  trEnter();
+  trEnter(); devApplyNuke();
   fadeTheme(); if(ac&&ac.state==='suspended') ac.resume();
   lockMouse();
 }
@@ -6868,6 +6970,7 @@ function startGame(){
   fadeTheme(); if(ac&&ac.state==='suspended') ac.resume();
   lockMouse();
   if(mp.on&&TM.mom&&mp.mode==='dm') cutStart();
+  devApplyNuke();
 }
 /* ---------- death: the player's Spartan model as a ragdoll, seen from a third-person camera ---------- */
 var hitDir={x:0,z:0}, rag=null, deathT=0, deathCamA=0, deathCamD=4.2, chiefTexCache=null, chiefGeoCache={};
@@ -7443,7 +7546,7 @@ function frame(now){
   else if(camera.rotation.z!==0) camera.rotation.z=0;
   updateFx(dt); if(TM.on){ tmSnow(dt); tmDoors(dt); }
   if(lzLoop&&(state!=='play'||!LZ.on)){ laserLoopStop(); LZ.on=false; }
-  laserBeamStep(dt);
+  laserBeamStep(dt); nukeStep(dt);
   tpUpdate(dt);
   renderer.render(scene,camera);
 }
@@ -8512,14 +8615,14 @@ function tmProjHit(P){
   return false;
 }
 function tmBlastDamage(P,R,d){
-  var bw=d===RKT?'ROCKET':d===MSL?'MISSILE':'GRENADE';
+  var bw=d===RKT?'ROCKET':d===MSL?'MISSILE':d===NUKE?'NUKE':'GRENADE';
   for(var id in mp.peers){
     var pe=mp.peers[id]; if(pe.team===mp.team) continue;
     var Q=pe.rem; if(!Q.al||!pe.avatar||!pe.avatar.visible) continue;
     var od=Math.sqrt((Q.x-P.x)*(Q.x-P.x)+(Q.y+1-P.y)*(Q.y+1-P.y)+(Q.z-P.z)*(Q.z-P.z));
     if(od<R){
       var om=falloff(od,d)*0.6, olos=!(od>0.6&&!hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(Q.x,Q.y+1.0,Q.z)));
-      if(!olos) om*=tmModelOn()?0:0.3;
+      if(!olos&&!d.pierce) om*=tmModelOn()?0:0.3;
       if((d===RKT||d===MSL)&&olos&&od<R*0.8) om=999;
       if(om>1) mpSend({t:'hit',n:Math.round(om),dx:Q.x-P.x,dz:Q.z-P.z,w:bw},pe.id);
     }
@@ -9016,7 +9119,7 @@ function mpOnDeath(){
     }catch(e){}
     mp.lastBy=undefined; mp.lastHow=undefined; mp.cause=undefined;
   }
-  mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:0,al:0,hp:0,w:slots[sel],iv:0,ch:curChar});
+  mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:0,al:0,hp:0,w:(slots[sel]===17?8:slots[sel]),iv:0,ch:curChar});
   try{ startRagdoll(); }catch(err){ rag=null; }
 }
 function mpRevive(near){
@@ -9028,7 +9131,7 @@ function mpRevive(near){
     gren.frag=3; gren.plasma=2;
   }else if(near&&R.has){ p.x=R.x+2; p.z=R.z+2; p.y=groundH(p.x,p.z); p.yaw=R.yaw; }
   p.vx=0; p.vz=0; p.vy=0; reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0;
-  mp.inv=tAcc+2.5; $('ui').hidden=false; lockMouse(); showToast('RESPAWNED'); try{ $('killMsg').style.display='none'; }catch(e){}
+  mp.inv=tAcc+2.5; $('ui').hidden=false; devApplyNuke(); lockMouse(); showToast('RESPAWNED'); try{ $('killMsg').style.display='none'; }catch(e){}
 }
 function mpTarget(){ if(mp.opt&&mp.opt.lim) return mp.opt.lim; if(mp.koth) return 100; if(mp.ctf) return 3; var n=0; for(var id in mp.peers) n++; return n<=1?10:20; }
 function mpCheckEnd(){
@@ -9107,8 +9210,10 @@ function mpRecv(m){
     case 'rk': if(state==='play'||state==='dying'){ if(mp.mode==='dm'&&m.f!==undefined&&mpTeamOf(m.f)===mp.team) break; ghostRocket(new V3(m.p[0],m.p[1],m.p[2]),new V3(m.v[0],m.v[1],m.v[2]),m.h,m.u); } break;
     case 'gr': if(state==='play'||state==='dying') ghostGrenade(m.k,new V3(m.p[0],m.p[1],m.p[2]),new V3(m.v[0],m.v[1],m.v[2])); break;
     case 'boom':
+      if(m.k==='nuke'){ nukeVisual(new V3(m.x,m.y,m.z)); break; }
       if(state==='play'||state==='dying'){ var bp=new V3(m.x,m.y,m.z), bd=distToPlayer(bp); ghostBoom(bp); spawnBlastFx(bp,m.k,m.R,m.u); if(m.u) gsfx.fuelBoom(bd); else if(m.k==='plasma') gsfx.plasmaBoom(bd); else gsfx.fragBoom(bd); if(bd<24){ shakeAmp=Math.max(shakeAmp,0.04*(1-bd/24)); shakeT=0.45; } }
       break;
+    case 'nk': nukeAddBomb(m.x,m.y,m.z,false); break;
     case 'en': if(!mp.host) mpApplySnap(m.a); break;
     case 'dmg': if(mp.host) mpApplyDmg(m); break;
     case 'kill':
@@ -9229,7 +9334,7 @@ function mpTick(dt){
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
-    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:slots[sel],rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:((p.inVeh&&!GN.on)||p.air)?1:0,cr:r2(CR)});
+    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:(slots[sel]===17?8:slots[sel]),rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:((p.inVeh&&!GN.on)||p.air)?1:0,cr:r2(CR)});
   }
   if(mp.host&&mp.mode==='ff'){
     mp.enT-=dt; if(mp.enT<=0){ mp.enT=0.09; mpSend({t:'en',a:mpSnapshot()}); }
@@ -9405,6 +9510,24 @@ function devWave(n){
   for(var w=0;w<weapons.length;w++) weapons[w].reserve=weapons[w].maxRes; weapons[8].mag=100;
   p.health=100; p.shield=100; gren.frag=GMAX.frag; gren.plasma=GMAX.plasma;
 }
+var DEV={nuke:false};
+function devApplyNuke(){
+  if(!DEV.nuke) return;
+  var w=weapons[17]; w.mag=100;
+  if(slots.indexOf(17)<0) slots[1-sel]=17;
+  sel=slots.indexOf(17); pendingW=null; swapT=0; if(zoomed) zoomOff(); setWeapon(17);
+}
+function devCode(c){
+  c=String(c||'').trim();
+  if(c==='117'){ DEV.nuke=true; if(state==='play'||state==='paused'){ devApplyNuke(); return 'NUKE LASER EQUIPPED'; } return 'NUKE LASER UNLOCKED - STARTS WITH YOUR NEXT GAME'; }
+  return 'UNKNOWN CODE';
+}
+document.querySelectorAll('.devCodeGo').forEach(function(b){
+  var inp=b.parentNode.querySelector('.devCode'), msg=b.parentNode.querySelector('.devMsg');
+  function go(){ var r=devCode(inp.value); msg.textContent=r; inp.value=''; if(r.indexOf('NUKE')===0) showToast('NUKE LASER'); }
+  b.addEventListener('click',go);
+  ['keydown','keyup','keypress'].forEach(function(ev){ inp.addEventListener(ev,function(e){ e.stopPropagation(); if(ev==='keydown'&&e.key==='Enter'){ e.preventDefault(); go(); } }); });
+});
 document.querySelectorAll('.devGo').forEach(function(b){ b.addEventListener('click',function(){ var inp=b.parentNode.querySelector('.devN'); devWave(parseInt(inp.value,10)||1); }); });
 try{ var qw=/[?&]wave=(\d+)/.exec(location.search); if(qw){ document.querySelectorAll('.devN').forEach(function(i){ i.value=qw[1]; }); } }catch(e){}
 window.devWave=devWave;
