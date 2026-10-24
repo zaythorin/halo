@@ -7823,6 +7823,26 @@ function tmMomLoose(){
   [0,1].forEach(function(t){ M.baseW[t].forEach(function(q,i){ tmLooseWeapon(q[0],q[2],ROW[i%ROW.length],q[1]); }); });
   M.field.forEach(function(q,i){ tmLooseWeapon(q[0],q[2],FW[i%FW.length],q[1]); });
   tmLooseWeapon(M.hill[0]+2.5,M.hill[2],3,M.hill[1]); /* the only rocket launcher sits on the hill */
+  tmMomRack(-35.3,11.1,92.3,-1,0); tmMomRack(56.5,17.37,-96.1,-1,1);   /* a weapon rack at each base, spots checked flat and open against the model */
+}
+/* free-standing weapon rack: a board on two posts with the guns hanging upright on it, like the wall racks in the other maps. Look at one and press E */
+function tmMomRack(cx,gy,cz,dz,t){
+  var ws=[2,1,4,0,7,6,8,9], i, tc=TEAMS[t].c, W=6.4;
+  var mat=new THREE.MeshLambertMaterial({color:0x2a3038});
+  var board=new THREE.Mesh(new THREE.BoxGeometry(W,1.95,0.12),mat); board.position.set(cx,gy+2.15,cz); scene.add(board); coverMeshes.push(board);
+  [-1,1].forEach(function(sg){ var post=new THREE.Mesh(new THREE.BoxGeometry(0.16,3.2,0.16),mat); post.position.set(cx+sg*(W/2-0.1),gy+1.6,cz); scene.add(post); coverMeshes.push(post); });
+  var top=new THREE.Mesh(new THREE.BoxGeometry(W,0.08,0.2),new THREE.MeshBasicMaterial({color:tc})); top.position.set(cx,gy+3.17,cz); scene.add(top); coverMeshes.push(top);
+  boxes.push({minx:cx-W/2,maxx:cx+W/2,minz:cz-0.2,maxz:cz+0.2,h:gy+3.2,y0:gy});
+  for(i=0;i<ws.length;i++){
+    if(!wAllowed(ws[i])) continue;
+    var x=cx+(i-(ws.length-1)/2)*0.78, z=cz+dz*0.42;
+    var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,Math.min(1.3,sz.x)), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
+    inner.rotation.z=Math.PI/2; g.add(inner);
+    var hl=new THREE.Mesh(new THREE.BoxGeometry(0.7,L+0.35,0.3),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.22,depthWrite:false,blending:THREE.AdditiveBlending}));
+    hl.visible=false; g.add(hl);
+    var y=gy+2.15; g.position.set(x,y,z); scene.add(g);
+    wpicks.push({wi:ws[i],g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0,wall:true});
+  }
 }
 /* snowy-biome scatter: trees, rocks and boulders on a fixed seed so every player gets the same layout */
 function tmScatter(){
