@@ -302,7 +302,7 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 .gren u.gz{opacity:.3}
 .gren b.gb2.act .gi,.gren b.act .gi{filter:drop-shadow(0 0 6px #fff)}
 #tracker{position:absolute;left:calc(16px + var(--sl));bottom:calc(16px + var(--sb));width:150px;height:150px;border-radius:50%}
-@media (pointer:coarse){#tracker{width:96px;height:96px}#stickBase{left:calc(176px + var(--sl));bottom:calc(124px + var(--sb))}}
+@media (pointer:coarse){#bSprint{left:calc(14px + var(--sl));bottom:calc(120px + var(--sb))}#tracker{width:96px;height:96px}#stickBase{left:calc(176px + var(--sl));bottom:calc(124px + var(--sb))}}
 #trLabel{display:none}
 #ui.driving #tracker{opacity:.92}
 #toast{color:#9fe6ff}
@@ -4107,6 +4107,20 @@ function tpUpdate(dt){
   }
   rg.wrap.position.set(p.x,p.y,p.z); rg.wrap.rotation.y=p.yaw+Math.PI; rg.wrap.scale.y=rg.sf*(1-0.28*CR);
   rg.wrap.visible=TP.curD>0.9;
+  tpBack(rg);
+}
+/* the weapon you are not holding hangs across your back */
+function tpBack(rg){
+  var wi=slots[1-sel], tpl=rackTpl&&rackTpl[wi], R=rg.R;
+  if(!rg.back){ rg.back=new THREE.Group(); rg.body.add(rg.back); rg.backWi=-1; }
+  if(rg.backWi!==wi){
+    while(rg.back.children.length) rg.back.remove(rg.back.children[0]);
+    rg.backWi=wi;
+    if(tpl){ var c=tpl.clone(); c.scale.setScalar(0.9/rg.sf); c.rotation.z=0.75; rg.back.add(c); }
+  }
+  var th=R.neck[1]-R.hpR[1];
+  rg.back.position.set(0,R.neck[1]-th*0.35,R.neck[2]-0.2/rg.sf);
+  rg.back.visible=!!tpl&&wi!==cur&&!dwOnF;
 }
 function applyCamera(bob){
   camLag*=Math.max(0,1-frameDt*9); if(camLag>0.7) camLag=0.7; else if(camLag<-0.7) camLag=-0.7; if(Math.abs(camLag)<0.001) camLag=0;
@@ -5939,6 +5953,7 @@ function updateWeapon(dt){
   vm.position.z=-0.55+vmKick+mp[2]+rc.z*zs;
   var sf=swU>0.5?swapFlourish(weapons[cur].id,1-ss((swU-0.5)*2)):[0,0,0];
   vm.rotation.set(vmKick*1.2+mp[3]+sf[0]+rc.r*zs-dip*0.9,mp[4]+sf[1]+sway.x*2.5*zs,mp[5]+sf[2]+(rc.l+sway.l*0.4)*zs+dip*0.35);
+  if(swapT>0){ var bkm=swU<0.5?ss(swU*2):1-ss((swU-0.5)*2); vm.position.x+=bkm*0.6; vm.position.y+=bkm*0.12; vm.position.z+=bkm*0.5; vm.rotation.z+=bkm*0.55; vm.rotation.y+=bkm*0.5; }
   /* misc animations layered on top of the pose */
   var busy=reloading||swapT>0||meleeT>0||throwT>0||fireCool>0.05||ctrl.fire||zoomed, mov=moveFrac, ma=MA;
   ma.mxs+=(ma.mx*(mov>0.05?1:0)-ma.mxs)*Math.min(1,dt*8);
