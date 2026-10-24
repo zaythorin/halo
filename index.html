@@ -4933,7 +4933,7 @@ function takeWeapon(i,dual){
     pk.taken=true; pk.rt=((pk.wi===3||pk.wi===16)?240:25); pk.g.visible=false; pk.hl.visible=false; wpNear=-1;
     dwStart(cw,wi); showToast('DUAL WIELD'); sfx.pickup(); return;
   }
-  if(dwOnF&&(wi===0||wi===6)){
+  if(dwOnF&&DWL.indexOf(wi)>=0){
     weapons[wi].reserve=Math.min(weapons[wi].maxRes,weapons[wi].reserve+AMMO_PK[wi]);
     pk.taken=true; pk.rt=((pk.wi===3||pk.wi===16)?240:25); pk.g.visible=false; pk.hl.visible=false; wpNear=-1; showToast('AMMO'); sfx.pickup(); return;
   }
@@ -5754,13 +5754,14 @@ function animateWeaponParts(w){
 
 /* ---------- dual wield: Magnum or SMG in each hand (any mix). Stand next to a second Magnum or SMG and press E or T. A gun that runs dry drops out of view to reload while the other keeps firing ---------- */
 var dwOnF=false, dwG=[{wi:0,mag:0},{wi:6,mag:0}], dwCd=[0,0], dwT=[0,0], dwDn=[0,0], dwApplied=[false,false];
-function dwCan(w){ return w===weapons[0]||w===weapons[6]; }
+var DWL=[0,6,11,12,14], DWB={11:0,12:1,14:6};   /* magnum, SMG, plasma pistol, plasma rifle, needler */
+function dwCan(w){ return DWL.indexOf(weapons.indexOf(w))>=0; }
 function dwOn(w){ return dwOnF&&w===weapons[dwG[0].wi]; }
 function dwW(h){ return weapons[dwG[h].wi]; }
-function dwElig(wi){ var cw=slots[sel]; return !dwOnF&&(cw===0||cw===6)&&(wi===0||wi===6); }
+function dwElig(wi){ var cw=slots[sel]; return !dwOnF&&DWL.indexOf(cw)>=0&&DWL.indexOf(wi)>=0; }
 function dwNear(){ return wpNear>=0&&wpicks[wpNear]&&dwElig(wpicks[wpNear].wi); }
-[0,6].forEach(function(i){
-  var g=(i===0?buildMagnum:buildSMG)(); g.userData.leftHand.visible=false; g.scale.x=-1; g.visible=false; vm.add(g); weapons[i].group2=g;
+[[0,buildMagnum],[6,buildSMG],[11,buildPlasmaPistol],[12,buildPlasmaRifle],[14,buildNeedler]].forEach(function(d){
+  var i=d[0], g=d[1](); if(g.userData.leftHand) g.userData.leftHand.visible=false; g.scale.x=-1; g.visible=false; vm.add(g); weapons[i].group2=g;
 });
 function dwStart(X,Y){
   weapons[Y].reserve=Math.min(weapons[Y].maxRes,weapons[Y].reserve+AMMO_PK[Y]);
@@ -5772,7 +5773,7 @@ function dwToggle(){
   if(state!=='play'||p.inVeh||swapT>0||meleeT>0||throwT>0) return;
   if(dwOnF){ var Y=dwG[1].wi; dwEnd(); dwDropGun(Y); showToast('SINGLE'); sfx.draw(); return; }
   if(dwNear()){ takeWeapon(wpNear,true); return; }
-  showToast('STAND NEXT TO A MAGNUM OR SMG TO DUAL WIELD');
+  showToast('STAND NEXT TO A MAGNUM, SMG, PLASMA PISTOL, PLASMA RIFLE OR NEEDLER TO DUAL WIELD');
 }
 function dwDropGun(wi){
   if(!rackTpl) buildRackTpl();
@@ -5809,6 +5810,7 @@ function dwTick(w0,dt){
     for(h=0;h<2;h++){
       w=dwW(h);
       if(!hd[h]||dwCd[h]>0||dwT[h]>0) continue;
+      if(w.cov&&(w.ohT>0||(w.bc&&w.bat<w.bc))) continue;
       if(dwG[h].mag>0) dwFire(h);
       else if(w.reserve<=0&&dwG[1-h].mag<=0&&dwT[1-h]<=0){ dwCd[h]=0.35; sfx.click(); showToast('NO AMMO'); }
     }
@@ -5857,14 +5859,14 @@ function fingerAnim(w,g,dt){
 }
 function dwAnimate(w){
   var on=dwOn(w), sp=MA.sprint, i, ri=dwG[0].wi, li=dwG[1].wi;
-  for(i=0;i<2;i++){ var wi=i?6:0; weapons[wi].group.userData.leftHand.visible=!(dwOnF&&ri===wi); weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
+  for(i=0;i<DWL.length;i++){ var wi=DWL[i], lh=weapons[wi].group.userData.leftHand; if(lh) lh.visible=!(dwOnF&&ri===wi); if(weapons[wi].group2) weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
   var b=$('bDual'); if(b){
     var near=dwNear(), cap=(dwOnF||near)&&!p.inVeh; if(b._c!==cap){ b._c=cap; b.classList.toggle('avail',cap); }
     var lab=dwOnF?'DROP 1':'DUAL'; if(b._l!==lab){ b._l=lab; b.textContent=lab; }
     if(b._o!==dwOnF){ b._o=dwOnF; b.classList.toggle('on',dwOnF); }
   }
   if(!on) return;
-  var g=weapons[ri].group, g2=weapons[li].group2, a6=weapons[li].anim, bs=a6.base||ZERO3, br=a6.baseRot||ZERO3, d0=dwDn[0], d1=dwDn[1];
+  var g=weapons[ri].group, g2=weapons[li].group2, a6=weapons[DWB[li]!==undefined?DWB[li]:li].anim||{}, bs=a6.base||ZERO3, br=a6.baseRot||ZERO3, d0=dwDn[0], d1=dwDn[1];
   vm.rotation.y-=0.45*sp; vm.rotation.z-=0.12*sp; vm.position.x-=0.05*sp;
   g.position.x+=0.09+0.12*d0+0.04*sp; g.position.y+=0.08-0.55*d0; g.position.z+=0.12*d0;
   g.rotation.y+=0.45*sp; g.rotation.z+=0.12*sp;
