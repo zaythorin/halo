@@ -8003,7 +8003,7 @@ function tmIsland(){
     for(j=0;j<P.length;j++) P[j]*=ISLK;
     for(j=0;j<N8.length;j++) N[j]=N8[j]/127;
     /* no tunnels inside the mountain: every triangle inside a roofed (building/tunnel) cell is cut out */
-    if(!/^(beach|grass|cliffs)$/.test(ISLM.mats[md.m].n)) I=islCutTunnels(P,I);
+
     var geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.BufferAttribute(P,3)); geo.setAttribute('normal',new THREE.BufferAttribute(N,3)); geo.setAttribute('uv',new THREE.BufferAttribute(U,2)); geo.setIndex(new THREE.BufferAttribute(I,1));
     geo.computeBoundingSphere();
@@ -8493,7 +8493,7 @@ function tmFinishBases(){
       if(f0>0.4) (walls[sk]||(walls[sk]=[])).push([-9,f0-0.5]);
     }
     /* the buildings are sealed: every roofed cell is solid from its floor up to its ceiling, so nobody can walk into an entrance */
-    var PG=ISLP.plugs, pk;
+    var PG=[], pk; /* no invisible plugs: the buildings are open to walk into */
     for(pk=0;pk+4<PG.length;pk+=5){
       var KK=ISLK, pj0=Math.floor((PG[pk]*KK-fz0)/FR), pj1=Math.floor(((PG[pk]+1)*KK-1e-6-fz0)/FR), pi0=Math.floor((PG[pk+1]*KK-fx0)/FR), pi1=Math.floor(((PG[pk+2]+1)*KK-1e-6-fx0)/FR), pc, pr;
       if(pj0<0||pi0<0||pj1>=fnz||pi1>=fnx) continue;
