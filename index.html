@@ -8760,6 +8760,23 @@ function tmFinishBases(){
       var f0=SF[0]; for(var sq=1;sq<SF.length;sq++) if(SF[sq]<f0) f0=SF[sq];
       if(f0>0.4) (walls[sk]||(walls[sk]=[])).push([-9,f0-0.5]);
     }
+    /* cliff faces: cells that have steep wall samples but no walkable floor of their own are inside the rock, so they are solid from the bottom up to the top of the wall */
+    for(var ck=0;ck<wallS.length;ck++){
+      if(floors[ck]&&floors[ck].length) continue; var cw=wallS[ck]; if(!cw||!cw.length) continue;
+      var top=cw[0]; for(var cq=1;cq<cw.length;cq++) if(cw[cq]>top) top=cw[cq];
+      if(top>0.4) (walls[ck]||(walls[ck]=[])).push([-9,top+0.3]);
+    }
+    /* holes: a floorless cell with solid on at least three sides is rock too (gaps between cliff samples) */
+    var hole=[];
+    function solidTop(k){ var w=walls[k]; if(!w) return null; var t=null; for(var z=0;z<w.length;z++) if(w[z][0]<=-9&&(t===null||w[z][1]>t)) t=w[z][1]; return t; }
+    for(var hj=1;hj<fnz-1;hj++) for(var hi=1;hi<fnx-1;hi++){
+      var hk=hj*fnx+hi; if(floors[hk]&&floors[hk].length) continue;
+      if(solidTop(hk)!==null) continue;
+      var hn=0, ht=-1e9, nb=[hk-1,hk+1,hk-fnx,hk+fnx];
+      for(var hq=0;hq<4;hq++){ var st=solidTop(nb[hq]); if(st!==null){ hn++; if(st>ht) ht=st; } }
+      if(hn>=3) hole.push([hk,ht]);
+    }
+    hole.forEach(function(h){ (walls[h[0]]||(walls[h[0]]=[])).push([-9,h[1]]); });
     /* the buildings are sealed: every roofed cell is solid from its floor up to its ceiling, so nobody can walk into an entrance */
     var PG=[], pk; /* no invisible plugs: the buildings are open to walk into */
     for(pk=0;pk+4<PG.length;pk+=5){
