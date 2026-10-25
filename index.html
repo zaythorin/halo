@@ -7871,7 +7871,21 @@ function tmMombasa(){
 
 /* ---------- Silent Cartographer island ---------- */
 function islCanvasTex(w,h,fn){ var c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); var t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t; }
+var ISLK=1.6, islScaled=false;
+/* the island is scaled up, the ramps up the cliffs, the grey blast-door barriers (and the solid fill behind them) and all trees are gone */
+function islScale(){
+  if(islScaled) return; islScaled=true;
+  var K=ISLK;
+  function sc(a){ return a.map(function(q){ return q.map(function(v){ return v*K; }); }); }
+  ISLP.flag=sc(ISLP.flag); ISLP.hill=ISLP.hill.map(function(v){ return v*K; });
+  ISLP.spawns=ISLP.spawns.map(sc); ISLP.near=ISLP.near.map(sc);
+  /* with the ramps gone nothing on the high ground can be reached on foot, so those pickups are dropped */
+  ISLP.field=sc(ISLP.field.filter(function(q){ return q[1]<12; })); ISLP.packs=sc(ISLP.packs.filter(function(q){ return q[1]<12; }));
+  ISLP.bush=ISLP.bush.map(function(b){ return [b[0]*K,b[1]*K,b[2]*K,b[3],b[4]]; });
+  ISLP.ramps=[]; ISLP.barrier=[]; ISLP.plugs=[]; ISLP.trees=[];
+}
 function tmIsland(){
+  islScale();
   function ld(u){ var t=new THREE.TextureLoader().load(u); t.flipY=false; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t; }
   var grassMat=null;
   var mats=ISLM.mats.map(function(md){
@@ -7883,6 +7897,7 @@ function tmIsland(){
   });
   ISLM.meshes.forEach(function(md){
     var P=new Float32Array(decodeB64(md.p)), N8=new Int8Array(decodeB64(md.n)), N=new Float32Array(N8.length), U=new Float32Array(decodeB64(md.u)), I=new Uint16Array(decodeB64(md.i)), j;
+    for(j=0;j<P.length;j++) P[j]*=ISLK;
     for(j=0;j<N8.length;j++) N[j]=N8[j]/127;
     var geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.BufferAttribute(P,3)); geo.setAttribute('normal',new THREE.BufferAttribute(N,3)); geo.setAttribute('uv',new THREE.BufferAttribute(U,2)); geo.setIndex(new THREE.BufferAttribute(I,1));
@@ -7902,9 +7917,9 @@ function tmIsland(){
   });
   tmFinishBases();
   /* the open sea on every side: nobody can leave the island */
-  var X0=-141, X1=140, Z0=-135, Z1=134;
+  var X0=-141*ISLK, X1=140*ISLK, Z0=-135*ISLK, Z1=134*ISLK;
   boxes.push({minx:X0-8,maxx:X0-1,minz:Z0-8,maxz:Z1+8,h:200},{minx:X1+1,maxx:X1+8,minz:Z0-8,maxz:Z1+8,h:200},{minx:X0-8,maxx:X1+8,minz:Z0-8,maxz:Z0-1,h:200},{minx:X0-8,maxx:X1+8,minz:Z1+1,maxz:Z1+8,h:200});
-  islWater(); islBarrier(); islVeg();
+  islWater(); islVeg();
 }
 function islWater(){
   var t=islCanvasTex(256,256,function(g,w,h){
@@ -7969,7 +7984,6 @@ function tmIslLoose(){
   var M=ISLP, ROW=[1,7,4,0,11,12,6], FW=[2,8,4,7,6,9,14,15,13,16,1,0,11,12,5,6,2,4,7,1,0,6,9,14,15,13];
   [0,1].forEach(function(t){ M.near[t].forEach(function(q,i){ tmLooseWeapon(q[0],q[2],ROW[i%ROW.length],q[1]); }); });
   M.field.forEach(function(q,i){ tmLooseWeapon(q[0],q[2],FW[i%FW.length],q[1]); });
-  tmLooseWeapon(M.hill[0]+1.2,M.hill[2],3,M.hill[1]); /* the only rocket launcher sits on the hill */
 }
 function tmMomLoose(){
   var M=MOMP, ROW=[1,7,4,0,11,12], FW=[2,8,4,7,6,9,14,15,13,16,1,0,11,12,5,6]; /* a handful at each base, a few more spread across the city */
@@ -8611,7 +8625,7 @@ function tmEnter(team){
   nav.active=false; nav.src=-1;
   var n0=scene.children.length;
   TM.spawns=[[],[]];
-  TM_AX=TM.ship?200:(TM.isl?140:125); TM_AZ=TM.ship?250:(TM.isl?135:200); EM_STEP=(TM.ship||TM.mom||TM.isl)?1.5:4.4; TM.gy=TM.mom?-4:(TM.isl?-1:-5.5); KH.x=0; KH.z=0; KH.r=TM.ship?9:13; TM.khy=-2.6*MID_S;
+  TM_AX=TM.ship?200:(TM.isl?140*ISLK:125); TM_AZ=TM.ship?250:(TM.isl?135*ISLK:200); EM_STEP=(TM.ship||TM.mom||TM.isl)?1.5:4.4; TM.gy=TM.mom?-4:(TM.isl?-1:-5.5); KH.x=0; KH.z=0; KH.r=TM.ship?9:13; TM.khy=-2.6*MID_S;
   if(TM.ship){
     TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null;
     TM.home=[{r:{x:0,z:-36,h:0},j:{x:0,z:-36,yaw:0}},{r:{x:0,z:36,h:Math.PI},j:{x:0,z:36,yaw:Math.PI}}];
@@ -8625,7 +8639,7 @@ function tmEnter(team){
     MP.packs.forEach(function(q){ packSpots.push([q[0],q[1],q[2]]); });
   }else if(TM.isl){
     TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null;
-    var IP=ISLP; KH.x=IP.hill[0]; KH.z=IP.hill[2]; KH.r=8; TM.khy=IP.hill[1];
+    islScale(); var IP=ISLP; KH.x=IP.hill[0]; KH.z=IP.hill[2]; KH.r=8*ISLK; TM.khy=IP.hill[1];
     TM.home=[{r:{x:IP.flag[0][0],z:IP.flag[0][2],h:0},j:{x:IP.flag[0][0],z:IP.flag[0][2],yaw:0}},{r:{x:IP.flag[1][0],z:IP.flag[1][2],h:Math.PI},j:{x:IP.flag[1][0],z:IP.flag[1][2],yaw:Math.PI}}];
     [0,1].forEach(function(t){ IP.spawns[t].forEach(function(q){ TM.spawns[t].push({x:q[0],z:q[2],y:q[1]}); }); });
     IP.packs.forEach(function(q){ packSpots.push([q[0],q[1],q[2]]); });
