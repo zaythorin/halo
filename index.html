@@ -1817,11 +1817,11 @@ function gunBump(){
 function gunPolish(m,uv){
   var e=gunEnv(); if(!e||!m||!m.isMeshPhongMaterial) return m;
   var selfGlow=m.emissiveMap&&m.emissive&&m.emissive.getHex()===0xffffff;
-  m.envMap=e; m.reflectivity=selfGlow?0.1:0.36;
+  m.envMap=e; m.reflectivity=selfGlow?0.08:0.2;
   if(m.emissive&&!selfGlow) m.emissive.multiplyScalar(0.5);
-  if(m.specular) m.specular.lerp(new THREE.Color(0xc2cad4),0.45);
-  m.shininess=Math.min(130,m.shininess*1.6+12);
-  if(uv){ m.bumpMap=gunBump(); m.bumpScale=0.45; }
+  if(m.specular) m.specular.lerp(new THREE.Color(0xc2cad4),0.25);
+  m.shininess=Math.min(90,m.shininess*1.2+8);
+  if(uv){ m.bumpMap=gunBump(); m.bumpScale=0.25; }
   m.needsUpdate=true; return m;
 }
 /* Builds a model's meshes (already scaled and posed for the viewmodel). Parts tagged 'mag' go in their own group so a reload can move them. */
@@ -2413,7 +2413,7 @@ sfx.smg=function(){
 };
 var vm=new THREE.Group(); camera.add(vm);
 vm.position.set(0.11,-0.215,-0.62); vm.scale.setScalar(1.55);
-weapons[0].group=buildMagnum(); weapons[1].group=buildAR(); weapons[2].group=buildSniper(); weapons[3].group=buildRocket(); weapons[4].group=buildShotgun(); weapons[5].group=buildSword(); weapons[6].group=buildSMG(); weapons[7].group=buildBR(); weapons[8].group=buildLaser(); weapons[9].group=buildSalt(); weapons[10].group=buildMMG();
+weapons[0].group=buildMagnum(); weapons[0].group.scale.setScalar(0.8); weapons[1].group=buildAR(); weapons[2].group=buildSniper(); weapons[3].group=buildRocket(); weapons[4].group=buildShotgun(); weapons[5].group=buildSword(); weapons[6].group=buildSMG(); weapons[7].group=buildBR(); weapons[8].group=buildLaser(); weapons[9].group=buildSalt(); weapons[10].group=buildMMG();
 
 /* Reload animation. Hand and mag positions are local to the weapon, times are 0..1 of the reload.
    Phases: reach for the mag, strip it out and drop it, grab a fresh one, seat it. R is the left hand's rest spot, M the magazine's. */
@@ -8491,7 +8491,7 @@ function tmIslLoose(){
   [0,1].forEach(function(t){ M.near[t].forEach(function(q,i){ tmLooseWeapon(q[0],q[2],ROW[i%ROW.length],q[1]); }); });
   M.field.forEach(function(q,i){ tmLooseWeapon(q[0],q[2],FW[i%FW.length],q[1]); });
   tmLooseWeapon(M.hill[0]+1.2*ISLK,M.hill[2],3,M.hill[1]); /* the only rocket launcher sits on the hill */
-  tmSpawnRacks([]);
+  try{ tmSpawnRacks([]); }catch(e){ console.error('rack placement failed',e); }
 }
 /* at each team's spawn area: a rack of UNSC weapons and a rack of Covenant weapons, on flat open ground checked against the model */
 function tmSpawnRacks(avoid){
@@ -8517,20 +8517,22 @@ function tmMomLoose(){
 }
 /* finds a flat, open spot for a free-standing rack near a point: ground heights under the whole footprint must agree and nothing may stand within reach of the board */
 function tmRackSpot(bx,by,bz,avoid){
-  var rc=new THREE.Raycaster(), M=coverMeshes, D=new V3(0,-1,0), O=new V3(), r, a, i, j;
-  function gy(x,z){ O.set(x,by+6,z); rc.set(O,D); rc.far=Infinity; var h=rc.intersectObjects(M,false)[0]; return h?h.point.y:null; }
+  var rc=new THREE.Raycaster(), M=coverMeshes, D=new V3(0,-1,0), O=new V3(), r, a, i, j, pass, fallback=null;
+  function gy(x,z){ O.set(x,by+8,z); rc.set(O,D); rc.far=Infinity; var h=rc.intersectObjects(M,false)[0]; return h?h.point.y:null; }
   function clear(x,y,z,dx,dz,d){ O.set(x,y,z); rc.set(O,new V3(dx,0,dz)); rc.far=d; var h=rc.intersectObjects(M,false)[0]; rc.far=Infinity; return !h; }
-  for(r=4;r<=32;r+=2.5) for(a=0;a<16;a++){
+  var TOL=[0.3,0.55,0.9], CL=[1,0.7,0.45];
+  for(pass=0;pass<3;pass++) for(r=4;r<=40;r+=2.5) for(a=0;a<16;a++){
     var x=bx+Math.cos(a*0.3927+r)*r, z=bz+Math.sin(a*0.3927+r)*r, ok=true;
-    for(i=0;avoid&&i<avoid.length;i++) if(Math.hypot(avoid[i][0]-x,avoid[i][2]-z)<9) ok=false;
+    for(i=0;avoid&&i<avoid.length;i++) if(Math.hypot(avoid[i][0]-x,avoid[i][2]-z)<8) ok=false;
     if(!ok) continue;
-    var g0=gy(x,z); if(g0===null||g0<0.5||Math.abs(g0-by)>6) continue;
-    for(i=-4;i<=4&&ok;i+=1.4) for(j=-2;j<=2&&ok;j+=1.0){ var g=gy(x+i,z+j); if(g===null||Math.abs(g-g0)>0.3) ok=false; }
+    var g0=gy(x,z); if(g0===null||g0<0.3||Math.abs(g0-by)>8) continue;
+    if(!fallback) fallback=[x,g0,z];
+    for(i=-3.4;i<=3.4&&ok;i+=1.7) for(j=-1.2;j<=1.2&&ok;j+=1.2){ var g=gy(x+i,z+j); if(g===null||Math.abs(g-g0)>TOL[pass]) ok=false; }
     if(!ok) continue;
-    [1.2,2.6].forEach(function(h){ if(!clear(x,g0+h,z,1,0,4.3)||!clear(x,g0+h,z,-1,0,4.3)||!clear(x,g0+h,z,0,1,2.6)||!clear(x,g0+h,z,0,-1,2.6)) ok=false; });
+    [1.2,2.6].forEach(function(h){ if(!clear(x,g0+h,z,1,0,3.6*CL[pass]+0.5)||!clear(x,g0+h,z,-1,0,3.6*CL[pass]+0.5)||!clear(x,g0+h,z,0,1,2.2*CL[pass]+0.3)||!clear(x,g0+h,z,0,-1,2.2*CL[pass]+0.3)) ok=false; });
     if(ok) return [x,g0,z];
   }
-  return null;
+  return fallback;
 }
 var RACK_UNSC=[2,1,4,0,7,6,8,9], RACK_COV=[11,12,14,15,13,16];
 /* free-standing weapon rack: a board on two posts with the guns hanging upright on it, like the wall racks in the other maps. Look at one and press E */
