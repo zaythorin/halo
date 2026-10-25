@@ -4523,11 +4523,16 @@ function mgRider(V){
     sR:[-0.231,0.60,-0.04],sL:[0.231,0.60,-0.04],eR:[-0.29,0.34,0.20],eL:[0.29,0.34,0.20],wR:[-0.2,0.45,0.50],wL:[0.2,0.45,0.50],fR:[-0.2,0.47,0.69],fL:[0.2,0.47,0.69],
     kR:[-0.2,0.0,0.53],kL:[0.2,0.0,0.53],aR:[-0.3,-0.50,0.55],aL:[0.3,-0.50,0.55],tR:[-0.3,-0.58,0.79],tL:[0.3,-0.58,0.79]};
   CH_NAMES.forEach(function(n){ P[n]=pose[n].map(function(v){ return v*CS; }); });
+  /* hunched over the handlebars: the whole upper body leans forward about the hips (bone lengths stay the same), the head lifts to look ahead, elbows tuck in */
+  var LEAN=0.95;
+  ['spine','chest','neck','head','sR','sL','eR','eL','wR','wL','fR','fL'].forEach(function(n){ P[n]=rotX(P[n],[0,0,0],LEAN); });
+  ['head'].forEach(function(n){ P[n]=rotX(P[n],P.neck,-0.55); });
+  ['eR','eL'].forEach(function(n){ P[n][0]*=0.82; }); ['wR','wL','fR','fL'].forEach(function(n){ P[n][0]*=0.9; });
   for(i=0;i<CH_PARTS.length;i++){
     var cd=CH_PARTS[i], g=built.groups[cd.n]; if(!g) continue;
     var r=chPose(cd,P,R); g.position.set(r[0][0],r[0][1],r[0][2]); g.quaternion.set(r[1][0],r[1][1],r[1][2],r[1][3]);
   }
-  root.rotation.y=Math.PI; root.position.set(0,1.5,0.28); root.scale.setScalar(1/MGS); root.visible=false;
+  root.rotation.y=Math.PI; root.position.set(0,1.46,0.34); root.scale.setScalar(1/MGS); root.visible=false;
   V.body.add(root); V.rider=root; V.riderId=CHIEF.id; return root;
 }
 function mgNear(){
