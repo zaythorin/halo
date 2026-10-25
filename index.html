@@ -652,7 +652,7 @@ function gfxMark(o){
   if(o===camera||o.isLight||o.isSprite||o.isPoints||o.isLine) return;
   if(o.isMesh&&!o.userData._sh){
     o.userData._sh=1; var m=Array.isArray(o.material)?o.material[0]:o.material;
-    if(m&&m.map&&m.map.image&&!m.map.userData._aq){ m.map.userData._aq=1; GFX.aq.push(m.map); }
+    if(m&&m.map&&m.map.image&&!m.map._aq){ m.map._aq=1; GFX.aq.push(m.map); }
     if(m&&(m.isMeshLambertMaterial||m.isMeshPhongMaterial||m.isMeshStandardMaterial)&&!m.transparent&&o.renderOrder>=0&&m.blending===THREE.NormalBlending){ o.castShadow=true; o.receiveShadow=true; }
   }
   for(var i=0;i<o.children.length;i++) gfxMark(o.children[i]);
