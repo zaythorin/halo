@@ -2412,7 +2412,7 @@ sfx.smg=function(){
   smgTm=setInterval(function(){ if(performance.now()-smgLast>130) smgStop(); },30);
 };
 var vm=new THREE.Group(); camera.add(vm);
-vm.position.set(0.11,-0.215,-0.62); vm.scale.setScalar(1.55);
+vm.position.set(0.11,-0.3,-0.6); vm.scale.setScalar(1.38);
 weapons[0].group=buildMagnum(); weapons[0].group.scale.setScalar(0.8); weapons[1].group=buildAR(); weapons[2].group=buildSniper(); weapons[3].group=buildRocket(); weapons[4].group=buildShotgun(); weapons[5].group=buildSword(); weapons[6].group=buildSMG(); weapons[7].group=buildBR(); weapons[8].group=buildLaser(); weapons[9].group=buildSalt(); weapons[10].group=buildMMG();
 
 /* Reload animation. Hand and mag positions are local to the weapon, times are 0..1 of the reload.
@@ -6311,8 +6311,8 @@ function updateWeapon(dt){
   var wb=Math.sin(tAcc*4.6)*moveFrac, bobx=wb*0.011, boby=Math.abs(Math.sin(tAcc*4.6))*0.013*moveFrac, brth=Math.sin(tAcc*1.4)*0.0025;
   var zs=zoomed?0.3:1;
   vm.position.x=vmBaseX+mp[0]+(rc.x+sway.x+bobx)*zs+dip*0.1;
-  vm.position.y=-0.215-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
-  vm.position.z=-0.62+vmKick+mp[2]+rc.z*zs;
+  vm.position.y=-0.3-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
+  vm.position.z=-0.6+vmKick+mp[2]+rc.z*zs;
   var sf=swU>0.5?swapFlourish(weapons[cur].id,1-ss((swU-0.5)*2)):[0,0,0];
   vm.rotation.set(vmKick*1.2+mp[3]+sf[0]+rc.r*zs-dip*0.9,mp[4]-0.05*zs+sf[1]+sway.x*2.5*zs,mp[5]+sf[2]+(rc.l+sway.l*0.4)*zs+dip*0.35);
   if(swapT>0){ var bkm=swU<0.5?ss(swU*2):1-ss((swU-0.5)*2); vm.position.x+=bkm*0.6; vm.position.y+=bkm*0.12; vm.position.z+=bkm*0.5; vm.rotation.z+=bkm*0.55; vm.rotation.y+=bkm*0.5; }
