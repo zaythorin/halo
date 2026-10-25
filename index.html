@@ -8498,8 +8498,9 @@ function tmSpawnRacks(avoid){
   [0,1].forEach(function(t){
     var L=TM.spawns[t]; if(!L||!L.length) return;
     var cx=0, cy=0, cz=0; L.forEach(function(q){ cx+=q.x; cy+=(q.y||0); cz+=q.z; }); cx/=L.length; cy/=L.length; cz/=L.length;
-    var av=avoid.slice(), a=tmRackSpot(cx,cy,cz,av); if(a) av.push(a);
-    var b=tmRackSpot(cx,cy,cz,av);
+    /* right where the team spawns: the nearest flat spot, or beside the spawn itself if none is found close by */
+    var av=avoid.slice(), a=tmRackSpot(cx,cy,cz,av); if(!a||Math.hypot(a[0]-cx,a[2]-cz)>16) a=[cx-4.5,cy,cz+(cz>0?-3:3)]; av.push(a);
+    var b=tmRackSpot(cx,cy,cz,av); if(!b||Math.hypot(b[0]-cx,b[2]-cz)>16) b=[cx+4.5,cy,cz+(cz>0?-3:3)];
     if(a) tmMomRack(a[0],a[1],a[2],a[2]>0?-1:1,t,RACK_UNSC);
     if(b) tmMomRack(b[0],b[1],b[2],b[2]>0?-1:1,t,RACK_COV);
   });
@@ -8521,7 +8522,7 @@ function tmRackSpot(bx,by,bz,avoid){
   function gy(x,z){ O.set(x,by+8,z); rc.set(O,D); rc.far=Infinity; var h=rc.intersectObjects(M,false)[0]; return h?h.point.y:null; }
   function clear(x,y,z,dx,dz,d){ O.set(x,y,z); rc.set(O,new V3(dx,0,dz)); rc.far=d; var h=rc.intersectObjects(M,false)[0]; rc.far=Infinity; return !h; }
   var TOL=[0.3,0.55,0.9], CL=[1,0.7,0.45];
-  for(pass=0;pass<3;pass++) for(r=4;r<=40;r+=2.5) for(a=0;a<16;a++){
+  for(pass=0;pass<3;pass++) for(r=3.5;r<=40;r+=2) for(a=0;a<16;a++){
     var x=bx+Math.cos(a*0.3927+r)*r, z=bz+Math.sin(a*0.3927+r)*r, ok=true;
     for(i=0;avoid&&i<avoid.length;i++) if(Math.hypot(avoid[i][0]-x,avoid[i][2]-z)<8) ok=false;
     if(!ok) continue;
