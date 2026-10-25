@@ -4463,7 +4463,7 @@ function mgBuild(t){
   if(TM.on){ var sb=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.08,0.1),new THREE.MeshBasicMaterial({color:col})); sb.position.set(0,1.18,-2.36); body.add(sb); }
   var mk=new THREE.Mesh(new THREE.OctahedronGeometry(0.35),new THREE.MeshBasicMaterial({color:col,fog:false})); scene.add(mk);
   root.rotation.order='YXZ'; root.scale.setScalar(MGS); scene.add(root);
-  return {t:t,vy:0,air:false,gl:0,g:root,body:body,wheels:wheels,steers:steers,mk:mk,x:0,y:0,z:0,h:0,v:0,pv:0,spin:0,steer:0,dist:0,accel:0,pitch:0,roll:0,drv:-1,pas:-1,tgt:null,lastNet:0,rider:null,riderId:'',sT:0};
+  return {t:t,slope:0,vy:0,air:false,gl:0,pitchV:0,rollV:0,sus:0,susV:0,gvy:0,bumpT:0,g:root,body:body,wheels:wheels,steers:steers,mk:mk,x:0,y:0,z:0,h:0,v:0,pv:0,spin:0,steer:0,dist:0,accel:0,pitch:0,roll:0,drv:-1,pas:-1,tgt:null,lastNet:0,rider:null,riderId:'',sT:0};
 }
 function mgClear(){
   if(MG.seat) mgForce();
@@ -4498,15 +4498,22 @@ function mgReset(){
   });
 }
 function mgPose(V){
+  var dt=Math.min(0.05,frameDt||0.016);
   var fx=-Math.sin(V.h)*1.0, fz=-Math.cos(V.h)*1.0, rx=Math.cos(V.h)*0.7, rz=-Math.sin(V.h)*0.7, yy=V.y+1.0;
   var gf=floorY(V.x+fx,V.z+fz,yy), gb=floorY(V.x-fx,V.z-fz,yy), gr=floorY(V.x+rx,V.z+rz,yy), gl=floorY(V.x-rx,V.z-rz,yy);
   if(gf<-1e8) gf=V.y; if(gb<-1e8) gb=V.y; if(gr<-1e8) gr=V.y; if(gl<-1e8) gl=V.y;
-  V.pitch+=(Math.max(-0.6,Math.min(0.6,Math.atan2(gf-gb,2.0)))-V.pitch)*0.35; V.roll+=(Math.max(-0.6,Math.min(0.6,-Math.atan2(gr-gl,1.4)))-V.roll)*0.35;
-  if(V.air){ V.pitch+=(Math.max(-0.7,Math.min(0.7,Math.atan2(V.vy,Math.max(4,Math.abs(V.v)))))-V.pitch)*0.15; V.roll*=0.9; }
+  var tp=Math.max(-0.6,Math.min(0.6,Math.atan2(gf-gb,2.0))), tr=Math.max(-0.6,Math.min(0.6,-Math.atan2(gr-gl,1.4)));
+  if(V.air){ tp=Math.max(-0.7,Math.min(0.7,Math.atan2(V.vy,Math.max(4,Math.abs(V.v))))); tr=0; }
+  /* springs: the bike rocks onto slopes instead of snapping to them */
+  V.pitchV+=(60*(tp-V.pitch)-9*V.pitchV)*dt; V.pitch+=V.pitchV*dt;
+  V.rollV+=(60*(tr-V.roll)-9*V.rollV)*dt; V.roll+=V.rollV*dt;
+  V.susV+=(-150*V.sus-13*V.susV)*dt; V.sus+=V.susV*dt; V.sus=Math.max(-0.4,Math.min(0.25,V.sus));
   var g=V.g; g.position.set(V.x,V.y,V.z); g.rotation.y=V.h; g.rotation.x=V.pitch; g.rotation.z=V.roll;
   var i; for(i=0;i<V.wheels.length;i++) V.wheels[i].rotation.x=-V.spin;
   for(i=0;i<V.steers.length;i++) V.steers[i].rotation.y=-V.steer*0.5;
   V.body.rotation.z=V.steer*Math.min(1,Math.abs(V.v)/14)*0.05;
+  V.body.rotation.x=Math.max(-0.07,Math.min(0.07,V.accel*0.0035));
+  V.body.position.y=V.sus;
 }
 /* a seat's spot in the world: lx sideways, ly up, lz back */
 function mgSeatPos(V,s){
@@ -4588,29 +4595,51 @@ function mgRecv(m){
   if(m.t==='mgc'){ if(m.s===1) V.drv=m.d; else V.pas=m.d; V.lastNet=tAcc; if(m.s===1&&m.d<0) V.tgt=null; }
   else if(m.t==='mgs'){ if(V===MG.me&&MG.seat===1) return; V.tgt=m; V.lastNet=tAcc; }
 }
+function mgWall(x0,z0,x1,z1,y){
+  if(EMIT_FL&&structBlock(x1,z1,y)) return true;
+  var d=Math.hypot(x1-x0,z1-z0); if(d<1e-6) return false;
+  var f0=floorY(x0,z0,y+0.6), f1=floorY(x1,z1,y+0.6); if(f0<-1e8||f1<-1e8) return false;
+  var rise=f1-Math.max(f0,y-0.1); return rise>0.7+d*1.2; /* only a real wall or cliff stops it, bumps and slopes do not */
+}
 function mgDrive(V,dt){
-  var m=readMove(), thr=m.mz, st=m.mx, brake=ctrl.brake||keys.Space, air=V.air;
-  var target=thr>0?thr*24:thr*9, lim;
-  if(air){ target=V.v; lim=0; }
-  else if(brake){ target=0; lim=32; } else if(thr===0) lim=6; else lim=(target*V.v<0)?22:16;
-  var dv=target-V.v, step=lim*dt; V.v+=Math.max(-step,Math.min(step,dv));
+  var m=readMove(), thr=m.mz, st=m.mx, brake=ctrl.brake||keys.Space, air=V.air, VMAX=27;
+  if(!air){
+    if(brake){ var db=38*dt; V.v=Math.abs(V.v)<=db?0:V.v-Math.sign(V.v)*db; }
+    else if(thr>0){ V.v+=(V.v<-0.5?30:Math.max(6,28*(1-Math.max(0,V.v)/VMAX)))*thr*dt; }
+    else if(thr<0){ if(V.v>0.5) V.v-=30*dt; else V.v=Math.max(-9,V.v+thr*16*dt); }
+    else{ var cd=(1.3+0.05*Math.abs(V.v))*dt; V.v=Math.abs(V.v)<=cd?0:V.v-Math.sign(V.v)*cd; }
+    if(V.v>VMAX) V.v-=(V.v-VMAX)*Math.min(1,dt*2);
+    /* hills: gravity along the slope slows the climb and speeds the descent */
+    V.v-=Math.max(-1,Math.min(1,V.slope||0))*13*dt;
+  }
   var spd=Math.abs(V.v), dir=V.v>=0?1:-1;
-  V.h-=st*(air?1.0:2.4)*(0.3+0.7*Math.min(1,spd/7))*dir*(spd<0.3?0:1)*dt;
-  var ox=V.x, oz=V.z; V.x+=-Math.sin(V.h)*V.v*dt; V.z+=-Math.cos(V.h)*V.v*dt;
-  if(!air&&!climbOK(ox,oz,V.x,V.z,V.y)){ V.x=ox; V.z=oz; V.v*=0.3; }
-  if(air){ var q0={x:V.x,z:V.z}; if(structBlock&&EMIT_FL&&structBlock(V.x,V.z,V.y)){ V.x=ox; V.z=oz; V.v*=0.4; } }
+  V.h-=st*(air?0.9:2.5)*(0.25+0.75*Math.min(1,spd/6))/(1+spd/32)*dir*(spd<0.25?0:1)*dt;
+  var ox=V.x, oz=V.z, nx=V.x-Math.sin(V.h)*V.v*dt, nz=V.z-Math.cos(V.h)*V.v*dt, blocked=false;
+  if(!air&&mgWall(ox,oz,nx,nz,V.y)){
+    if(!mgWall(ox,oz,nx,oz,V.y)){ nz=oz; V.v*=0.97; }
+    else if(!mgWall(ox,oz,ox,nz,V.y)){ nx=ox; V.v*=0.97; }
+    else{ nx=ox; nz=oz; blocked=true; }
+  }else if(air&&EMIT_FL&&structBlock(nx,nz,V.y)){ nx=ox; nz=oz; V.v*=0.5; }
+  V.x=nx; V.z=nz;
+  if(blocked){ if(spd>4&&V.bumpT<=0){ V.bumpT=0.4; V.susV-=Math.min(5,spd*0.2); sfx.hit(); } V.v*=0.6; }
+  V.bumpT-=dt;
   if(!TM.isl&&!air&&groundH(V.x,V.z)<WATER_Y+0.2) V.v*=Math.max(0,1-dt*3);
-  var bx=V.x, bz=V.z; resolveCircle(V,0.85,V.y); var push=Math.hypot(V.x-bx,V.z-bz); if(push>0.005) V.v*=Math.max(0.2,1-push*6);
-  /* gravity: the bike follows the ground while it is touching it, flies off crests and ramps, and lands with a thump */
+  var bx=V.x, bz=V.z; resolveCircle(V,0.85,V.y); var push=Math.hypot(V.x-bx,V.z-bz); if(push>0.005) V.v*=Math.max(0.55,1-push*2.5);
+  /* gravity and ground contact */
   var gy=floorY(V.x,V.z,V.y+0.9); if(gy<-1e8) gy=V.y;
+  var f1=floorY(V.x-Math.sin(V.h)*1.0,V.z-Math.cos(V.h)*1.0,V.y+0.9), b1=floorY(V.x+Math.sin(V.h)*1.0,V.z+Math.cos(V.h)*1.0,V.y+0.9);
+  V.slope=(f1<-1e8||b1<-1e8)?0:(f1-b1)/2.0;
   if(!V.air){
     var rate=(gy-V.gl)/Math.max(dt,1e-3); V.gl=gy;
     if(gy<V.y-Math.max(0.2,spd*dt*0.8)&&spd>3){ V.air=true; V.vy=Math.max(0,Math.min(14,rate)); }
-    else V.y+=(gy-V.y)*Math.min(1,dt*22);
+    else{
+      var py=V.y; V.y+=(gy-V.y)*Math.min(1,dt*24);
+      var gvy=(V.y-py)/Math.max(dt,1e-3); V.susV-=Math.max(-12,Math.min(12,(gvy-V.gvy)))*0.25; V.gvy=gvy;
+    }
   }
   if(V.air){
-    V.vy-=28*dt; V.y+=V.vy*dt; V.gl=gy;
-    if(V.y<=gy){ var imp=-V.vy; V.y=gy; V.air=false; V.vy=0; if(imp>7){ V.v*=Math.max(0.55,1-(imp-7)*0.03); shakeAmp=Math.max(shakeAmp,Math.min(0.05,imp*0.004)); shakeT=0.3; } }
+    V.vy-=30*dt; V.y+=V.vy*dt; V.gl=gy; V.gvy=V.vy;
+    if(V.y<=gy){ var imp=-V.vy; V.y=gy; V.air=false; V.vy=0; V.gvy=0; V.susV-=Math.min(8,imp*0.55); if(imp>7){ V.v*=Math.max(0.6,1-(imp-7)*0.025); shakeAmp=Math.max(shakeAmp,Math.min(0.05,imp*0.004)); shakeT=0.3; } }
   }
   V.dist+=spd*dt; V.spin+=V.v*dt/(0.6*MGS); V.steer+=(st-V.steer)*Math.min(1,dt*9); V.accel+=(((V.v-V.pv)/Math.max(dt,1e-3))-V.accel)*Math.min(1,dt*6); V.pv=V.v;
   for(var i=0;i<enemies.length;i++){
@@ -4621,7 +4650,7 @@ function mgDrive(V,dt){
       if(d<1.4){ e.ramT=0.5; var killed=damageEnemy(e,spd*5); e.x+=(ex/(d||1))*1.5; e.z+=(ez/(d||1))*1.5; V.v*=0.93; sfx.hit(); if(killed){ onKill(e,false); score+=50; showToast('ROADKILL  +'+((e.elite?250:100)+50)); } }
     }
   }
-  var sp=mgSeatPos(V,1); p.x=sp.x; p.z=sp.z; p.y=sp.y; moveFrac=spd/24; engineUpdate(V.v);
+  var sp=mgSeatPos(V,1); p.x=sp.x; p.z=sp.z; p.y=sp.y; moveFrac=spd/27; engineUpdate(V.v);
   if(TM.on&&mp.on){ V.sT-=dt; if(V.sT<=0){ V.sT=0.07; mpSend({t:'mgs',vt:V.t,x:r2(V.x),y:r2(V.y),z:r2(V.z),h:r2(V.h),v:r2(V.v),sp:r2(V.spin%6.2832),st:r2(V.steer),a:V.air?1:0,vy:r2(V.vy)}); } }
 }
 function mgStep(V,dt){
