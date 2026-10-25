@@ -1823,13 +1823,9 @@ function gunBump(){
   GUNBUMP=new THREE.CanvasTexture(c); GUNBUMP.wrapS=GUNBUMP.wrapT=THREE.RepeatWrapping; GUNBUMP.anisotropy=4; return GUNBUMP;
 }
 function gunPolish(m,uv){
-  var e=gunEnv(); if(!e||!m||!m.isMeshPhongMaterial) return m;
-  var selfGlow=m.emissiveMap&&m.emissive&&m.emissive.getHex()===0xffffff;
-  m.envMap=e; m.reflectivity=selfGlow?0.08:0.2;
-  if(m.emissive&&!selfGlow) m.emissive.multiplyScalar(0.5);
-  if(m.specular) m.specular.lerp(new THREE.Color(0xc2cad4),0.25);
-  m.shininess=Math.min(90,m.shininess*1.2+8);
-  if(uv){ m.bumpMap=gunBump(); m.bumpScale=0.25; }
+  /* no reflection map or grain: they made the guns look like chrome. Only a small, soft highlight boost is kept so the original textures show through */
+  if(!m||!m.isMeshPhongMaterial) return m;
+  if(m.specular) m.specular.lerp(new THREE.Color(0x9aa2aa),0.15);
   m.needsUpdate=true; return m;
 }
 /* Builds a model's meshes (already scaled and posed for the viewmodel). Parts tagged 'mag' go in their own group so a reload can move them. */
