@@ -620,7 +620,7 @@ var hemi=new THREE.HemisphereLight(0xd0dae6,0x7d6e54,0.72); scene.add(hemi);
 var sun=new THREE.DirectionalLight(0xfff0d8,0.95); sun.position.set(-90,160,110); scene.add(sun);
 /* ---------- graphics: real-time sun shadows that follow the player, sharper pixels, a little colour punch; auto-lowers itself if the frame rate drops ---------- */
 var GFX={lvl:2,avg:16,slow:0,last:0,sweepT:0,S:40,dir:new V3(-90,160,110).normalize(),ctr:new V3(),rt:new V3(),up:new V3(),names:['LOW','MEDIUM','HIGH','ULTRA'],aniso:1,aq:[],tmOn:false};
-var ISLU={value:0};
+var ISLU={value:0}, ISLCHK={n:0,list:[]};
 GFX.rt.crossVectors(new V3(0,1,0),GFX.dir).normalize(); GFX.up.crossVectors(GFX.dir,GFX.rt).normalize();
 (function(){
   var co=false; try{ co=window.matchMedia('(pointer:coarse)').matches; }catch(e){}
@@ -664,6 +664,7 @@ function gfxPre(){
     if(GFX.lvl>0&&GFX.avg>40){ GFX.slow+=dtm; if(GFX.slow>5000){ GFX.slow=0; GFX.lvl--; GFX.avg=16; gfxApply(); gfxLabel(); try{ localStorage.setItem('halo-gfx2',String(GFX.lvl)); }catch(e){} try{ showToast('GRAPHICS LOWERED FOR SPEED'); }catch(e){} } } else GFX.slow=0;
   }
   ISLU.value=now/1000;
+  if(ISLCHK.n>0&&TM.isl){ ISLCHK.n--; if(ISLCHK.n===0){ ISLCHK.list.forEach(function(m){ try{ var pr=renderer.properties.get(m).currentProgram; if(pr&&pr.diagnostics&&pr.diagnostics.runnable===false){ console.error('island shader failed, using plain material',m); m.onBeforeCompile=function(){}; m.customProgramCacheKey=function(){ return 'islplain'; }; m.needsUpdate=true; } }catch(e){} }); } }
   if(GFX.fill&&GFX.fill.visible) GFX.fill.intensity=0.3*Math.min(1,sun.intensity/0.95);
   if(GFX.lvl<1) return;
   if(GFX.lvl===3&&GFX.aq.length){ var tq=GFX.aq.pop(); if(tq.anisotropy<GFX.aniso){ tq.anisotropy=GFX.aniso; tq.needsUpdate=true; } }
@@ -7997,6 +7998,7 @@ function tmIsland(){
   });
   /* the ground texture is one 512 px picture of the whole island, so up close it is blurred: a fine tiled detail layer is multiplied over it */
   if(grassMat&&beachMat){ grassMat.map=beachMat.map; grassMat.color.setHex(0xffffff); grassMat.needsUpdate=true; }
+  ISLCHK.n=90; ISLCHK.list=[grassMat,beachMat,cliffMat];
   islDetail(grassMat,islDetailTex('grass'),0.42,0.9,0); islDetail(beachMat,islDetailTex('sand'),0.5,0.8,0); islDetail(cliffMat,islDetailTex('rock'),0.3,0.85,1);
   ISLM.meshes.forEach(function(md){
     var P=new Float32Array(decodeB64(md.p)), N8=new Int8Array(decodeB64(md.n)), N=new Float32Array(N8.length), U=new Float32Array(decodeB64(md.u)), I=new Uint16Array(decodeB64(md.i)), j;
