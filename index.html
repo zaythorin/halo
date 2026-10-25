@@ -7879,8 +7879,8 @@ function islScale(){
   function sc(a){ return a.map(function(q){ return q.map(function(v){ return v*K; }); }); }
   ISLP.flag=sc(ISLP.flag); ISLP.hill=ISLP.hill.map(function(v){ return v*K; });
   ISLP.spawns=ISLP.spawns.map(sc); ISLP.near=ISLP.near.map(sc);
-  /* with the ramps gone nothing on the high ground can be reached on foot, so those pickups are dropped */
-  ISLP.field=sc(ISLP.field.filter(function(q){ return q[1]<12; })); ISLP.packs=sc(ISLP.packs.filter(function(q){ return q[1]<12; }));
+  /* the hill and most of the high ground can be walked up on the model's own slopes (checked); only pickups on isolated ledges are dropped */
+  ISLP.field=sc(ISLP.field.filter(function(q,i){ return [3,8,10,11,17,18,22,23].indexOf(i)<0; })); ISLP.packs=sc(ISLP.packs.filter(function(q,i){ return [3,5,6].indexOf(i)<0; }));
   ISLP.bush=ISLP.bush.map(function(b){ return [b[0]*K,b[1]*K,b[2]*K,b[3],b[4]]; });
   ISLP.ramps=[]; ISLP.barrier=[]; ISLP.plugs=[]; ISLP.trees=[];
 }
@@ -7984,6 +7984,7 @@ function tmIslLoose(){
   var M=ISLP, ROW=[1,7,4,0,11,12,6], FW=[2,8,4,7,6,9,14,15,13,16,1,0,11,12,5,6,2,4,7,1,0,6,9,14,15,13];
   [0,1].forEach(function(t){ M.near[t].forEach(function(q,i){ tmLooseWeapon(q[0],q[2],ROW[i%ROW.length],q[1]); }); });
   M.field.forEach(function(q,i){ tmLooseWeapon(q[0],q[2],FW[i%FW.length],q[1]); });
+  tmLooseWeapon(M.hill[0]+1.2*ISLK,M.hill[2],3,M.hill[1]); /* the only rocket launcher sits on the hill */
 }
 function tmMomLoose(){
   var M=MOMP, ROW=[1,7,4,0,11,12], FW=[2,8,4,7,6,9,14,15,13,16,1,0,11,12,5,6]; /* a handful at each base, a few more spread across the city */
