@@ -8491,9 +8491,15 @@ function tmIslLoose(){
   [0,1].forEach(function(t){ M.near[t].forEach(function(q,i){ tmLooseWeapon(q[0],q[2],ROW[i%ROW.length],q[1]); }); });
   M.field.forEach(function(q,i){ tmLooseWeapon(q[0],q[2],FW[i%FW.length],q[1]); });
   tmLooseWeapon(M.hill[0]+1.2*ISLK,M.hill[2],3,M.hill[1]); /* the only rocket launcher sits on the hill */
-  /* at each base: a rack of UNSC weapons and a rack of Covenant weapons, on flat open ground checked against the model */
+  tmSpawnRacks([]);
+}
+/* at each team's spawn area: a rack of UNSC weapons and a rack of Covenant weapons, on flat open ground checked against the model */
+function tmSpawnRacks(avoid){
   [0,1].forEach(function(t){
-    var f=M.flag[t], a=tmRackSpot(f[0],f[1],f[2],[]), b=a&&tmRackSpot(f[0],f[1],f[2],[a]);
+    var L=TM.spawns[t]; if(!L||!L.length) return;
+    var cx=0, cy=0, cz=0; L.forEach(function(q){ cx+=q.x; cy+=(q.y||0); cz+=q.z; }); cx/=L.length; cy/=L.length; cz/=L.length;
+    var av=avoid.slice(), a=tmRackSpot(cx,cy,cz,av); if(a) av.push(a);
+    var b=tmRackSpot(cx,cy,cz,av);
     if(a) tmMomRack(a[0],a[1],a[2],a[2]>0?-1:1,t,RACK_UNSC);
     if(b) tmMomRack(b[0],b[1],b[2],b[2]>0?-1:1,t,RACK_COV);
   });
@@ -8505,7 +8511,9 @@ function tmMomLoose(){
   tmLooseWeapon(M.hill[0]+2.5,M.hill[2],3,M.hill[1]); /* the only rocket launcher sits on the hill */
   tmMomRack(-35.3,11.1,92.3,-1,0); tmMomRack(56.5,17.37,-96.1,-1,1);
   /* a Covenant rack beside each UNSC one */
-  [[-35.3,11.1,92.3,-1,0],[56.5,17.37,-96.1,-1,1]].forEach(function(q){ var sp=tmRackSpot(q[0],q[1],q[2],[q]); if(sp) tmMomRack(sp[0],sp[1],sp[2],q[3],q[4],RACK_COV); });   /* a weapon rack at each base, spots checked flat and open against the model */
+  var mq=[[-35.3,11.1,92.3,-1,0],[56.5,17.37,-96.1,-1,1]];
+  mq.forEach(function(q){ var sp=tmRackSpot(q[0],q[1],q[2],[q]); if(sp){ tmMomRack(sp[0],sp[1],sp[2],q[3],q[4],RACK_COV); mq.push([sp[0],sp[1],sp[2]]); } });
+  tmSpawnRacks(mq.map(function(q){ return [q[0],q[1],q[2]]; })); /* and both kinds again where each team spawns */   /* a weapon rack at each base, spots checked flat and open against the model */
 }
 /* finds a flat, open spot for a free-standing rack near a point: ground heights under the whole footprint must agree and nothing may stand within reach of the board */
 function tmRackSpot(bx,by,bz,avoid){
@@ -9268,12 +9276,17 @@ function tmTintRover(o,hex,remember){
 }
 /* spawn points */
 function tmSpawnPoint(team){
-  var L=TM.spawns[team], best=L[0], bd=-1;
-  L.forEach(function(sp){
-    var md=1e9; for(var id in mp.peers){ var pe=mp.peers[id]; if(pe.rem.al&&pe.team!==team){ md=Math.min(md,Math.hypot(pe.rem.x-sp.x,pe.rem.z-sp.z)); } }
-    md+=Math.random()*20; if(md>bd){ bd=md; best=sp; }
-  });
-  return best;
+  /* anti spawn-camping: a spawn with an enemy close by is never used if a safer one exists, any enemy within sight range of a spawn counts against it, the spot just used is avoided, and if the whole team area is watched the player is placed at a safe spawn elsewhere on the map */
+  var own=TM.spawns[team], all=own.concat(TM.spawns[1-team]||[]), en=[], id;
+  for(id in mp.peers){ var pe=mp.peers[id]; if(pe.rem&&pe.rem.al&&pe.team!==team) en.push(pe.rem); }
+  function score(sp){
+    var md=1e9, near=0; en.forEach(function(r){ var d=Math.hypot(r.x-sp.x,r.z-sp.z); md=Math.min(md,d); if(d<45) near++; });
+    return Math.min(md,90)-near*25+Math.random()*14-(sp===TM.lastSp?30:0);
+  }
+  function pick(L){ var best=L[0], bd=-1e9; L.forEach(function(sp){ var v=score(sp); if(v>bd){ bd=v; best=sp; } }); return [best,bd]; }
+  var r=pick(own);
+  if(r[1]<30&&all.length>own.length){ var r2=pick(all); if(r2[1]>r[1]+15) r=r2; }
+  TM.lastSp=r[0]; return r[0];
 }
 /* ---- vehicles ---- */
 function tmMakeEnemyVehicles(et){
@@ -9926,7 +9939,7 @@ function mpRevive(near){
     gren.frag=3; gren.plasma=2;
   }else if(near&&R.has){ p.x=R.x+2; p.z=R.z+2; p.y=groundH(p.x,p.z); p.yaw=R.yaw; }
   p.vx=0; p.vz=0; p.vy=0; reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0;
-  mp.inv=tAcc+2.5; $('ui').hidden=false; devApplyNuke(); lockMouse(); showToast('RESPAWNED'); try{ $('killMsg').style.display='none'; }catch(e){}
+  mp.inv=tAcc+4; $('ui').hidden=false; devApplyNuke(); /* 4 s of spawn protection */ lockMouse(); showToast('RESPAWNED'); try{ $('killMsg').style.display='none'; }catch(e){}
 }
 function mpTarget(){ if(mp.opt&&mp.opt.lim) return mp.opt.lim; if(mp.koth) return 100; if(mp.ctf) return 3; var n=0; for(var id in mp.peers) n++; return n<=1?10:20; }
 function mpCheckEnd(){
