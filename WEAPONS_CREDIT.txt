@@ -1,0 +1,52 @@
+Model Information:
+* title:	Halo M6G Magnum
+* source:	https://sketchfab.com/3d-models/halo-m6g-magnum-a40972d508ff4f9084f84f04fe0ec68a
+* author:	Arjun_Mahendaran (https://sketchfab.com/Arjun_Mahendaran)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Halo M6G Magnum" (https://sketchfab.com/3d-models/halo-m6g-magnum-a40972d508ff4f9084f84f04fe0ec68a) by Arjun_Mahendaran (https://sketchfab.com/Arjun_Mahendaran) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+-----
+
+Model Information:
+* title:	Halo: MA4B Assault rifle
+* source:	https://sketchfab.com/3d-models/halo-ma4b-assault-rifle-b56dbbee78fa4a3fbfaf6f4acce1eabe
+* author:	Arjun_Mahendaran (https://sketchfab.com/Arjun_Mahendaran)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Halo: MA4B Assault rifle" (https://sketchfab.com/3d-models/halo-ma4b-assault-rifle-b56dbbee78fa4a3fbfaf6f4acce1eabe) by Arjun_Mahendaran (https://sketchfab.com/Arjun_Mahendaran) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+-----
+
+Model Information:
+* title:	Redesigned Halo SMG - Clean Texture set
+* source:	https://sketchfab.com/3d-models/redesigned-halo-smg-clean-texture-set-fc8bd7618f0a4976839246a85ab549ac
+* author:	CalWhite (https://sketchfab.com/CalWhite)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Redesigned Halo SMG - Clean Texture set" (https://sketchfab.com/3d-models/redesigned-halo-smg-clean-texture-set-fc8bd7618f0a4976839246a85ab549ac) by CalWhite (https://sketchfab.com/CalWhite) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+-----
+
+Model Information:
+* title:	Halo Battle Rifle Redesigned
+* source:	https://sketchfab.com/3d-models/halo-battle-rifle-redesigned-fd90d4c41b4b4ca2a9d99af274a23e1c
+* author:	CalWhite (https://sketchfab.com/CalWhite)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Halo Battle Rifle Redesigned" (https://sketchfab.com/3d-models/halo-battle-rifle-redesigned-fd90d4c41b4b4ca2a9d99af274a23e1c) by CalWhite (https://sketchfab.com/CalWhite) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+-----
+
