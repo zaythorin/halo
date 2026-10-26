@@ -1,6 +1,4 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}/* bigger HUD on large screens */
-@media (min-width:900px) and (pointer:fine){.status{transform:scale(1.38);transform-origin:top right}.info{transform:scale(1.38);transform-origin:top left}#tracker{width:232px;height:232px}}
-@media (max-width:899px),(pointer:coarse){.status{transform:scale(1.12);transform-origin:top right}.info{transform:scale(1.12);transform-origin:top left}}
 </style></head><body>
 <title>Halo Warzone Alpha</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Rajdhani:wght@500;600;700&display=swap">
@@ -424,6 +422,9 @@ body{letter-spacing:.02em}
 .mpChips .chip{border-radius:0;border:1px solid rgba(150,185,255,.28);font-family:"Bahnschrift","Roboto Condensed","Arial Narrow",sans-serif;font-stretch:condensed}
 .mpChips .chip.on{background:linear-gradient(180deg,rgba(168,100,50,.82),rgba(125,72,36,.82));border-color:rgba(255,210,160,.5)}
 .ghost,.overlay:not(#menu) .ghost{font-family:"Bahnschrift","Roboto Condensed","Arial Narrow",sans-serif;font-stretch:condensed;letter-spacing:.06em}
+/* bigger HUD: zoom (not transform) so right-anchored panels grow leftwards and fixed children stay put */
+@media (min-width:900px) and (pointer:fine){.status,.info{zoom:1.28}#tracker{width:214px;height:214px}}
+@media (max-width:899px),(pointer:coarse){.status,.info{zoom:1.1}}
 </style>
 
 <canvas id="gl"></canvas>
@@ -1943,9 +1944,10 @@ function nwmLiveDraw(k,mag,low){
   var g=L.cv.getContext('2d'), W=L.cv.width, col=low?'#ff7a4a':'#7fe9ff', txt=String(Math.max(0,mag)), sc=W/(k==='ar'?256:1024), x,y,w,h;
   if(k==='ar'){ x=62;y=108;w=132;h=88; g.drawImage(L.img,x*sc,y*sc,w*sc,h*sc,x*sc,y*sc,w*sc,h*sc); g.fillStyle='#16303d'; g.fillRect(x*sc,y*sc,w*sc,h*sc); }
   else { x=794;y=146;w=34;h=68; g.drawImage(L.img,x*sc,y*sc,w*sc,h*sc,x*sc,y*sc,w*sc,h*sc); g.fillStyle='#0b3442'; g.fillRect(x*sc,y*sc,w*sc,h*sc); }
+  g.save(); g.translate((x+w/2)*sc,0); g.scale(-1,1); g.translate(-(x+w/2)*sc,0); /* these two textures are stored mirrored */
   g.fillStyle=col; g.shadowColor=col; g.shadowBlur=(k==='ar'?8:3)*sc; g.textAlign='center'; g.textBaseline='middle';
   g.font='bold '+Math.round((k==='ar'?82:(txt.length>2?30:40))*sc)+'px "Arial Narrow",Arial,sans-serif';
-  g.fillText(txt,(x+w/2)*sc,(y+h/2+2)*sc,w*sc*0.95); g.shadowBlur=0;
+  g.fillText(txt,(x+w/2)*sc,(y+h/2+2)*sc,w*sc*0.95); g.shadowBlur=0; g.restore();
   L.tex.needsUpdate=true;
 }
 function nwmBuild(k){
