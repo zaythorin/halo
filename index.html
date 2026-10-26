@@ -2605,7 +2605,22 @@ function heatGlow(w){
     w.bh=Math.min(1,(w.bh||0)+Math.min(0.12,0.012/Math.max(0.04,w.rate)+0.025));
   }catch(e){}
 }
+var MPF={l:null,t:0};
+/* other players' shots: a brief muzzle light where they fired, and a whiz and jolt if the shot passes close to you */
+function mpShotFx(fo,fe,fdd){
+  try{
+    if(fdd>2&&fdd<70){
+      if(!MPF.l){ MPF.l=new THREE.PointLight(0xffb060,0,10,1.8); scene.add(MPF.l); }
+      MPF.l.position.copy(fo); MPF.l.intensity=1.6; MPF.t=0.06;
+    }
+    var ax=fe.x-fo.x, ay=fe.y-fo.y, az=fe.z-fo.z, L2=ax*ax+ay*ay+az*az; if(L2<1||fdd<4) return;
+    var px=p.x-fo.x, py=p.y+EYE*0.8-fo.y, pz=p.z-fo.z, u=Math.max(0,Math.min(1,(px*ax+py*ay+pz*az)/L2));
+    var cx=fo.x+ax*u-p.x, cy=fo.y+ay*u-(p.y+EYE*0.8), cz=fo.z+az*u-p.z;
+    if(cx*cx+cy*cy+cz*cz<2.4){ noise(0.16,0.16,'bandpass',2600,700); tone(1700,500,0.1,'sine',0.05); shakeAmp=Math.max(shakeAmp,0.006); shakeT=Math.max(shakeT,0.12); }
+  }catch(e){}
+}
 function heatTick(dt){
+  if(MPF.l&&MPF.t>0){ MPF.t-=dt; if(MPF.t<=0) MPF.l.intensity=0; }
   for(var i=0;i<weapons.length;i++){
     var w=weapons[i]; if(!w.hg||!w.bh) continue;
     w.bh=Math.max(0,w.bh-dt*0.16); w.hg.visible=w.bh>0.06; w.hg.material.opacity=Math.min(0.85,w.bh*0.9);
@@ -10543,7 +10558,9 @@ function mpRecv(m){
       else if(m.s==='cneedle'){ covLineFx(fo,fe,0xff5fd2); }
       else if(m.s!=='rocket'&&m.s!=='cfuel'&&m.s!=='cneedle'&&fo.distanceTo(fe)>0.5){ spawnTracer(fo,fe); if(m.s==='salt') spawnSaltBullet(fo,fe); }
       var fsn=m.s==='salt'?'ar':m.s;
-      if(distToPlayer(fo)<90&&sfx[fsn]) sfx[fsn]();
+      var fdd=distToPlayer(fo);
+      if(fdd<90&&sfx[fsn]){ var fsf=sfx[fsn]; if(fdd>25) setTimeout(function(){ try{ fsf(); }catch(e){} },Math.min(260,fdd/343*1000)); else fsf(); }   /* sound takes time to arrive, so far shots are heard after you see them */
+      mpShotFx(fo,fe,fdd);
       break;
     case 'hit': case 'hurt':
       if(state==='play'&&tAcc>mp.inv){
