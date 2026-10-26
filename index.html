@@ -2894,6 +2894,18 @@ covInit();
   F(13,[[0,0,0,0],[0.3,0,0.08,0.05],[0.8,0,0.08,0.05],[1,0,0,0]],[[0,0,0,0],[0.3,0.35,0,0],[0.8,0.35,0,0],[1,0,0,0]]);
   /* carbine: spun around a full turn as the clip goes in */
   F(15,null,[[0,0,0,0],[0.15,0,0,0],[0.52,0,0,T],[1,0,0,T]]);
+  /* the free hand works a real feature of each gun after the magazine is in: the AR charging handle, the sniper bolt, the BR scope and bolt, the SMG cocking handle */
+  function feat(i,pts,evT){
+    var an=weapons[i]&&weapons[i].anim; if(!an||!an.tac) return;
+    var R0=an.restHand, hk=an.tac.hand.filter(function(k){ return k[0]<=0.8; });
+    pts.forEach(function(k){ hk.push(k); }); hk.push([1,R0[0],R0[1],R0[2]]);
+    an.tac.hand=hk; an.empty.hand=hk;
+    an.events=[[0.28,'magOut'],[0.76,'magIn'],[evT,'bolt']];
+  }
+  feat(1,[[0.86,-0.02,0.075,0.04],[0.91,-0.02,0.082,0.04],[0.945,-0.02,0.082,0.15],[0.975,-0.03,0.07,0.03],[0.99,-0.05,0.0,-0.1]],0.945);                 /* AR: reach to the charging handle on top, rip it back, let it snap forward */
+  feat(2,[[0.84,0.05,0.0,-0.02],[0.88,0.052,0.015,-0.02],[0.92,0.052,0.015,0.06],[0.955,0.052,0.015,-0.02],[0.98,0.03,-0.03,-0.12]],0.92);          /* sniper: reach across to the bolt on the right, lift, draw back and push it home */
+  feat(7,[[0.84,0.0,0.14,-0.14],[0.88,0.0,0.15,-0.17],[0.91,0.0,0.15,-0.17],[0.94,0.03,0.04,0.0],[0.965,0.03,0.04,0.12],[0.985,0.0,-0.02,0.0]],0.94);  /* BR: thumb the scope to check it, then pull the cocking handle back */
+  feat(6,[[0.84,-0.03,0.06,-0.1],[0.9,-0.03,0.06,0.02],[0.94,-0.03,0.06,-0.1],[0.98,-0.04,0.0,-0.18]],0.9);                                           /* SMG: tug the cocking handle on the left twice */
   /* fuel rod cannon: hauled low and heavy while the cell is dropped in */
   F(16,[[0,0,0,0],[0.35,0,-0.1,0.06],[0.7,0,-0.1,0.06],[1,0,0,0]],null);
 })();
