@@ -2458,6 +2458,27 @@ vm.add(weapons[8].group); weapons[8].group.visible=false;
 weapons[9].anim=reloadAnim([-0.02,-0.085,-0.27],[0,-0.09,0.27],[0.035,0.03,0],AR_ROT,false);
 vm.add(weapons[9].group); weapons[9].group.visible=false;
 weapons[10].anim=reloadAnim([-0.075,-0.115,0.13],[-0.13,-0.12,0],[0.035,0.03,0],AR_ROT,false); weapons[10].anim.base=[0.06,-0.01,-0.02];
+
+/* a reload of its own for every weapon: each tilts, lifts and dips the gun differently while the hands do the work */
+(function(){
+  function R(w,pk,rot){ var a=weapons[w]&&weapons[w].anim; if(!a) return; a.pk=pk; if(a.rot&&a.rot.length) a.rot=rot; }
+  /* magnum: canted sideways, gangster style, then snapped upright */
+  R(0,[-0.14,0.17,0.05],[[0,0,0,0],[0.14,0.25,0.1,-0.95],[0.5,0.3,0.15,-1.05],[0.74,0.2,0.1,-0.85],[0.84,0.4,0,-0.3],[0.93,0.1,0,-0.08],[1,0,0,0]]);
+  /* assault rifle: muzzle dipped hard, gun rolled left, a charging-handle jerk at the end */
+  R(1,[-0.12,0.1,0.03],[[0,0,0,0],[0.12,-0.38,0.18,-0.25],[0.5,-0.42,0.22,-0.32],[0.74,-0.3,0.12,-0.2],[0.8,-0.08,0.05,0.22],[0.9,0.06,-0.04,0.12],[1,0,0,0]]);
+  /* sniper: muzzle lifted high and the rifle rolled over so the bolt side faces you */
+  R(2,[-0.08,0.15,0.06],[[0,0,0,0],[0.14,0.5,0.28,0.35],[0.5,0.55,0.3,0.45],[0.76,0.4,0.2,0.3],[0.85,0.2,0.05,0.1],[1,0,0,0]]);
+  /* rocket launcher: hauled low and forward, nose down like a heavy tube */
+  R(3,[-0.2,0.2,0.07],[[0,0,0,0],[0.16,-0.25,0.2,0.18],[0.5,-0.32,0.25,0.28],[0.76,-0.2,0.15,0.18],[0.88,0.12,0.05,0.04],[1,0,0,0]]);
+  /* SMG: pulled up tight to the chest, fast and compact */
+  R(6,[-0.06,0.2,0.1],[[0,0,0,0],[0.1,0.4,-0.2,0.55],[0.5,0.45,-0.25,0.65],[0.74,0.3,-0.15,0.45],[0.82,0.1,0,0.1],[1,0,0,0]]);
+  /* battle rifle: angled across the body, slow and deliberate */
+  R(7,[-0.14,0.06,0.0],[[0,0,0,0],[0.14,0.05,-0.55,-0.1],[0.5,0.08,-0.65,-0.15],[0.76,0.05,-0.5,-0.1],[0.86,0.0,-0.1,0],[1,0,0,0]]);
+  /* salt rifle: rolled flat to the right with the muzzle up */
+  R(9,[-0.1,0.14,0.04],[[0,0,0,0],[0.12,0.3,0.1,0.7],[0.5,0.35,0.12,0.8],[0.74,0.25,0.08,0.55],[0.84,0.08,0,0.15],[1,0,0,0]]);
+  /* MMG: heavy, dropped to the hip and tilted back */
+  R(10,[-0.04,-0.05,0.08],[[0,0,0,0],[0.15,0.28,0.3,-0.2],[0.5,0.32,0.35,-0.28],[0.76,0.2,0.2,-0.18],[0.88,0.04,0.04,-0.04],[1,0,0,0]]);
+})();
 vm.add(weapons[10].group); weapons[10].group.visible=false;
 var flash=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.3),new THREE.MeshBasicMaterial({color:0xffc66b,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
 flash.visible=false; weapons[0].group.userData.muzzle.add(flash);
@@ -2697,6 +2718,38 @@ function hud(){
 /* ---------- combat behaviour: patrols, cover, grenades, flinch reactions, and allied troopers ---------- */
 var NOISE={laser:90,magnum:60,ar:45,sniper:70,shotgun:55,rocket:85,sword:6}, noiseT=-9, noiseR=0, garrSites=[], _cv1=new V3(), _cv2=new V3(), _a1=new V3(), _a2=new V3(), _a3=new V3(), _a4=new V3();
 covInit();
+
+/* signature reload flourishes: gun position (fxP) and rotation (fxR) keyframes over the reload, layered on the hand animation */
+(function(){
+  var T=6.2832;
+  function F(i,P,R){ var w=weapons[i]; if(!w||!w.anim) return; if(P) w.anim.fxP=P; if(R) w.anim.fxR=R; }
+  /* magnum: the pistol is flipped end over end after the clip goes in */
+  F(0,[[0,0,0,0],[0.74,0,0,0],[0.82,0,0.06,0],[1,0,0,0]],[[0,0,0,0],[0.74,0,0,0],[0.93,-T,0,0],[1,-T,0,0]]);
+  /* assault rifle: a sharp charging-handle rack at the end */
+  F(1,[[0,0,0,0],[0.76,0,0,0],[0.84,0,0.03,0.07],[0.94,0,0,-0.02],[1,0,0,0]],[[0,0,0,0],[0.78,0,0,0],[0.86,-0.12,0.22,0],[0.95,0.05,-0.1,0],[1,0,0,0]]);
+  /* sniper: raised slowly to eye height and rolled so the bolt can be worked */
+  F(2,[[0,0,0,0],[0.3,0.04,0.07,0.04],[0.82,0.04,0.07,0.04],[1,0,0,0]],[[0,0,0,0],[0.4,0,0,0.5],[0.82,0,0,0.5],[1,0,0,0]]);
+  /* rocket launcher: hoisted up onto the shoulder while the new rocket is fed */
+  F(3,[[0,0,0,0],[0.3,0.1,0.13,0.12],[0.82,0.1,0.13,0.12],[1,0,0,0]],[[0,0,0,0],[0.3,-0.3,0,0.2],[0.82,-0.3,0,0.2],[1,0,0,0]]);
+  /* SMG: turned fully upside down for the mag change, then spun back */
+  F(6,[[0,0,0,0],[0.2,0,0.04,0.04],[0.64,0,0.04,0.04],[1,0,0,0]],[[0,0,0,0],[0.08,0,0,0],[0.22,0,0,Math.PI],[0.62,0,0,Math.PI],[0.8,0,0,0.15],[1,0,0,0]]);
+  /* battle rifle: slow and deliberate, muzzle lifted and the whole rifle brought in close */
+  F(7,[[0,0,0,0],[0.2,0,-0.05,0.06],[0.7,0,-0.05,0.06],[1,0,0,0]],[[0,0,0,0],[0.3,0.22,0,0],[0.65,0.22,0,0],[1,0,0,0]]);
+  /* salt rifle: a full barrel roll while the mag is swapped */
+  F(9,null,[[0,0,0,0],[0.1,0,0,0],[0.44,0,0,-T],[1,0,0,-T]]);
+  /* MMG: heavy, dropped low and slammed back up after the belt is seated */
+  F(10,[[0,0,0,0],[0.3,0.05,-0.12,0.08],[0.62,0.05,-0.12,0.08],[0.84,0,0.05,-0.04],[1,0,0,0]],[[0,0,0,0],[0.8,0,0,0],[0.87,-0.2,0,0],[1,0,0,0]]);
+  /* plasma pistol: flicked up to vent the heat */
+  F(11,null,[[0,0,0,0],[0.5,0,0,0],[0.66,-0.55,0,0.3],[1,0,0,0]]);
+  /* plasma rifle: shaken to settle the new battery */
+  F(12,null,[[0,0,0,0],[0.3,0,0.16,0],[0.5,0,-0.16,0],[0.7,0,0.1,0],[1,0,0,0]]);
+  /* beam rifle: muzzle high while the cell is slotted in */
+  F(13,[[0,0,0,0],[0.3,0,0.08,0.05],[0.8,0,0.08,0.05],[1,0,0,0]],[[0,0,0,0],[0.3,0.35,0,0],[0.8,0.35,0,0],[1,0,0,0]]);
+  /* carbine: spun around a full turn as the clip goes in */
+  F(15,null,[[0,0,0,0],[0.15,0,0,0],[0.52,0,0,T],[1,0,0,T]]);
+  /* fuel rod cannon: hauled low and heavy while the cell is dropped in */
+  F(16,[[0,0,0,0],[0.35,0,-0.1,0.06],[0.7,0,-0.1,0.06],[1,0,0,0]],null);
+})();
 /* NUKE LASER: a gold Spartan Laser that calls down a nuke. Only appears in-game after typing 117 in DEV MODE */
 (function(){
   var b=weapons[8], w=Object.assign({},b); w.id='nuke'; w.name='NUKE LASER'; w.nuke=true; w.slideKick=0; w.group=buildLaser();
@@ -6112,6 +6165,7 @@ function rocketDrum(w,ud,dt){
   else w.tubeAng+=(Math.PI*w.tubeN-w.tubeAng)*Math.min(1,dt*8);
   ud.drum.rotation.z=w.tubeAng;
 }
+var RPK0=[-0.10,0.12,0.04];
 function animateWeaponParts(w){
   if(w.shells){ animateShotgun(w); return; }
   var ud=w.group.userData, an=w.anim, g=w.group;
@@ -6135,9 +6189,13 @@ function animateWeaponParts(w){
     if(ud.spikes){ var ns=ud.spikes.length, lit=Math.ceil(ns*Math.max(0,w.mag)/w.magSize-0.001); for(var si=0;si<ns;si++) if(ud.spikes[si]) ud.spikes[si].visible=si<lit; }
   }
   var bs=an.base||ZERO3;
-  g.position.set(bs[0]-0.10*k,bs[1]+0.12*k,bs[2]+0.04*k);
+  var pk=an.pk||RPK0;
+  g.position.set(bs[0]+pk[0]*k,bs[1]+pk[1]*k,bs[2]+pk[2]*k);
   var br=an.baseRot||ZERO3;
   g.rotation.set(rot[0]+br[0],rot[1]+br[1],rot[2]+br[2]);
+  /* each weapon's own reload flourish, on top of the hand work */
+  if(pr>=0&&an.fxP){ var fp=sampleKeys(an.fxP,pr); g.position.x+=fp[0]; g.position.y+=fp[1]; g.position.z+=fp[2]; }
+  if(pr>=0&&an.fxR){ var fr=sampleKeys(an.fxR,pr); g.rotation.x+=fr[0]; g.rotation.y+=fr[1]; g.rotation.z+=fr[2]; }
   ud.leftHand.position.set(hand[0],hand[1],hand[2]);
   ud.mag.position.set(magPos[0],magPos[1],magPos[2]); ud.mag.visible=w.rocket?false:magVis;
   if(w.rocket&&ud.drum){ rocketDrum(w,ud,curDt||0.016); }
