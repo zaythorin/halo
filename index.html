@@ -4210,6 +4210,10 @@ function updateBolts(dt){
     else if(allies.length&&allyBoltHit(b)) dead=true;
     else if(p.air?(Math.hypot(pos.x-jet.x,pos.z-jet.z)<3.6&&Math.abs(pos.y-jet.y)<2.4):(p.inVeh&&!MG.seat)?(Math.hypot(pos.x-veh.x,pos.z-veh.z)<1.7*RK && pos.y<groundH(veh.x,veh.z)+2.2*RK):(Math.hypot(pos.x-p.x,pos.z-p.z)<0.55 && pos.y>p.y && pos.y<p.y+EYE+0.2)){ hitDir.x=b.v.x; hitDir.z=b.v.z; hurt(b.dmg); dead=true; }
     else if(mp.on&&mp.host&&mp.mode==='ff'&&mp.rem.al&&Math.hypot(pos.x-mp.rem.x,pos.z-mp.rem.z)<0.55&&pos.y>mp.rem.y&&pos.y<mp.rem.y+EYE+0.2){ mpSend({t:'hurt',n:b.dmg,dx:b.v.x,dz:b.v.z}); dead=true; }
+    if(!dead&&!b.wz&&!b.vis&&state==='play'){
+      var wdx=pos.x-p.x, wdy=pos.y-(p.y+EYE*0.8), wdz=pos.z-p.z, wd=wdx*wdx+wdy*wdy+wdz*wdz;
+      if(wd<2.4){ b.wz=1; noise(0.16,0.16,'bandpass',2600,700); tone(1700,500,0.1,'sine',0.05); shakeAmp=Math.max(shakeAmp,0.006); shakeT=Math.max(shakeT,0.12); }  /* near miss: a whiz and a tiny jolt */
+    }
     if(dead){ scene.remove(b.m); bolts.splice(i,1); }
   }
 }
