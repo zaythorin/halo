@@ -2294,6 +2294,7 @@ function covInit(){
     delete w.group2; w.id=d[2]; if(D.flv) w.flv=D.flv; w.slideKick=0; w.group=d[3](); w.anim=D.anim;
     if(d[2]==='beam') w.beam=true;
     if(d[2]==='fuel') w.group.scale.setScalar(1.1);
+    if(d[2]==='ppistol'||d[2]==='prifle'||d[2]==='needler') w.group.scale.setScalar(d[2]==='ppistol'?0.72:0.68);  /* smaller, and held in the right hand only */
     w._i={mag:w.mag,reserve:w.reserve,bat:w.bat,heat:w.heat,ohT:w.ohT,cT:w.cT,pT:w.pT};
     weapons.push(w); vm.add(w.group); w.group.visible=false;
     RCT[d[2]]=RCT[b.id]; NOISE[d[2]]=NOISE[b.id];
@@ -6606,7 +6607,7 @@ function fingerAnim(w,g,dt){
 }
 function dwAnimate(w){
   var on=dwOn(w), sp=MA.sprint, i, ri=dwG[0].wi, li=dwG[1].wi;
-  for(i=0;i<DWL.length;i++){ var wi=DWL[i], lh=weapons[wi].group.userData.leftHand; if(lh) lh.visible=!(dwOnF&&ri===wi); if(weapons[wi].group2) weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
+  for(i=0;i<DWL.length;i++){ var wi=DWL[i], lh=weapons[wi].group.userData.leftHand; if(lh) lh.visible=(wi===11||wi===12||wi===14)?(wi===14&&!!weapons[wi].group.userData.lhVis&&!dwOnF):!(dwOnF&&ri===wi); if(weapons[wi].group2) weapons[wi].group2.visible=dwOnF&&li===wi&&cur===ri&&weapons[ri].group.visible; }
   var b=$('bDual'); if(b){
     var near=dwNear(), cap=(dwOnF||near)&&!p.inVeh; if(b._c!==cap){ b._c=cap; b.classList.toggle('avail',cap); }
     var lab=dwOnF?'DROP 1':'DUAL'; if(b._l!==lab){ b._l=lab; b.textContent=lab; }
