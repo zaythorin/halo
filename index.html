@@ -532,7 +532,7 @@ body{letter-spacing:.02em}
     <h2>CONTROLS</h2>
     <div class="ctl">
       <div><b>TOUCH</b>Left thumb moves. Drag anywhere on the right to aim. Hold FIRE to shoot, and slide that thumb to aim while firing. MELEE bashes, FRAG and PLASMA throw grenades, ZOOM scopes in, SPRINT toggles a faster run (the gun lowers while you sprint), SWAP cycles weapons, II pauses.</div>
-      <div><b>CONTROLLER</b>Left stick move, right stick aim, RT fire, LT zoom, left stick click sprint, A jump (brake in the rover), X reload, Y swap weapon, B or right stick click melee, RB frag, LB plasma, D-pad up use or take or drive, D-pad left and right pick a slot, D-pad down switches first and third person, Start pause. Menus: D-pad or left stick and A. Rumble on hits and shots.</div>
+      <div><b>CONTROLLER</b>Left stick move, right stick aim, RT fire, LT zoom, left stick click sprint, A jump (brake in the rover), X reload, Y swap weapon, B or right stick click melee, RB frag, LB plasma, D-pad up use or take or drive, D-pad left and right pick a slot, Start pause. Menus: D-pad or left stick and A. Rumble on hits and shots.</div>
       <div><b>KEYBOARD</b>WASD move, mouse aim and fire, Space jump, R reload, V or middle click melee, Y grappling hook onto an enemy Hornet in team battle (punch the pilot out), C crouch, G frag grenade, H plasma grenade, Q swap weapon, 1 and 2 pick a weapon slot, Z or right click zoom, hold Shift to sprint, E to get in or out of the rover, P or Esc pause.</div>
       <div><b>WEAPONS</b>You carry two weapons at a time. Every weapon hangs on a weapon rack: one just ahead of where you start, and two more out in the valley. Walk up, look at the weapon you want and press E (or TAKE) to swap it in for the weapon you are holding, which goes back on the rack. Grab a weapon you already carry to restock its ammo. The sniper rifle zooms for a scope view and a headshot drops almost anything.</div>
       <div><b>OPEN WORLD</b>The arena is now a big valley: ridges, plateaus, a river basin and sheer cliffs. Cliffs and very steep slopes can't be climbed, so find a ramp or go round, and long falls hurt. Raiders hunt you across the terrain, and when you kill one the others nearby may panic and run for a few seconds.</div>
@@ -4526,7 +4526,27 @@ function updateFov(dt){
   var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV;
   if(Math.abs(camera.fov-ft)>0.05){ camera.fov+=(ft-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); }
 }
+var HINTS={seen:{},bT:0,hT:0};
+try{ HINTS.seen=JSON.parse(localStorage.getItem('halo-hints')||'{}')||{}; }catch(e){}
+function hintOnce(k,t){ if(HINTS.seen[k]) return; HINTS.seen[k]=1; try{ localStorage.setItem('halo-hints',JSON.stringify(HINTS.seen)); }catch(e){} showToast(t); }
+function feelTick(dt){
+  if(state!=='play') return;
+  /* low shield: a beep that speeds up as the shield drops, and goes quiet once the shield is gone */
+  if(p.shield>0&&p.shield<30&&p.health>0){
+    HINTS.bT-=dt; if(HINTS.bT<=0){ HINTS.bT=0.35+p.shield/30*0.65; tone(1250,1250,0.07,'square',0.05); }
+    hintOnce('shl','SHIELD LOW - GET INTO COVER');
+  } else HINTS.bT=0;
+  if(p.health>0&&p.health<35&&p.shield<=0) hintOnce('hpl','HEALTH LOW - HIDE AND WAIT, OR GRAB A HEALTH PACK');
+  HINTS.hT-=dt; if(HINTS.hT>0) return; HINTS.hT=0.5;
+  if(wpNear>=0&&!p.inVeh) hintOnce('rack','PRESS E (OR TAKE) TO SWAP IN THE WEAPON YOU ARE LOOKING AT');
+  var w=weapons[cur];
+  if(w&&w.id==='ppistol') hintOnce('pp','PLASMA PISTOL: HOLD FIRE TO CHARGE, RELEASE FOR A SHIELD-STRIPPING SHOT');
+  else if(w&&w.id==='needler') hintOnce('nd','NEEDLER: NEEDLES STICK, THEN EXPLODE - SHOOT SEVERAL AT ONE TARGET');
+  else if(w&&w.id==='br') hintOnce('br','BATTLE RIFLE: 3-ROUND BURST, ZOOM FOR A SCOPE');
+  else if(w&&w.mag===0&&w.reserve>0) hintOnce('rl','OUT OF AMMO - PRESS RELOAD');
+}
 function regen(dt){
+  feelTick(dt);
   if(tAcc-p.lastHit>4){
     if(p.shield<100&&!p.rch){ p.rch=true; if(!sample('shield',0.8)){ tone(300,900,1.2,'sine',0.12); } }
     p.shield=Math.min(100,p.shield+35*dt);
@@ -6449,6 +6469,12 @@ function fireWeapon(w,muzzleObj,inVeh){
   var zk=zoomed?0.6:1;
   p.pitch+=w.kick*zk*(0.7+Math.random()*0.6);
   p.yaw+=(Math.random()-0.5)*w.kick*0.6*zk;
+  /* each gun has its own recoil habit on top of the random kick */
+  w.rcN=(w.rcN||0)+1; if(tAcc-(w.rcT||0)>0.6) w.rcN=1; w.rcT=tAcc;
+  if(w.id==='ar'){ p.yaw+=w.kick*0.35*zk*Math.min(1,w.rcN/10); p.pitch+=w.kick*0.25*zk*Math.min(1,w.rcN/8); }       /* climbs and drifts right the longer you hold */
+  else if(w.id==='smg'){ p.yaw+=Math.sin(w.rcN*1.3)*w.kick*0.7*zk; }                                         /* snakes side to side */
+  else if(w.id==='br'){ p.pitch+=w.kick*0.3*zk*(w.rcN%3===1?1.4:0.5); }                                        /* a steady climb per burst */
+  else if(w.id==='magnum'){ p.pitch+=w.kick*0.5*zk; }                                                          /* one big snap up */
   vmKick=Math.min(w.scope?0.34:0.12,vmKick+w.vmKick);
   if(w.scope){ shakeAmp=Math.max(shakeAmp,0.03); shakeT=0.45; p.vx+=Math.sin(p.yaw)*1.5; p.vz+=Math.cos(p.yaw)*1.5; }
   if(w.anim.slideOnFire) w.slideKick=w.scope?0.09:0.07;
