@@ -1944,7 +1944,7 @@ function nwmLiveDraw(k,mag,low){
   var g=L.cv.getContext('2d'), W=L.cv.width, col=low?'#ff7a4a':'#7fe9ff', txt=String(Math.max(0,mag)), sc=W/(k==='ar'?256:1024), x,y,w,h;
   if(k==='ar'){ x=62;y=108;w=132;h=88; g.drawImage(L.img,x*sc,y*sc,w*sc,h*sc,x*sc,y*sc,w*sc,h*sc); g.fillStyle='#16303d'; g.fillRect(x*sc,y*sc,w*sc,h*sc); }
   else { x=794;y=146;w=34;h=68; g.drawImage(L.img,x*sc,y*sc,w*sc,h*sc,x*sc,y*sc,w*sc,h*sc); g.fillStyle='#0b3442'; g.fillRect(x*sc,y*sc,w*sc,h*sc); }
-  g.save(); g.translate((x+w/2)*sc,0); g.scale(-1,1); g.translate(-(x+w/2)*sc,0); /* these two textures are stored mirrored */
+  g.save(); if(k==='br'){ g.translate(0,(y+h/2)*sc); g.scale(1,-1); g.translate(0,-(y+h/2)*sc); } /* the BR panel is stored upside down */
   g.fillStyle=col; g.shadowColor=col; g.shadowBlur=(k==='ar'?8:3)*sc; g.textAlign='center'; g.textBaseline='middle';
   g.font='bold '+Math.round((k==='ar'?82:(txt.length>2?30:40))*sc)+'px "Arial Narrow",Arial,sans-serif';
   g.fillText(txt,(x+w/2)*sc,(y+h/2+2)*sc,w*sc*0.95); g.shadowBlur=0; g.restore();
