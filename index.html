@@ -1724,7 +1724,7 @@ function fpMaterials(){
   return fpMatsBy[CHIEF.id];
 }
 function fpPart(name){ for(var i=0;i<CHIEF.parts.length;i++) if(CHIEF.parts[i].n===name) return CHIEF.parts[i]; return null; }
-function makeHand(left,curl){ var grp=new THREE.Group(); grp.userData.hk=[left,curl]; if(HREG) HANDS.push(grp); fillHand(grp,left,curl); return grp; }
+function makeHand(left,curl){ var grp=new THREE.Group(); grp.userData.hk=[left,curl]; if(HREG){ HANDS.push(grp); grp.scale.setScalar(1.3); } /* hands a little big next to the guns, like Halo 3 */ fillHand(grp,left,curl); return grp; }
 function fillHand(grp,left,curl){
   var s=left?'L':'R', R=CHIEF.rest, mats=fpMaterials(), inner=new THREE.Group();
   /* model frame: a runs from the elbow towards the fingers, b towards the palm side */
@@ -2473,7 +2473,7 @@ sfx.smg=function(){
   smgTm=setInterval(function(){ if(performance.now()-smgLast>130) smgStop(); },30);
 };
 var vm=new THREE.Group(); camera.add(vm);
-vm.position.set(0.36,-0.41,-0.76); vm.scale.setScalar(2.28);
+vm.position.set(0.36,-0.37,-0.76); vm.scale.setScalar(2.28);
 weapons[0].group=buildMagnum(); weapons[0].group.scale.setScalar(0.8); weapons[1].group=buildAR(); weapons[2].group=buildSniper(); weapons[3].group=buildRocket(); weapons[4].group=buildShotgun(); weapons[5].group=buildSword(); weapons[6].group=buildSMG(); weapons[7].group=buildBR(); weapons[8].group=buildLaser(); weapons[9].group=buildSalt(); weapons[10].group=buildMMG();
 
 /* Reload animation. Hand and mag positions are local to the weapon, times are 0..1 of the reload.
@@ -6671,7 +6671,7 @@ function updateWeapon(dt){
   var wb=Math.sin(tAcc*4.6)*moveFrac, bobx=wb*0.011, boby=Math.abs(Math.sin(tAcc*4.6))*0.013*moveFrac, brth=Math.sin(tAcc*1.4)*0.0025;
   var zs=zoomed?0.3:1;
   vm.position.x=vmBaseX+mp[0]+(rc.x+sway.x+bobx)*zs+dip*0.1;
-  vm.position.y=-0.3-0.11*vmHip-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
+  vm.position.y=-0.3-0.07*vmHip-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
   vm.position.z=-0.6-0.16*vmHip+vmKick+mp[2]+rc.z*zs;
   var sf=swU>0.5?swapFlourish(weapons[cur].id,1-ss((swU-0.5)*2)):[0,0,0];
   vm.rotation.set(vmKick*1.2+mp[3]+sf[0]+rc.r*zs-dip*0.9,mp[4]-0.05*zs+sf[1]+sway.x*2.5*zs,mp[5]+sf[2]+(rc.l+sway.l*0.4)*zs+dip*0.35);
