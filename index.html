@@ -2723,10 +2723,20 @@ covInit();
 (function(){
   var T=6.2832;
   function F(i,P,R){ var w=weapons[i]; if(!w||!w.anim) return; if(P) w.anim.fxP=P; if(R) w.anim.fxR=R; }
-  /* magnum: the pistol is flipped end over end after the clip goes in */
-  F(0,[[0,0,0,0],[0.74,0,0,0],[0.82,0,0.06,0],[1,0,0,0]],[[0,0,0,0],[0.74,0,0,0],[0.93,-T,0,0],[1,-T,0,0]]);
-  /* assault rifle: a sharp charging-handle rack at the end */
-  F(1,[[0,0,0,0],[0.76,0,0,0],[0.84,0,0.03,0.07],[0.94,0,0,-0.02],[1,0,0,0]],[[0,0,0,0],[0.78,0,0,0],[0.86,-0.12,0.22,0],[0.95,0.05,-0.1,0],[1,0,0,0]]);
+  /* magnum: slap the clip home, then the free hand grabs the top of the slide, drags it back and lets it snap forward */
+  (function(){
+    var an=weapons[0].anim, hk=an.tac.hand.slice(0,an.tac.hand.length-1), R0=an.restHand;
+    hk.push([0.84,-0.05,0.05,-0.075],[0.9,-0.05,0.05,0.0],[0.945,-0.05,0.05,0.075],[0.965,-0.07,0.03,0.03],[1,R0[0],R0[1],R0[2]]);
+    an.tac.hand=hk; an.empty.hand=hk; an.events=[[0.28,'magOut'],[0.76,'magIn'],[0.945,'bolt']];
+  })();
+  F(0,[[0,0,0,0],[0.74,0,0,0],[0.79,0,-0.03,0.02],[0.86,0,0,0],[0.945,0,0,0],[0.97,0,0.02,0.05],[1,0,0,0]],[[0,0,0,0],[0.76,0,0,0],[0.8,0.1,0,0.05],[0.9,-0.05,0,0],[0.945,-0.05,0,0],[0.975,0.14,0,0],[1,0,0,0]]);
+  /* assault rifle: held straight up in the air, muzzle to the sky, the clip slapped in with the palm, then brought down and racked */
+  (function(){
+    var an=weapons[1].anim;
+    an.rot=[[0,0,0,0],[0.14,1.5,0.05,0],[0.72,1.5,0.05,0],[0.8,1.42,0.05,0.04],[0.88,1.0,0.02,0],[0.95,0.2,0,0],[1,0,0,0]];
+    an.pk=[-0.1,0.0,0.0];
+  })();
+  F(1,[[0,0,0,0],[0.14,0.03,0.1,0.1],[0.72,0.03,0.1,0.1],[0.77,0.03,0.1,0.1],[0.8,0.03,0.065,0.1],[0.88,0.02,0.04,0.05],[0.95,0,0.02,0],[1,0,0,0]],[[0,0,0,0],[0.78,0,0,0],[0.81,0.12,0,0.05],[0.9,0,0,0],[0.95,-0.12,0.2,0],[1,0,0,0]]);
   /* sniper: raised slowly to eye height and rolled so the bolt can be worked */
   F(2,[[0,0,0,0],[0.3,0.04,0.07,0.04],[0.82,0.04,0.07,0.04],[1,0,0,0]],[[0,0,0,0],[0.4,0,0,0.5],[0.82,0,0,0.5],[1,0,0,0]]);
   /* rocket launcher: hoisted up onto the shoulder while the new rocket is fed */
