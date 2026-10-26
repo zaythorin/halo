@@ -2722,7 +2722,7 @@ function hud(){
   setText('wave',String(Math.max(1,wave.n)));
   setText('left',String(mp.on&&!mp.host?mp.left:alive+wave.toSpawn+pendingDrop));
   setText('score',String(score));
-  setText('wname',w.name);
+  if(hudCache.wn!==w){ hudCache.wn=w; wIconSet(w); }
   setText('mag',w.cov?(w.ohT>0?'HOT':Math.round(w.heat*100)+'%'):w.inf?'∞':w.laser?Math.round(w.mag)+'%':(dwOn(w)?dwG[0].mag+'|'+dwG[1].mag:String(w.mag)));
   setText('res',p.air?'MSL '+jet.msl:(w.cov?(w.ohT>0?'OVERHEAT':(w.bc?'BATT '+Math.round(w.bat)+'%':'HEAT')):w.inf?'\u221e':w.laser?'CHARGE':(dwOn(w)?dwW(0).reserve+'|'+dwW(1).reserve:String(w.reserve))));
   magStripes(w);
@@ -5464,6 +5464,40 @@ function updateBanshee(e,dt){
 }
 
 /* ---------- weapon logic ---------- */
+/* ---------- HUD weapon art: each weapon's own model drawn once, side-on in flat white, into a small picture that replaces the weapon name ---------- */
+var WICON={r:null,sc:null,cam:null,url:{},fail:false};
+function wIconURL(idx){
+  if(WICON.url[idx]!==undefined) return WICON.url[idx];
+  var out=null;
+  try{
+    if(WICON.fail) throw 0;
+    if(!rackTpl) buildRackTpl();
+    var tpl=rackTpl[idx]; if(!tpl) throw 0;
+    if(!WICON.r){
+      var cv=document.createElement('canvas'); cv.width=256; cv.height=96;
+      WICON.r=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true,preserveDrawingBuffer:true}); WICON.r.setSize(256,96,false); WICON.r.setClearColor(0x000000,0);
+      var sc=new THREE.Scene(); sc.overrideMaterial=new THREE.MeshLambertMaterial({color:0xffffff});
+      sc.add(new THREE.AmbientLight(0xffffff,0.78)); var dl=new THREE.DirectionalLight(0xffffff,0.7); dl.position.set(-2,3,4); sc.add(dl);
+      WICON.sc=sc; WICON.cam=new THREE.OrthographicCamera(-1,1,1,-1,0.1,50);
+    }
+    var sc2=WICON.sc, g=tpl.clone(true);
+    g.traverse(function(o){ if(o.isSprite||o.isLine||o.isPoints) o.visible=false; else if(o.isMesh&&o.material){ var m=Array.isArray(o.material)?o.material[0]:o.material; if(m&&(m.blending===THREE.AdditiveBlending||(m.transparent&&m.opacity<0.6))) o.visible=false; } });
+    sc2.add(g); sc2.updateMatrixWorld(true);
+    var bb=new THREE.Box3().setFromObject(g), c=bb.getCenter(new V3()), sz=bb.getSize(new V3());
+    var hv=Math.max(sz.y*1.12,sz.x*1.08/(256/96)), cam=WICON.cam;
+    cam.left=-hv*(256/96)/2; cam.right=hv*(256/96)/2; cam.top=hv/2; cam.bottom=-hv/2; cam.updateProjectionMatrix();
+    cam.position.set(c.x,c.y,c.z+10); cam.lookAt(c.x,c.y,c.z);
+    WICON.r.render(sc2,cam); out=WICON.r.domElement.toDataURL('image/png');
+    sc2.remove(g);
+  }catch(e){ WICON.fail=WICON.fail||!WICON.r; out=null; }
+  WICON.url[idx]=out; return out;
+}
+function wIconSet(w){
+  var el=els.wname; if(!el) return;
+  var idx=weapons.indexOf(w), u=idx>=0?wIconURL(idx):null;
+  if(u){ el.innerHTML='<img alt="'+w.name+'" src="'+u+'" style="height:30px;display:block;filter:drop-shadow(0 0 5px rgba(60,200,230,.85)) drop-shadow(0 1px 0 rgba(0,0,0,.6))">'; }
+  else el.textContent=w.name;
+}
 function setWeapon(i){
   cur=i; burstLeft=0; dwT=[0,0]; dwDn=[0,0];
   for(var k=0;k<weapons.length;k++) weapons[k].group.visible=(k===i);
