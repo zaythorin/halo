@@ -2473,7 +2473,7 @@ sfx.smg=function(){
   smgTm=setInterval(function(){ if(performance.now()-smgLast>130) smgStop(); },30);
 };
 var vm=new THREE.Group(); camera.add(vm);
-vm.position.set(0.11,-0.3,-0.6); vm.scale.setScalar(1.38);
+vm.position.set(0.25,-0.38,-0.72); vm.scale.setScalar(1.88);
 weapons[0].group=buildMagnum(); weapons[0].group.scale.setScalar(0.8); weapons[1].group=buildAR(); weapons[2].group=buildSniper(); weapons[3].group=buildRocket(); weapons[4].group=buildShotgun(); weapons[5].group=buildSword(); weapons[6].group=buildSMG(); weapons[7].group=buildBR(); weapons[8].group=buildLaser(); weapons[9].group=buildSalt(); weapons[10].group=buildMMG();
 
 /* Reload animation. Hand and mag positions are local to the weapon, times are 0..1 of the reload.
@@ -2653,7 +2653,7 @@ var state='menu';
 var p={isPl:true,x:0,z:0,y:0,vy:0,vx:0,vz:0,yaw:0,pitch:0,shield:100,health:100,lastHit:-10,onGround:true,inVeh:false};
 var cur=0, fireCool=0, fireEdgeT=0, bloom=0, reloading=false, reloadT=0, reloadEmpty=false, ammoApplied=false, reloadEv=[false,false,false], vFlashT=0;
 var swapT=0, pendingW=null, zoomed=false, vmKick=0, flashT=0, moveFrac=0, vigT=0;
-var meleeT=0, meleeHit=false, boltT=0, vmBaseX=0.11, frameDt=0.016, MELEE_DUR=0.5, MELEE_DMG=80, ZERO3=[0,0,0], NO_MELEE=[0,0,0,0,0,0];
+var meleeT=0, meleeHit=false, boltT=0, vmBaseX=0.25, frameDt=0.016, MELEE_DUR=0.5, MELEE_DMG=80, vmHip=1, ZERO3=[0,0,0], NO_MELEE=[0,0,0,0,0,0];
 var ctrl={mx:0,mz:0,fire:false,jump:false}, keys={};
 var lookDX=0, lookDY=0, tAcc=0, TSENS=1.9;
 var score=0, kills=0, heads=0, best=0;
@@ -6658,8 +6658,10 @@ function updateWeapon(dt){
   stepRecoil(dt);
   var swU=swapT>0?1-swapT/0.4:0, dip=swapT>0?Math.sin(swU*Math.PI)*0.5:0;
   if(throwT>0) dip=Math.max(dip,Math.sin(Math.PI*(1-throwT/THROW_DUR))*0.3);
-  var tx=zoomed?0.04:0.11;
+  /* hip-fire: the gun is big and tucked into the bottom-right corner like Halo 3; aiming brings it in towards the middle and a little smaller */
+  var tx=zoomed?0.04:0.25;
   vmBaseX+=(tx-vmBaseX)*Math.min(1,dt*14);
+  vmHip+=((zoomed?0:1)-vmHip)*Math.min(1,dt*14); vm.scale.setScalar(1.38+0.5*vmHip);
   gunSpin=0; gunAir=0;
   var mp=meleePose(meleeT>0?1-meleeT/MELEE_DUR:-1); meleeFist(meleeT>0?1-meleeT/MELEE_DUR:-1);
   var sg=weapons[0].group.userData.spin; if(sg){ sg.rotation.x=gunSpin; sg.position.y=gunAir; }
@@ -6669,8 +6671,8 @@ function updateWeapon(dt){
   var wb=Math.sin(tAcc*4.6)*moveFrac, bobx=wb*0.011, boby=Math.abs(Math.sin(tAcc*4.6))*0.013*moveFrac, brth=Math.sin(tAcc*1.4)*0.0025;
   var zs=zoomed?0.3:1;
   vm.position.x=vmBaseX+mp[0]+(rc.x+sway.x+bobx)*zs+dip*0.1;
-  vm.position.y=-0.3-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
-  vm.position.z=-0.6+vmKick+mp[2]+rc.z*zs;
+  vm.position.y=-0.3-0.08*vmHip-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
+  vm.position.z=-0.6-0.12*vmHip+vmKick+mp[2]+rc.z*zs;
   var sf=swU>0.5?swapFlourish(weapons[cur].id,1-ss((swU-0.5)*2)):[0,0,0];
   vm.rotation.set(vmKick*1.2+mp[3]+sf[0]+rc.r*zs-dip*0.9,mp[4]-0.05*zs+sf[1]+sway.x*2.5*zs,mp[5]+sf[2]+(rc.l+sway.l*0.4)*zs+dip*0.35);
   if(swapT>0){ var bkm=swU<0.5?ss(swU*2):1-ss((swU-0.5)*2); vm.position.x+=bkm*0.6; vm.position.y+=bkm*0.12; vm.position.z+=bkm*0.5; vm.rotation.z+=bkm*0.55; vm.rotation.y+=bkm*0.5; }
@@ -7321,7 +7323,7 @@ function resetGame(){
   p.x=0; p.z=0; p.y=groundH(0,0); p.vx=0; p.vz=0; p.vy=0; p.yaw=0; p.pitch=0; p.shield=100; p.health=100; p.lastHit=-10; p.onGround=true;
   weapons[0].mag=12; weapons[0].reserve=72; weapons[1].mag=32; weapons[1].reserve=192; weapons[2].mag=4; weapons[2].reserve=24; weapons[3].mag=2; weapons[3].reserve=6; weapons[4].mag=6; weapons[4].reserve=30; weapons[4].pumpT=-1; weapons[4].pumpDelay=0; weapons[4].tilt=0; burstLeft=0; dwOnF=false; dwT=[0,0]; dwDn=[0,0]; weapons[6].mag=48; weapons[6].reserve=240; weapons[7].mag=36; weapons[7].reserve=144; weapons[8].mag=100; weapons[8].reserve=0; weapons[9].mag=36; weapons[9].reserve=144; weapons[10].mag=150; weapons[10].reserve=0; weapons[10].inf=false; weapons[10].mounted=false;
   for(var wk=0;wk<weapons.length;wk++){ weapons[wk].slideKick=0; if(weapons[wk]._i) Object.assign(weapons[wk],weapons[wk]._i); }
-  meleeT=0; boltT=0; vmBaseX=0.11; vm.visible=true;
+  meleeT=0; boltT=0; vmBaseX=0.25; vmHip=1; vm.visible=true;
   gren.frag=3; gren.plasma=2; throwT=0; slots=[0,1]; sel=0; spawnRacks(); resetEmitter(); camLag=0; spawnPacks(); nav.src=-1; nav.active=false;
   setWeapon(0); fireCool=0; fireEdgeT=0; swapT=0; pendingW=null; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on');
   camera.fov=BASE_FOV; camera.updateProjectionMatrix();
