@@ -425,6 +425,8 @@ body{letter-spacing:.02em}
 /* bigger HUD: zoom (not transform) so right-anchored panels grow leftwards and fixed children stay put */
 @media (min-width:900px) and (pointer:fine){.status,.info{zoom:1.28}#tracker{width:214px;height:214px}}
 @media (max-width:899px),(pointer:coarse){.status,.info{zoom:1.1}}
+/* mobile: the sprint button sits at the far left of the screen, above the move stick */
+@media (pointer:coarse){#bSprint{left:calc(12px + var(--sl)) !important;right:auto !important;bottom:calc(120px + var(--sb)) !important}}
 </style>
 
 <canvas id="gl"></canvas>
@@ -471,7 +473,6 @@ body{letter-spacing:.02em}
   <button type="button" class="btn" id="bReload">RELOAD</button>
   <button type="button" class="btn" id="bSwap">SWAP</button>
   <button type="button" class="btn" id="bZoom">ZOOM</button>
-  <button type="button" class="btn" id="bView">VIEW</button>
   <button type="button" class="btn" id="bSprint">SPRINT</button>
   <button type="button" class="btn" id="bDual">DROP 1</button>
   <button type="button" class="btn" id="bMelee">MELEE</button>
@@ -517,7 +518,6 @@ body{letter-spacing:.02em}
       <button type="button" class="go" id="resume">RESUME</button>
       <button type="button" class="go alt" id="restart">RESTART</button>
       <button type="button" class="go alt" id="pCtl">CONTROLS</button>
-      <button type="button" class="go alt" id="pView">CAMERA: FIRST PERSON</button>
       <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
       <button type="button" class="go alt" id="pGfx">GRAPHICS: HIGH</button>
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
@@ -533,7 +533,7 @@ body{letter-spacing:.02em}
     <div class="ctl">
       <div><b>TOUCH</b>Left thumb moves. Drag anywhere on the right to aim. Hold FIRE to shoot, and slide that thumb to aim while firing. MELEE bashes, FRAG and PLASMA throw grenades, ZOOM scopes in, SPRINT toggles a faster run (the gun lowers while you sprint), SWAP cycles weapons, II pauses.</div>
       <div><b>CONTROLLER</b>Left stick move, right stick aim, RT fire, LT zoom, left stick click sprint, A jump (brake in the rover), X reload, Y swap weapon, B or right stick click melee, RB frag, LB plasma, D-pad up use or take or drive, D-pad left and right pick a slot, D-pad down switches first and third person, Start pause. Menus: D-pad or left stick and A. Rumble on hits and shots.</div>
-      <div><b>KEYBOARD</b>B switches between first and third person, WASD move, mouse aim and fire, Space jump, R reload, V or middle click melee, Y grappling hook onto an enemy Hornet in team battle (punch the pilot out), C crouch, G frag grenade, H plasma grenade, Q swap weapon, 1 and 2 pick a weapon slot, Z or right click zoom, hold Shift to sprint, E to get in or out of the rover, P or Esc pause.</div>
+      <div><b>KEYBOARD</b>WASD move, mouse aim and fire, Space jump, R reload, V or middle click melee, Y grappling hook onto an enemy Hornet in team battle (punch the pilot out), C crouch, G frag grenade, H plasma grenade, Q swap weapon, 1 and 2 pick a weapon slot, Z or right click zoom, hold Shift to sprint, E to get in or out of the rover, P or Esc pause.</div>
       <div><b>WEAPONS</b>You carry two weapons at a time. Every weapon hangs on a weapon rack: one just ahead of where you start, and two more out in the valley. Walk up, look at the weapon you want and press E (or TAKE) to swap it in for the weapon you are holding, which goes back on the rack. Grab a weapon you already carry to restock its ammo. The sniper rifle zooms for a scope view and a headshot drops almost anything.</div>
       <div><b>OPEN WORLD</b>The arena is now a big valley: ridges, plateaus, a river basin and sheer cliffs. Cliffs and very steep slopes can't be climbed, so find a ramp or go round, and long falls hurt. Raiders hunt you across the terrain, and when you kill one the others nearby may panic and run for a few seconds.</div>
       <div><b>HORNET</b>Walk up to the Hornet and press E to fly it. Mouse aims, W/S fly, A/D slide, Space climbs, C descends. Left click fires the guns. Keep your view on an enemy until the box turns red, then right click (or F) to fire a homing missile. Land to get out.</div>
@@ -4368,13 +4368,14 @@ var MA={want:false,mx:0,mxs:0,air:0,land:0,sprint:0,idle:0,insp:-1,inspT:0,inspK
 
 /* ---------- third-person view (toggle with B / D-pad down / VIEW button / pause menu) ---------- */
 var TP={on:false,act:false,rig:null,rigId:null,hold:new THREE.Group(),walk:0,curD:3.2,amp:0,hp:new V3(),pv:new V3(),bk:new V3()};
-try{ TP.on=localStorage.getItem('halo-tp')==='1'; }catch(e){}
+TP.on=false; /* third person has been removed from the menus and controls (only the turret view still uses it) */
 TP.hold.rotation.order='YXZ'; scene.add(TP.hold);
 function tpLabels(){
-  var t='CAMERA: '+(TP.on?'THIRD PERSON':'FIRST PERSON'), b=document.getElementById('pView'); if(b) b.textContent=t;
-  var v=document.getElementById('bView'); if(v) v.classList.toggle('on',TP.on);
+  
+  
 }
 function tpToggle(){
+  return;
   TP.on=!TP.on; try{ localStorage.setItem('halo-tp',TP.on?'1':'0'); }catch(e){}
   tpLabels(); showToast(TP.on?'THIRD PERSON':'FIRST PERSON');
 }
@@ -7988,7 +7989,6 @@ function toggleMusic(){
 }
 $('sndBtn').addEventListener('click',toggleMusic);
 $('pMusic').addEventListener('click',toggleMusic);
-$('pView').addEventListener('click',tpToggle);
 tpLabels();
 
 /* pause, resume, back to the menu */
@@ -8224,7 +8224,6 @@ $('bScore').addEventListener('pointercancel',function(){ sbShow(false); });
 hold($('bReload'),startReload);
 hold($('bSwap'),swapWeapon);
 hold($('bZoom'),toggleZoom);
-hold($('bView'),tpToggle);
 hold($('bDual'),dwToggle);
 hold($('bSprint'),function(){ ctrl.sprintTouch=!ctrl.sprintTouch; $('bSprint').classList.toggle('on',ctrl.sprintTouch); });
 hold($('bMelee'),startMelee);
