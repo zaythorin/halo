@@ -2577,7 +2577,7 @@ flash.visible=false; weapons[0].group.userData.muzzle.add(flash);
   var f2=new THREE.Mesh(flash.geometry,flash.material); f2.rotation.y=Math.PI/2; flash.add(f2);
 })();
 var muzzleLight=new THREE.PointLight(0xffb060,0,16,1.6), mlBase=0, mlDur=0.05; muzzleLight.position.set(0.2,-0.12,-1.1); camera.add(muzzleLight);
-var FL={laser:[0xff6a4a,3.2,4,0.14],magnum:[0xfff0b8,1.35,2.6,0.06],ar:[0xffbd58,0.85,1.7,0.04],sniper:[0xcfe6ff,1.9,3.2,0.08],rocket:[0xffa24a,2.4,4,0.12],shotgun:[0xffa850,2.2,3.6,0.08]};
+var FL={laser:[0xff6a4a,3.2,4,0.14],magnum:[0xfff0b8,1.35,2.6,0.06],ar:[0xffbd58,0.85,1.7,0.04],sniper:[0xcfe6ff,1.9,3.2,0.08],rocket:[0xffa24a,2.4,4,0.12],shotgun:[0xffa850,2.2,3.6,0.08],smg:[0xffd27a,0.7,1.5,0.035],br:[0xffc870,1.0,2.0,0.05],mmg:[0xffa838,1.15,2.3,0.05],salt:[0xffd890,1.0,2.0,0.05]};
 /* muzzle smoke: a soft grey puff curls up from the barrel after shots */
 var SMK={pool:[],tex:null,n:0};
 function smokePuff(){
@@ -2591,10 +2591,30 @@ function smokePuff(){
   }catch(e){}
 }
 function smokeTick(dt){
+  heatTick(dt);
   for(var i=0;i<SMK.pool.length;i++){ var s=SMK.pool[i]; if(s.t<=0) continue; s.t-=dt; if(s.t<=0){ s.sp.visible=false; continue; } s.sp.position.addScaledVector(s.v,dt); var k=1-s.t/0.9; s.sp.scale.setScalar(0.08+0.5*k); s.sp.material.opacity=0.5*(1-k); }
 }
+var HG={tex:null}, vmSm={on:false,p:new THREE.Vector3(),r:new THREE.Vector3()};
+function heatGlow(w){
+  try{
+    var mz=w.group&&w.group.userData&&w.group.userData.muzzle; if(!mz||w.cov||w.laser||w.rocket||w.sword) return;
+    if(!w.hg){
+      if(!HG.tex){ var c=document.createElement('canvas'); c.width=c.height=32; var g=c.getContext('2d'), rg=g.createRadialGradient(16,16,1,16,16,15); rg.addColorStop(0,'rgba(255,170,70,1)'); rg.addColorStop(1,'rgba(255,90,20,0)'); g.fillStyle=rg; g.fillRect(0,0,32,32); HG.tex=new THREE.CanvasTexture(c); }
+      var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:HG.tex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,opacity:0})); sp.scale.setScalar(0.09); sp.visible=false; mz.add(sp); w.hg=sp; w.bh=0;
+    }
+    w.bh=Math.min(1,(w.bh||0)+Math.min(0.12,0.012/Math.max(0.04,w.rate)+0.025));
+  }catch(e){}
+}
+function heatTick(dt){
+  for(var i=0;i<weapons.length;i++){
+    var w=weapons[i]; if(!w.hg||!w.bh) continue;
+    w.bh=Math.max(0,w.bh-dt*0.16); w.hg.visible=w.bh>0.06; w.hg.material.opacity=Math.min(0.85,w.bh*0.9);
+    if(w.bh>0.55&&w===weapons[cur]&&state==='play'){ w.hgT=(w.hgT||0)-dt; if(w.hgT<=0){ w.hgT=0.22; SMK.n=0; smokePuff(); } }
+  }
+}
 function setFlash(w){
-  smokePuff();
+  smokePuff(); heatGlow(w);
+  try{ if(typeof TM!=='undefined'&&TM.ship) noise(0.55,0.05,'lowpass',1400,260); else noise(0.035,0.035,'highpass',4200,3000); }catch(e){}  /* indoors: a boomy tail; outdoors: a sharp crack */
   var f=w.flv||FL[w.id]||FL.ar; flash.material.color.setHex(f[0]); flash.scale.setScalar((0.75+Math.random()*0.5)*f[1]); flash.rotation.z=Math.random()*6.28;
   flashT=f[3]; mlBase=f[2]; mlDur=f[3]; muzzleLight.color.setHex(f[0]); muzzleLight.intensity=f[2];
 }
@@ -6426,6 +6446,7 @@ function laserTick(w,dt){
 function fireWeapon(w,muzzleObj,inVeh){
   noiseT=tAcc; noiseR=NOISE[w.id]||50;
   if(!w.inf) w.mag--;
+  if(!w.inf&&!w.cov&&!w.laser&&w.mag>0&&w.mag<=Math.max(2,Math.ceil(w.magSize*0.2))) tone(2600+(w.magSize-w.mag)*0,2300,0.05,'triangle',0.035);   /* the last few rounds ring a warning ping */
   if(w.cov) covHeat(w);
   fireCool=w.rate;
   if(w.rocket){ recoilKick(w); setFlash(w); launchRocket(w,muzzleObj); rocketShot(w); if(mp.on){ muzzleObj.getWorldPosition(tmpMuzzle); mpFx(w.fuel?'cfuel':'rocket',tmpMuzzle,tmpMuzzle); } return; }
@@ -6761,6 +6782,9 @@ function updateWeapon(dt){
   var lowHp=p.health<35?(1-p.health/35)*0.8:0;
   vm.position.x+=0.05*ma.sprint+ma.mxs*0.012; vm.position.y+=-0.05*ma.sprint-Math.abs(Math.sin(tAcc*9))*0.012*ma.sprint+0.03*ma.air-0.09*ma.land+Math.sin(tAcc*5.2)*0.006*(ma.breath+lowHp); vm.position.z+=-0.02*ma.sprint+0.03*ma.land+0.05*ma.flinch;
   vm.rotation.x+=-0.22*ma.sprint+0.1*ma.air-0.18*ma.land+0.2*ma.flinch; vm.rotation.y+=0.45*ma.sprint; vm.rotation.z+=0.12*ma.sprint-ma.mxs*0.07+0.25*ma.flinch*ma.flx;
+  /* smoothing: the final pose follows through a light frame-rate-independent filter, which removes jitter and softens sudden jumps */
+  if(!vmSm.on||swapT>0.39||dt>0.25){ vmSm.on=true; vmSm.p.copy(vm.position); vmSm.r.set(vm.rotation.x,vm.rotation.y,vm.rotation.z); }
+  else{ var sa=1-Math.exp(-dt*(zoomed?26:34)); vmSm.p.lerp(vm.position,sa); vmSm.r.x+=(vm.rotation.x-vmSm.r.x)*sa; vmSm.r.y+=(vm.rotation.y-vmSm.r.y)*sa; vmSm.r.z+=(vm.rotation.z-vmSm.r.z)*sa; vm.position.copy(vmSm.p); vm.rotation.set(vmSm.r.x,vmSm.r.y,vmSm.r.z); }
   vm.visible=!((w.scope||w.lscope)&&zoomed&&camera.fov<45);
   ammoScreen(w); animateWeaponParts(w); dwAnimate(w); fingerAnim(w,w.group,dt); if(w.group2) fingerAnim(w,w.group2,dt);
   flashT-=dt; flash.visible=flashT>0; muzzleLight.intensity=flashT>0?mlBase*Math.min(1,flashT/mlDur+0.2):0;
