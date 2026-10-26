@@ -425,8 +425,10 @@ body{letter-spacing:.02em}
 /* bigger HUD: zoom (not transform) so right-anchored panels grow leftwards and fixed children stay put */
 @media (min-width:900px) and (pointer:fine){.status,.info{zoom:1.28}#tracker{width:214px;height:214px}}
 @media (max-width:899px),(pointer:coarse){.status,.info{zoom:1.1}}
-/* mobile: the sprint button sits at the far left of the screen, above the move stick */
-@media (pointer:coarse){#bSprint{left:calc(12px + var(--sl)) !important;right:auto !important;bottom:calc(120px + var(--sb)) !important}}
+/* touch: SPRINT sits above SWAP on the right, CROUCH takes the old sprint spot on the left */
+#bCrouch{left:calc(106px + var(--sl));bottom:calc(214px + var(--sb))}
+#ui.driving #bCrouch{display:none}
+@media (pointer:coarse){#bSprint{left:auto !important;right:calc(14px + var(--sr)) !important;bottom:calc(224px + var(--sb)) !important}#bCrouch{left:calc(12px + var(--sl));bottom:calc(120px + var(--sb))}}
 </style>
 
 <canvas id="gl"></canvas>
@@ -474,6 +476,7 @@ body{letter-spacing:.02em}
   <button type="button" class="btn" id="bSwap">SWAP</button>
   <button type="button" class="btn" id="bZoom">ZOOM</button>
   <button type="button" class="btn" id="bSprint">SPRINT</button>
+  <button type="button" class="btn" id="bCrouch">CROUCH</button>
   <button type="button" class="btn" id="bDual">DROP 1</button>
   <button type="button" class="btn" id="bMelee">MELEE</button>
   <button type="button" class="btn" id="bMsl">MISSILE</button>
@@ -4735,7 +4738,7 @@ function updatePlayer(dt){
   if(ladderCheck(mx,mz)) mz=0;
   moveFrac=len; MA.mx=mx;
   var sprintHeld=!!(keys.ShiftLeft||keys.ShiftRight||ctrl.sprintTouch||gpSprint);
-  CR+=(((keys.KeyC&&!p.inVeh)?1:0)-CR)*Math.min(1,dt*12);
+  CR+=((((keys.KeyC||ctrl.crouchTouch)&&!p.inVeh)?1:0)-CR)*Math.min(1,dt*12);
   MA.want=sprintHeld&&mz>0.3&&!zoomed&&!ctrl.fire&&p.onGround&&CR<0.3;
   if(ctrl.sprintTouch&&len<0.12){ MA.sprIdle=(MA.sprIdle||0)+dt; if(MA.sprIdle>0.2){ ctrl.sprintTouch=false; $('bSprint').classList.remove('on'); } } else MA.sprIdle=0;
   var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1)*(TM.on&&TM.ship?1.5:1);
@@ -8316,7 +8319,8 @@ hold($('bReload'),startReload);
 hold($('bSwap'),swapWeapon);
 hold($('bZoom'),toggleZoom);
 hold($('bDual'),dwToggle);
-hold($('bSprint'),function(){ ctrl.sprintTouch=!ctrl.sprintTouch; $('bSprint').classList.toggle('on',ctrl.sprintTouch); });
+hold($('bSprint'),function(){ ctrl.sprintTouch=!ctrl.sprintTouch; $('bSprint').classList.toggle('on',ctrl.sprintTouch); if(ctrl.sprintTouch){ ctrl.crouchTouch=false; $('bCrouch').classList.remove('on'); } });
+hold($('bCrouch'),function(){ ctrl.crouchTouch=!ctrl.crouchTouch; $('bCrouch').classList.toggle('on',ctrl.crouchTouch); if(ctrl.crouchTouch){ ctrl.sprintTouch=false; $('bSprint').classList.remove('on'); } });
 hold($('bMelee'),startMelee);
 hold($('bMsl'),function(){ if(p.air) fireMissile(); });
 hold($('bFrag'),function(){ throwGrenade('frag'); });
