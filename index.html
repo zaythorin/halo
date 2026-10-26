@@ -1661,8 +1661,14 @@ function sampleKeys(keys,pr){
   for(var i=0;i<n-1;i++){
     var a=keys[i], b=keys[i+1];
     if(pr<=b[0]){
-      var u=(pr-a[0])/(b[0]-a[0]); u=u*0.4+(u*u*(3-2*u))*0.6;
-      var out=[]; for(var j=1;j<a.length;j++) out.push(a[j]+(b[j]-a[j])*u);
+      /* monotone cubic Hermite: velocity carries smoothly through each keyframe instead of stopping, with no overshoot */
+      var h=b[0]-a[0], u=(pr-a[0])/h, u2=u*u, u3=u2*u, h00=2*u3-3*u2+1, h10=u3-2*u2+u, h01=-2*u3+3*u2, h11=u3-u2, pv=keys[i-1], nx=keys[i+2], out=[], j;
+      for(j=1;j<a.length;j++){
+        var d=(b[j]-a[j])/h, m0=0, m1=0, dm, dn;
+        if(pv){ dm=(a[j]-pv[j])/(a[0]-pv[0]); if(dm*d>0) m0=2*dm*d/(dm+d); }
+        if(nx){ dn=(nx[j]-b[j])/(nx[0]-b[0]); if(dn*d>0) m1=2*dn*d/(dn+d); }
+        out.push(h00*a[j]+h10*h*m0+h01*b[j]+h11*h*m1);
+      }
       return out;
     }
   }
@@ -5947,9 +5953,9 @@ function startReload(){
   if(zoomed&&(w.scope||w.lscope)) zoomOff();
   burstLeft=0; reloading=true; reloadT=0; reloadEmpty=(w.mag===0);
   if(w.shells){ w.reloadDur=999; w.shPh='lead'; w.shT=0; w.shIn=false; return; }
-  w.reloadDur=(reloadEmpty||w.rsnd)?w.reload:w.reload*0.82;
+  w.reloadDur=((reloadEmpty||w.rsnd)?w.reload:w.reload*0.82)*(w.rsnd?1:0.78);   /* snappier reloads (Covenant weapons keep their own timing) */
   if(w.rsnd) sample(w.rsnd,0.9);
-  rlSnd=false; if(!w.rsnd&&RL_SND[w.id]) rlSnd=sample(RL_SND[w.id],0.95);   /* the real Halo reload sound replaces the synthetic click-clacks */
+  rlSnd=false; if(!w.rsnd&&RL_SND[w.id]) rlSnd=sample(RL_SND[w.id],0.95,Math.max(0.9,Math.min(1.25,(RL_SND[w.id]==='magReload'?1.46:1.95)/w.reloadDur)));   /* the real Halo reload sound replaces the synthetic click-clacks */
   ammoApplied=false; reloadEv=[false,false,false];
 }
 var zoomLvl=1;
