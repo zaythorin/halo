@@ -672,7 +672,7 @@ function gfxPre(){
     GFX.avg=GFX.avg*0.96+dtm*0.04;
     if(GFX.lvl>0&&GFX.avg>40){ GFX.slow+=dtm; if(GFX.slow>5000){ GFX.slow=0; GFX.lvl--; GFX.avg=16; gfxApply(); gfxLabel(); try{ localStorage.setItem('halo-gfx2',String(GFX.lvl)); }catch(e){} try{ showToast('GRAPHICS LOWERED FOR SPEED'); }catch(e){} } } else GFX.slow=0;
   }
-  ISLU.value=now/1000;
+  ISLU.value=now/1000; try{ shFxTick(Math.min(0.1,dtm/1000)); }catch(e){}
   if(GFX.visor){ var vd=(state==='play'&&!(typeof CUT!=='undefined'&&CUT.on)&&GFX.lvl>=1)?'block':'none'; if(GFX.visor.style.display!==vd) GFX.visor.style.display=vd; }
   if(typeof fistG!=='undefined'&&fistG&&typeof state!=='undefined'&&state!=='play') fistG.visible=false;
   if(ISLCHK.n>0&&TM.isl){ ISLCHK.n--; if(ISLCHK.n===0){ ISLCHK.list.forEach(function(m){ try{ var pr=renderer.properties.get(m).currentProgram; if(pr&&pr.diagnostics&&pr.diagnostics.runnable===false){ console.error('island shader failed, using plain material',m); m.onBeforeCompile=function(){}; m.customProgramCacheKey=function(){ return 'islplain'; }; m.needsUpdate=true; } }catch(e){} }); } }
@@ -4161,6 +4161,26 @@ function updateWaves(dt){
 }
 
 /* ---------- player ---------- */
+/* ---------- shield effects: a hex-grid ripple when shields take a hit, a bigger flash when they break, a cyan glow and a chime while they recharge ---------- */
+var SHFX={hex:null,glow:null,brk:0,lastO:-1,lastG:-1};
+function shFxInit(){
+  if(SHFX.hex) return;
+  var c=document.createElement('canvas'); c.width=56; c.height=97; var g=c.getContext('2d'); g.strokeStyle='rgba(150,225,255,.95)'; g.lineWidth=2;
+  function hx(cx,cy){ g.beginPath(); for(var i=0;i<6;i++){ var a=Math.PI/3*i+Math.PI/6, x=cx+28*Math.cos(a)*0.97, y=cy+28*Math.sin(a)*0.97; if(i) g.lineTo(x,y); else g.moveTo(x,y); } g.closePath(); g.stroke(); }
+  hx(28,32); hx(0,80.5); hx(56,80.5); hx(28,-16.5); hx(28,112.5);
+  var h=document.createElement('div'); h.style.cssText='position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;background:url('+c.toDataURL()+');background-size:46px 80px;-webkit-mask-image:radial-gradient(ellipse at center,transparent 38%,#000 100%);mask-image:radial-gradient(ellipse at center,transparent 38%,#000 100%)';
+  var gl=document.createElement('div'); gl.style.cssText='position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;box-shadow:inset 0 0 120px 10px rgba(80,210,255,.55);background:radial-gradient(ellipse at center,transparent 60%,rgba(60,190,255,.18) 100%)';
+  document.body.appendChild(h); document.body.appendChild(gl); SHFX.hex=h; SHFX.glow=gl;
+}
+function shFxTick(dt){
+  shFxInit();
+  var play=state==='play'&&!p.inVeh&&!(typeof CUT!=='undefined'&&CUT.on);
+  SHFX.brk=Math.max(0,SHFX.brk-dt);
+  var o=play?Math.min(1,shHitT*2.4)*0.5+Math.min(1,SHFX.brk*1.6)*0.5:0;
+  if(Math.abs(o-SHFX.lastO)>0.02){ SHFX.lastO=o; SHFX.hex.style.opacity=o.toFixed(2); SHFX.hex.style.filter=SHFX.brk>0?'hue-rotate(-150deg) brightness(1.4)':''; }
+  var g=(play&&p.rch&&p.shield<100)?(0.35+0.25*Math.sin(tAcc*7)):0;
+  if(Math.abs(g-SHFX.lastG)>0.03){ SHFX.lastG=g; SHFX.glow.style.opacity=g.toFixed(2); }
+}
 function hurt(n){
   if(p.isRemote){ mpSend({t:'hurt',n:n,dx:hitDir.x,dz:hitDir.z}); return; }
   if(state!=='play') return;
@@ -4169,7 +4189,7 @@ function hurt(n){
   MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7);
   if(hitDir.x||hitDir.z){ var ax=-hitDir.x, az=-hitDir.z, al=Math.hypot(ax,az)||1; ax/=al; az/=al; var sn0=Math.sin(p.yaw), cs0=Math.cos(p.yaw); dmgAng=Math.atan2(ax*cs0-az*sn0,-ax*sn0-az*cs0)*57.2958; dmgT=0.9; dmgSh=shAbs&&p.shield>=n; }
   if(shAbs) shHitT=0.4;
-  if(p.shield>0){ var a=Math.min(p.shield,n); p.shield-=a; n-=a; if(p.shield<=0) sfx.shieldBreak(); }
+  if(p.shield>0){ var a=Math.min(p.shield,n); p.shield-=a; n-=a; if(p.shield<=0){ sfx.shieldBreak(); SHFX.brk=0.7; } }
   if(n>0) p.health-=n;
   if(p.health<=0){ p.health=0; gameOver(); }
 }
@@ -4342,6 +4362,7 @@ function regen(dt){
     if(p.shield<100&&!p.rch){ p.rch=true; if(!sample('shield',0.8)){ tone(300,900,1.2,'sine',0.12); } }
     p.shield=Math.min(100,p.shield+35*dt);
   }
+  if(p.rch&&p.shield>=100){ try{ tone(880,1320,0.12,'sine',0.07); setTimeout(function(){ tone(1320,1760,0.18,'sine',0.07); },110); }catch(e){} }
   if(p.shield>=100||tAcc-p.lastHit<=4) p.rch=false;
   vigT=Math.max(0,vigT-dt*1.4);
 }
@@ -8538,13 +8559,36 @@ function islSky(){
 }
 /* UNSC Pelicans circling high over the island, banking gently */
 function islAmbient(){
-  var pp=vehParts('pelican').parts; TM.amb=[];
+  var pp=vehParts('pelican').parts; TM.amb=[]; TM.ambB=[]; TM.ambC=[];
   [[1.05,1,118,0],[1.45,-1,150,2.4]].forEach(function(c){
     var g=new THREE.Group(); g.rotation.order='YXZ';
     pp.forEach(function(pt){ g.add(new THREE.Mesh(pt.geo,pt.mat)); });
     g.scale.setScalar(1.6); scene.add(g); TM.objs.push(g);
     TM.amb.push({g:g,r:c[0]*140*ISLK*0.8,dir:c[1],h:c[2],a:c[3],w:c[1]*0.05});
   });
+  /* a pair of Banshees sweeping fast figure-eights over the island */
+  try{ for(var bi=0;bi<2;bi++){
+    var bg=new THREE.Group(); bg.rotation.order='YXZ'; bg.add(airParts(AIR.banshee,0x9fe0ff)); bg.scale.setScalar(1.3); scene.add(bg); TM.objs.push(bg);
+    TM.ambB.push({g:bg,t:bi*3.1,h:70+bi*16,R:150*ISLK*0.6,spd:0.11+bi*0.02});
+  } }catch(e){ console.error('ambient banshees failed',e); }
+  /* Covenant ships: a cruiser far off, drifting slowly across the sky, and two Phantoms cruising over the sea */
+  function mat(c,e){ return new THREE.MeshBasicMaterial({color:c,fog:false}); }
+  function lam(c){ return new THREE.MeshLambertMaterial({color:c,fog:false}); }
+  function ell(sx,sy,sz,m){ var q=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),m); q.scale.set(sx,sy,sz); return q; }
+  var cr=new THREE.Group();
+  cr.add(ell(190,24,46,lam(0x6a4f9a)));
+  var under=ell(170,12,36,mat(0x9a6cff)); under.position.y=-14; cr.add(under);
+  var crown=ell(120,14,22,lam(0x4a3a78)); crown.position.y=18; cr.add(crown);
+  [-1,1].forEach(function(sg){ var w=ell(60,8,16,lam(0x5a4488)); w.position.set(-40+sg*30,-4,sg*46); cr.add(w); var gl=ell(48,3,9,mat(0xc28cff)); gl.position.set(-40+sg*30,-9,sg*46); cr.add(gl); });
+  var bow=ell(40,10,14,lam(0x7a5eb0)); bow.position.set(185,-2,0); cr.add(bow);
+  cr.position.set(-900,330,-1250); scene.add(cr); TM.objs.push(cr); TM.ambC.push({g:cr,kind:'cruiser',v:[9,0,5],a:0});
+  for(var pi=0;pi<2;pi++){
+    var ph=new THREE.Group(), hb=ell(13,4.2,6.5,lam(0x5a4890)); ph.add(hb);
+    var bel=ell(10,1.6,4.4,mat(0xb48aff)); bel.position.y=-3.2; ph.add(bel);
+    [-1,1].forEach(function(sg){ var en=ell(5,2.4,2.4,lam(0x4a3a78)); en.position.set(-4,0.4,sg*8); ph.add(en); var gw=ell(2.4,1.2,1.2,mat(0xff9aff)); gw.position.set(-8.6,0.4,sg*8); ph.add(gw); });
+    ph.scale.setScalar(1.7); scene.add(ph); TM.objs.push(ph);
+    TM.ambC.push({g:ph,kind:'phantom',a:pi*Math.PI,R:ISLK*140*1.35,h:85+pi*20,w:(pi?-1:1)*0.028});
+  }
 }
 function islAmbTick(dt){
   var L=TM.amb; if(!L) return;
@@ -8552,6 +8596,14 @@ function islAmbTick(dt){
     o.a+=o.w*dt; var c=Math.cos(o.a), s=Math.sin(o.a), vx=-s*o.dir, vz=c*o.dir;
     o.g.position.set(c*o.r,o.h+4*Math.sin(o.a*3),s*o.r);
     o.g.rotation.y=Math.atan2(-vz,vx); o.g.rotation.z=-0.1*o.dir+0.02*Math.sin(o.a*7);
+  });
+  (TM.ambB||[]).forEach(function(o){
+    o.t+=o.spd*dt; var u=o.t, x=Math.sin(u)*o.R, z=Math.sin(u*2)*o.R*0.55, dx=Math.cos(u)*o.R, dz=Math.cos(u*2)*o.R*1.1;
+    o.g.position.set(x,o.h+6*Math.sin(u*3.3),z); o.g.rotation.y=Math.atan2(dx,dz); o.g.rotation.z=-Math.max(-0.7,Math.min(0.7,(Math.cos(u*2)*-0.9)));
+  });
+  (TM.ambC||[]).forEach(function(o){
+    if(o.kind==='cruiser'){ o.g.position.x+=o.v[0]*dt; o.g.position.z+=o.v[2]*dt; if(o.g.position.x>1500){ o.g.position.set(-1500,330,-1250); } o.g.rotation.y=-Math.atan2(o.v[2],o.v[0])+0.0; }
+    else{ o.a+=o.w*dt; var c=Math.cos(o.a), s=Math.sin(o.a); o.g.position.set(c*o.R,o.h+3*Math.sin(o.a*4),s*o.R); var sg=o.w>0?1:-1; o.g.rotation.y=Math.atan2(-c*sg,-s*sg); o.g.rotation.z=0.06*Math.sin(o.a*5); }
   });
 }
 function islTick(dt){
@@ -8637,6 +8689,52 @@ function tmIslLoose(){
   try{ tmSpawnRacks([]); }catch(e){ console.error('rack placement failed',e); }
 }
 /* at each team's spawn area: a rack of UNSC weapons and a rack of Covenant weapons, on flat open ground checked against the model */
+/* UNSC base scenery beside each team's spawn: a cargo container, a stack of crates, fuel barrels, a sandbag wall and a comms mast, all on spots checked flat and open */
+var PROPT=null;
+function propTex(kind){
+  if(!PROPT) PROPT={};
+  if(PROPT[kind]) return PROPT[kind];
+  var c=document.createElement('canvas'); c.width=c.height=128; var g=c.getContext('2d'), i;
+  if(kind==='crate'){
+    g.fillStyle='#55603f'; g.fillRect(0,0,128,128); g.strokeStyle='#3c4530'; g.lineWidth=5; g.strokeRect(3,3,122,122); g.lineWidth=3; g.beginPath(); g.moveTo(6,6); g.lineTo(122,122); g.moveTo(122,6); g.lineTo(6,122); g.stroke();
+    g.fillStyle='#d9dccd'; g.font='bold 20px monospace'; g.fillText('UNSC',34,58); g.font='bold 11px monospace'; g.fillText('AMMO  M-45',26,78);
+    g.fillStyle='#e3b43a'; for(i=0;i<5;i++) g.fillRect(8+i*10,102,6,16);
+  }else if(kind==='cont'){
+    g.fillStyle='#4d5646'; g.fillRect(0,0,128,128); g.fillStyle='#3d4538'; for(i=0;i<16;i++) g.fillRect(i*8+2,4,3,120);
+    g.fillStyle='#c9cdbf'; g.font='bold 18px monospace'; g.fillText('UNSC',14,40); g.font='bold 10px monospace'; g.fillText('SUPPLY  7714-C',14,58);
+    g.fillStyle='#8a2f2a'; g.fillRect(14,76,40,8);
+  }else if(kind==='barrel'){
+    g.fillStyle='#6b6f55'; g.fillRect(0,0,128,128); g.fillStyle='#d36a2a'; g.fillRect(0,22,128,18); g.fillRect(0,88,128,18); g.fillStyle='#2a2d22'; g.fillRect(0,56,128,6);
+  }else{ /* sandbag */
+    g.fillStyle='#b9a679'; g.fillRect(0,0,128,128); g.strokeStyle='#8c7d56'; g.lineWidth=3; for(i=0;i<4;i++){ g.beginPath(); g.moveTo(0,i*32+16); g.lineTo(128,i*32+16); g.stroke(); } for(i=0;i<8;i++){ g.beginPath(); g.moveTo(i*16+(i%2)*8,0); g.lineTo(i*16+(i%2)*8,128); g.stroke(); }
+  }
+  var t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; PROPT[kind]=t; return t;
+}
+function tmUnscProps(cx,cy,cz,av){
+  var M={ crate:new THREE.MeshLambertMaterial({map:propTex('crate')}), cont:new THREE.MeshLambertMaterial({map:propTex('cont')}), barrel:new THREE.MeshLambertMaterial({map:propTex('barrel')}), bag:new THREE.MeshLambertMaterial({map:propTex('bag')}), mast:new THREE.MeshLambertMaterial({color:0x6a6f76}) };
+  function box(w,h,d,x,y,z,mat,ry){ var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y+h/2,z); if(ry) m.rotation.y=ry; scene.add(m); coverMeshes.push(m); return m; }
+  function solid(x,y,z,w,h,d){ boxes.push({minx:x-w/2,maxx:x+w/2,minz:z-d/2,maxz:z+d/2,h:y+h,y0:y}); }
+  var sp;
+  /* cargo container (long side along x) */
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); box(6,2.5,2.4,sp[0],sp[1],sp[2],M.cont); solid(sp[0],sp[1],sp[2],6,2.5,2.4); box(0.12,2.4,2.3,sp[0]+3.02,sp[1],sp[2],new THREE.MeshLambertMaterial({color:0x2e332b})); }
+  /* crate stack */
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp);
+    box(1.4,1.4,1.4,sp[0]-0.8,sp[1],sp[2],M.crate,0.05); box(1.4,1.4,1.4,sp[0]+0.8,sp[1],sp[2]+0.1,M.crate,-0.08); box(1.3,1.3,1.3,sp[0]+0.05,sp[1]+1.4,sp[2]+0.02,M.crate,0.3);
+    solid(sp[0],sp[1],sp[2],3.1,2.7,1.7); }
+  /* barrels */
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp);
+    [[0,0],[0.95,0.3],[0.35,-0.95]].forEach(function(o){ var b=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,1.1,12),M.barrel); b.position.set(sp[0]+o[0],sp[1]+0.55,sp[2]+o[1]); scene.add(b); coverMeshes.push(b); });
+    solid(sp[0]+0.4,sp[1],sp[2]-0.2,2.4,1.1,2.4); }
+  /* sandbag wall, two layers, along x */
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp);
+    for(var L=0;L<2;L++) for(var k=0;k<6;k++) box(1.05,0.4,0.62,sp[0]+(k-2.5)*1.0+(L?0.5:0)*(k===5?0:1),sp[1]+L*0.4,sp[2],M.bag,(k%2?0.03:-0.03));
+    solid(sp[0],sp[1],sp[2],6.2,0.8,0.7); }
+  /* comms mast with a red beacon */
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp);
+    var mst=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.12,8,8),M.mast); mst.position.set(sp[0],sp[1]+4,sp[2]); scene.add(mst); coverMeshes.push(mst);
+    var dsh=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,6),new THREE.MeshBasicMaterial({color:0xff3a2a})); dsh.position.set(sp[0],sp[1]+8.1,sp[2]); scene.add(dsh);
+    solid(sp[0],sp[1],sp[2],0.5,8,0.5); }
+}
 function tmSpawnRacks(avoid){
   [0,1].forEach(function(t){
     var L=TM.spawns[t]; if(!L||!L.length) return;
@@ -8646,6 +8744,7 @@ function tmSpawnRacks(avoid){
     var b=tmRackSpot(cx,cy,cz,av); if(!b||Math.hypot(b[0]-cx,b[2]-cz)>16) b=[cx+4.5,cy,cz+(cz>0?-3:3)];
     if(a) tmMomRack(a[0],a[1],a[2],a[2]>0?-1:1,t,RACK_UNSC);
     if(b) tmMomRack(b[0],b[1],b[2],b[2]>0?-1:1,t,RACK_COV);
+    try{ av.push(b); tmUnscProps(cx,cy,cz,av.filter(Boolean)); }catch(e){ console.error('base props failed',e); }
   });
 }
 function tmMomLoose(){
@@ -9718,10 +9817,11 @@ function ctfApply(o){
   var i, nm=TEAMS[o.ft].n;
   for(i=0;i<2;i++){ var a=o.s[i], F=CTF.F[i]; F.home=!!a[0]; F.carrier=a[1]; F.x=a[2]; F.y=a[3]; F.z=a[4]; if(!F.home&&F.carrier<0) F.t0=tAcc; }
   if(o.sc&&!mp.host) mp.score=o.sc;
-  if(o.ev==='grab'){ if(o.by===mp.id) showBanner('YOU HAVE THE '+nm+' FLAG   RUN IT TO YOUR BASE'); else showToast(ctfName(o.by)+' TOOK THE '+nm+' FLAG'); sfx.pickup(); }
-  else if(o.ev==='drop'){ showToast(nm+' FLAG DROPPED'); }
-  else if(o.ev==='ret'){ showToast(nm+' FLAG RETURNED'); sfx.pickup(); }
-  else if(o.ev==='cap'){ mpSt(o.by).c++; showBanner(TEAMS[1-o.ft].n+' TEAM CAPTURED THE FLAG'); sfx.kill(); }
+  var mine=(o.ft===mp.team), A=function(t,sub,col,n){ medalShow(t,sub,col); medalChime(n||2); };
+  if(o.ev==='grab'){ if(o.by===mp.id) A('YOU HAVE THE FLAG','RUN IT BACK TO YOUR BASE','#7fd0ff',3); else if(mine) A('YOUR FLAG HAS BEEN TAKEN',ctfName(o.by),'#ff6a5a',2); else A('ENEMY FLAG TAKEN',ctfName(o.by),'#7fd0ff',2); showToast(ctfName(o.by)+' TOOK THE '+nm+' FLAG'); sfx.pickup(); }
+  else if(o.ev==='drop'){ A(mine?'YOUR FLAG DROPPED':'ENEMY FLAG DROPPED','',mine?'#ffd24a':'#ffd24a',1); showToast(nm+' FLAG DROPPED'); }
+  else if(o.ev==='ret'){ A(mine?'YOUR FLAG RETURNED':'ENEMY FLAG RETURNED','','#9fe28a',2); showToast(nm+' FLAG RETURNED'); sfx.pickup(); }
+  else if(o.ev==='cap'){ mpSt(o.by).c++; var us=(1-o.ft)===mp.team; A(us?'FLAG CAPTURED':'ENEMY SCORES',TEAMS[1-o.ft].n+' TEAM SCORES',us?'#7fd0ff':'#ff6a5a',5); sfx.kill(); }
 }
 function ctfDropMine(){
   if(!CTF.on) return;
@@ -10143,7 +10243,7 @@ function mpRecv(m){
     case 'hit': case 'hurt':
       if(state==='play'&&tAcc>mp.inv){
         if(mp.mode==='dm'&&m.t==='hit'&&m.f!==undefined){ if(mpTeamOf(m.f)===mp.team) break; mp.lastBy=m.f; mp.lastHow=m.w; mp.lastByT=tAcc; }
-        hitDir.x=m.dx; hitDir.z=m.dz; if(m.em&&p.shield>0){ p.shield=0; sfx.shieldBreak(); shHitT=0.4; } hurt(m.n);
+        hitDir.x=m.dx; hitDir.z=m.dz; if(m.em&&p.shield>0){ p.shield=0; sfx.shieldBreak(); shHitT=0.4; SHFX.brk=0.7; } hurt(m.n);
       }
       break;
     case 'dead':
