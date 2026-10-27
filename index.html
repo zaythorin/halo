@@ -9166,7 +9166,7 @@ function tmIslLoose(){
 /* at each team's spawn area: a rack of UNSC weapons and a rack of Covenant weapons, on flat open ground checked against the model */
 /* UNSC weapon crate: a green armoured locker, open at the front, with a back wall of weapon slots, a shelf, a divider and side handles (built from simple shapes) */
 var CRATE_T=null;
-function buildUnscCrate(){
+function buildUnscCrate(tc,bare){
   if(!CRATE_T){
     var c=document.createElement('canvas'); c.width=256; c.height=256; var g=c.getContext('2d'), i, j;
     g.fillStyle='#161a17'; g.fillRect(0,0,256,256);
@@ -9184,6 +9184,7 @@ function buildUnscCrate(){
   bx(W-2*T,H-2*T,0.05,back,0,H/2,-D/2+0.03);
   /* lip around the open front, thicker at the corners */
   bx(W,0.1,0.09,lip,0,0.1,D/2-0.03); bx(W,0.1,0.09,lip,0,H-0.1,D/2-0.03); bx(0.1,H,0.09,lip,-W/2+0.05,H/2,D/2-0.03); bx(0.1,H,0.09,lip,W/2-0.05,H/2,D/2-0.03);
+  if(!bare){
   /* shelf across the left section with a bright front edge */
   var dvx=0.52, shw=W/2+dvx-T;   /* divider position */
   bx(1.5,0.07,D-0.2,steel,-0.28,0.95,-0.05); bx(1.5,0.03,0.05,metal,-0.28,0.99,D/2-0.18);
@@ -9197,11 +9198,13 @@ function buildUnscCrate(){
   /* right section: hanging rods, a small shelf near the top */
   bx(0.4,0.04,0.3,steel,0.9,1.9,-0.2);
   for(i=0;i<4;i++){ bx(0.03,1.5,0.03,steel,0.72+i*0.12,1.02,-D/2+0.14); bx(0.05,0.08,0.06,metal,0.72+i*0.12,1.7,-D/2+0.16); }
+  }
   /* side handles, with their bracket stubs */
   [-1,1].forEach(function(sd){
     var h=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.9,10),metal); h.position.set(sd*(W/2+0.11),H/2,0); G.add(h);
     bx(0.14,0.05,0.05,metal,sd*(W/2+0.05),H/2+0.36,0); bx(0.14,0.05,0.05,metal,sd*(W/2+0.05),H/2-0.36,0);
   });
+  if(tc!==undefined){ bx(W,0.05,0.04,new THREE.MeshBasicMaterial({color:tc}),0,H+0.04,D/2+0.0); }   /* team colour stripe on the roof */
   /* small UNSC plate on the front of the roof lip */
   var pc=document.createElement('canvas'); pc.width=128; pc.height=32; var pg=pc.getContext('2d'); pg.fillStyle='#c8cdb8'; pg.fillRect(0,0,128,32); pg.fillStyle='#2e3a26'; pg.font='bold 22px Arial'; pg.textAlign='center'; pg.textBaseline='middle'; pg.fillText('UNSC',64,17);
   var pl=new THREE.Mesh(new THREE.PlaneGeometry(0.42,0.1),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(pc)})); pl.position.set(-0.8,H-0.1,D/2+0.02); G.add(pl);
@@ -9253,13 +9256,6 @@ function tmUnscProps(cx,cy,cz,av){
     var mst=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.12,8,8),M.mast); mst.position.set(sp[0],sp[1]+4,sp[2]); scene.add(mst); coverMeshes.push(mst);
     var dsh=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,6),new THREE.MeshBasicMaterial({color:0xff3a2a})); dsh.position.set(sp[0],sp[1]+8.1,sp[2]); scene.add(dsh);
     solid(sp[0],sp[1],sp[2],0.5,8,0.5); }
-  /* two UNSC weapon crates, turned to face the middle of the map */
-  for(var cr=0;cr<2;cr++){
-    if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp);
-      var cm=buildUnscCrate(); cm.position.set(sp[0],sp[1],sp[2]); cm.rotation.y=Math.atan2(-sp[0],-sp[2]); scene.add(cm);
-      var cbx=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.3,0.9),new THREE.MeshBasicMaterial({visible:false})); cbx.position.set(sp[0],sp[1]+1.15,sp[2]); cbx.rotation.y=cm.rotation.y; scene.add(cbx); coverMeshes.push(cbx);
-      solid(sp[0],sp[1],sp[2],2.0,2.3,2.0); }
-  }
   /* equipment pads: one Bubble Shield and one Regenerator per team */
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'bubble'); }
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'regen'); }
@@ -9314,20 +9310,23 @@ function tmRackSpot(bx,by,bz,avoid){
 var RACK_UNSC=[2,1,4,0,7,6,8,9], RACK_COV=[11,12,14,15,13,16,18];
 /* free-standing weapon rack: a board on two posts with the guns hanging upright on it, like the wall racks in the other maps. Look at one and press E */
 function tmMomRack(cx,gy,cz,dz,t,wl){
-  var ws=wl||[2,1,4,0,7,6,8,9], i, tc=TEAMS[t].c, W=6.4;
-  var mat=new THREE.MeshLambertMaterial({color:0x2a3038});
-  var board=new THREE.Mesh(new THREE.BoxGeometry(W,1.95,0.12),mat); board.position.set(cx,gy+2.15,cz); scene.add(board); coverMeshes.push(board);
-  [-1,1].forEach(function(sg){ var post=new THREE.Mesh(new THREE.BoxGeometry(0.16,3.2,0.16),mat); post.position.set(cx+sg*(W/2-0.1),gy+1.6,cz); scene.add(post); coverMeshes.push(post); });
-  var top=new THREE.Mesh(new THREE.BoxGeometry(W,0.08,0.2),new THREE.MeshBasicMaterial({color:tc})); top.position.set(cx,gy+3.17,cz); scene.add(top); coverMeshes.push(top);
-  boxes.push({minx:cx-W/2,maxx:cx+W/2,minz:cz-0.2,maxz:cz+0.2,h:gy+3.2,y0:gy});
+  /* weapon racks are UNSC weapon crates: a row of green lockers, three weapons in each, open towards the player */
+  var ws=wl||[2,1,4,0,7,6,8,9], i, tc=TEAMS[t].c, CW=2.4, per=3, nC=Math.ceil(ws.length/per), ci;
+  for(ci=0;ci<nC;ci++){
+    var ccx=cx+(ci-(nC-1)/2)*(CW+0.05), cr=buildUnscCrate(tc,true);
+    cr.position.set(ccx,gy,cz); cr.rotation.y=dz>0?0:Math.PI; scene.add(cr);
+    var cb=new THREE.Mesh(new THREE.BoxGeometry(CW,2.3,0.9),new THREE.MeshBasicMaterial({visible:false})); cb.position.set(ccx,gy+1.15,cz); scene.add(cb); coverMeshes.push(cb);
+    boxes.push({minx:ccx-CW/2,maxx:ccx+CW/2,minz:cz-0.45,maxz:cz+0.45,h:gy+2.3,y0:gy});
+  }
   for(i=0;i<ws.length;i++){
     if(!wAllowed(ws[i])) continue;
-    var x=cx+(i-(ws.length-1)/2)*0.78, z=cz+dz*0.42;
+    var ci2=Math.floor(i/per), inC=Math.min(per,ws.length-ci2*per), ccx2=cx+(ci2-(nC-1)/2)*(CW+0.05);
+    var x=ccx2+((i%per)-(inC-1)/2)*0.68, z=cz-dz*0.2;
     var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,Math.min(1.3,sz.x)), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
     inner.rotation.z=Math.PI/2; g.add(inner);
-    var hl=new THREE.Mesh(new THREE.BoxGeometry(0.7,L+0.35,0.3),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.22,depthWrite:false,blending:THREE.AdditiveBlending}));
+    var hl=new THREE.Mesh(new THREE.BoxGeometry(0.55,L+0.35,0.3),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.22,depthWrite:false,blending:THREE.AdditiveBlending}));
     hl.visible=false; g.add(hl);
-    var y=gy+2.15; g.position.set(x,y,z); scene.add(g);
+    var y=gy+1.2; g.position.set(x,y,z); scene.add(g);
     wpicks.push({wi:ws[i],g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0,wall:true});
   }
 }
