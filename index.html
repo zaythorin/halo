@@ -10631,11 +10631,14 @@ function buildChiefAvatar(){
 }
 function rotX(q,c,a){ var dy=q[1]-c[1], dz=q[2]-c[2], ca=Math.cos(a), sa=Math.sin(a); return [q[0],c[1]+dy*ca-dz*sa,c[2]+dy*sa+dz*ca]; }
 function poseAvatar(av,ph,mk){
-  var u=av.userData, S=u.S, R=u.R, P={}, sw=Math.sin(ph)*mk;
+  var u=av.userData, S=u.S, R=u.R, P={}, run=u.run||0, ck=u.crk||0, dF=u.dF===undefined?1:u.dF, dS=u.dS||0;
+  var dirS=(Math.abs(dS)>Math.abs(dF)*1.1)?0.65:(dF<-0.3?-1:1);   /* sidestep = shorter strides, backing up = legs swing the other way */
+  var sw=Math.sin(ph)*mk*dirS*(1+0.45*run)*(1-0.45*ck);
   CH_NAMES.forEach(function(n){ P[n]=S[n].slice(); });
   [['R',1],['L',-1]].forEach(function(sd){
-    var s=sd[0], sg=sd[1], a=sw*0.95*sg, hp=P['hp'+s], knee=Math.max(0,-Math.sin(ph+(sg>0?0:Math.PI)))*0.7*mk;
+    var s=sd[0], sg=sd[1], a=sw*0.95*sg, hp=P['hp'+s], knee=Math.max(0,-Math.sin(ph+(sg>0?0:Math.PI)))*(0.7+0.5*run)*mk*(1-0.4*ck);
     if(u.air){ a=sg>0?0.5:-0.2; knee=0.9; }
+    a+=ck*0.85; knee+=ck*1.5;   /* crouch: thighs forward, shins folded back */
     P['k'+s]=rotX(P['k'+s],hp,a); P['a'+s]=rotX(P['a'+s],hp,a); P['t'+s]=rotX(P['t'+s],hp,a);
     var kn=P['k'+s]; P['a'+s]=rotX(P['a'+s],kn,-knee); P['t'+s]=rotX(P['t'+s],kn,-knee);
     var sh=P['s'+s], armed=u.wg&&u.wg[u.w|0]&&u.wg[u.w|0].visible;
@@ -10648,7 +10651,11 @@ function poseAvatar(av,ph,mk){
       var pa=-(u.pit||0)*0.9-(u.kick||0)*0.12+(u.rl||0)*0.55+Math.sin(ph*2)*0.025*mk; pts.forEach(function(j){ P[j]=rotX(P[j],sh,pa); });
     }else{ var b=-sw*0.55*sg; ['e','w','f'].forEach(function(j){ P[j+s]=rotX(P[j+s],sh,b); }); }
   });
-  var bob=Math.abs(Math.sin(ph))*0.035*mk;
+  /* lean the upper body into a run / crouch, pivoting about the hips */
+  var lean=run*0.2+ck*0.35, hc=[0,(P.hpR[1]+P.hpL[1])/2,(P.hpR[2]+P.hpL[2])/2];
+  if(lean>0.001) ['spine','chest','neck','head','sR','sL','eR','eL','wR','wL','fR','fL'].forEach(function(n){ P[n]=rotX(P[n],hc,lean); });
+  var fm0=Math.min(S.tR[1],S.tL[1],S.aR[1],S.aL[1]), fm1=Math.min(P.tR[1],P.tL[1],P.aR[1],P.aL[1]), drop=ck>0.01?(fm1-fm0)*Math.min(1,ck*3):0;
+  var bob=Math.abs(Math.sin(ph))*(0.035+0.03*run)*mk*(1-ck)-drop;
   CH_NAMES.forEach(function(n){ P[n]=[P[n][0],P[n][1]-u.minY+bob,P[n][2]]; });
   CH_PARTS.forEach(function(cd){
     var g=u.built.groups[cd.n]; if(!g) return;
@@ -10918,6 +10925,11 @@ function mpUpdatePeer(pe,dt){
   R.x+=(R.tx-R.x)*k; R.y+=(R.ty-R.y)*k; R.z+=(R.tz-R.z)*k; R.yaw+=angDiff(R.tyaw-R.yaw)*k;
   var au=a.userData, spd=R.sp||0; if(performance.now()-(R.lt||0)>400) spd=0; R.sp=spd;
   var sB=Math.hypot(R.x-ox,R.z-oz)/Math.max(dt,0.001); au.sB=(au.sB||0)+(Math.min(12,sB)-(au.sB||0))*Math.min(1,dt*8); if(au.sB>spd) spd=au.sB; if(spd<0.4) spd=0;
+  var vx=(R.x-ox)/Math.max(dt,0.001), vz=(R.z-oz)/Math.max(dt,0.001), fw=-Math.sin(R.yaw), fz=-Math.cos(R.yaw), rx=Math.cos(R.yaw), rz=-Math.sin(R.yaw);
+  var vf=(vx*fw+vz*fz), vs=(vx*rx+vz*rz), vl=Math.max(0.5,Math.hypot(vf,vs));
+  au.dF=(au.dF||0)+((vf/vl)-(au.dF||0))*Math.min(1,dt*8); au.dS=(au.dS||0)+((vs/vl)-(au.dS||0))*Math.min(1,dt*8);   /* which way they are moving relative to where they face */
+  au.spd=spd; au.run=(au.run||0)+(Math.min(1,Math.max(0,(spd-3.2)/3))-(au.run||0))*Math.min(1,dt*6);
+  au.crk=(au.crk||0)+((R.cr||0)-(au.crk||0))*Math.min(1,dt*10);
   au.mk=(au.mk||0)+((Math.min(1,spd/2.2))-(au.mk||0))*Math.min(1,dt*10); au.ph+=dt*Math.min(spd,9)*1.25;
   au.airT=R.og?0:(au.airT||0)+dt; au.air=au.airT>0.25?1:0; au.rl=(au.rl||0)+(((R.rl|0)?1:0)-(au.rl||0))*Math.min(1,dt*8);
   au.pit+=((R.pit||0)-au.pit)*Math.min(1,dt*12); au.kick=Math.max(0,(au.kick||0)-dt*8);
@@ -10928,7 +10940,7 @@ function mpUpdatePeer(pe,dt){
   au.wr.rotation.z=swayW*0.8+Math.sin(rt)*0.10*au.rl; au.wr.rotation.x=Math.sin(rt*0.9)*0.07*au.rl;
   au.fl.visible=au.kick>0.75&&au.w!==5;
   if(a.visible) poseAvatar(a,au.ph,au.mk);
-  au.cr=(au.cr||0)+((R.cr||0)-(au.cr||0))*Math.min(1,dt*10); a.scale.y=1-0.28*au.cr;
+  au.cr=au.crk||0;   /* crouch is posed with bent legs now, not squashed */
   a.visible=!!R.al&&!R.iv; if(a.visible&&R.cm&&au.tmTeam!==mp.team&&au.kick<0.3&&Math.hypot(R.x-p.x,R.z-p.z)>7) a.visible=false;   /* active camo: only seen up close or when firing */
   a.position.set(R.x,R.y,R.z); a.rotation.y=R.yaw+Math.PI;
   if(au.tmk) au.tmk.rotation.y+=dt*2;
