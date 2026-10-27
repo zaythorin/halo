@@ -7000,16 +7000,26 @@ function throwGrenade(kind){
   gsfx.swish();
 }
 var THROW_HAND=[[0,-0.27,-0.5,-0.36],[0.2,-0.12,-0.1,-0.24],[0.28,-0.1,-0.04,-0.2],[THROW_REL,0.0,-0.12,-0.62],[1,0.0,-0.12,-0.62]];
+/* the free (left) hand does the throwing: it brings the grenade up, winds back, whips forward to let go, follows through and drops away */
+var tHandG=null, THROW_ARM=[[0,-0.36,-0.6,-0.36],[0.2,-0.14,-0.14,-0.26],[0.3,-0.08,-0.02,-0.18],[THROW_REL,0.04,-0.1,-0.6],[0.58,0.12,-0.1,-0.8],[0.78,-0.04,-0.3,-0.56],[1,-0.34,-0.6,-0.38]],
+    THROW_ROT=[[0,0.2,-0.1,-1.35],[0.3,0.75,-0.15,-1.2],[THROW_REL,-0.5,0.0,-1.45],[0.58,-0.7,0.1,-1.5],[1,0.2,-0.1,-1.35]];
+function throwHand(u,show){
+  if(!tHandG){ tHandG=new THREE.Group(); var f=makeHand(true,1.6); tHandG.add(f); tHandG.scale.setScalar(1.38); tHandG.visible=false; camera.add(tHandG); }
+  var k=sampleKeys(THROW_ARM,u), r=sampleKeys(THROW_ROT,u);
+  tHandG.position.set(k[0],k[1],k[2]); tHandG.rotation.set(r[0],r[1],r[2]); tHandG.visible=true;
+  if(!show) tHandG.children[0].rotation.x=0;
+}
 function updateThrow(dt){
-  if(throwT<=0){ heldG.frag.visible=false; heldG.plasma.visible=false; return; }
+  if(throwT<=0){ heldG.frag.visible=false; heldG.plasma.visible=false; if(tHandG) tHandG.visible=false; return; }
   throwT=Math.max(0,throwT-dt);
   var u=1-throwT/THROW_DUR;
   if(!throwDone&&u>=THROW_REL){ throwDone=true; releaseGrenade(throwKind); }
   var show=!throwDone, h=heldG[throwKind], other=heldG[throwKind==='frag'?'plasma':'frag'];
   other.visible=false; h.visible=show;
+  throwHand(u,show);
   if(show){
     var k=sampleKeys(THROW_HAND,u);
-    h.position.set(k[0],k[1],k[2]); h.rotation.set(u*5,u*3,u*2);
+    h.position.set(k[0]+0.0,k[1]+0.03,k[2]-0.02); h.rotation.set(u*5,u*3,u*2);
     if(throwKind==='plasma'&&h.userData.shell) h.userData.shell.scale.setScalar(0.115*(1+0.25*Math.sin(tAcc*16)));
   }
 }
