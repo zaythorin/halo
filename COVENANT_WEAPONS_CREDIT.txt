@@ -69,3 +69,14 @@ Model License:
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 This work is based on "Weapons>Covenant>H2A>Plasma Pistol" (https://sketchfab.com/3d-models/weaponscovenanth2aplasma-pistol-afdb63e110d947be8213d87de29096b9) by Bornstellar Makes Eternallasting (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+Model Information:
+* title:	Weapons>Covenant>Spiker
+* source:	https://sketchfab.com/3d-models/weaponscovenantspiker-c7117137811144a994dbec8e00369d75
+* author:	jameslucino117 (https://sketchfab.com/jameslucino117)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Weapons>Covenant>Spiker" (https://sketchfab.com/3d-models/weaponscovenantspiker-c7117137811144a994dbec8e00369d75) by jameslucino117 (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
