@@ -1466,37 +1466,6 @@ safe(function(){
     var a=rnd()*TAU, r=320+rnd()*220, s=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,transparent:true,opacity:0.45,depthWrite:false,fog:false}));
     s.position.set(Math.cos(a)*r,130+rnd()*110,Math.sin(a)*r); s.scale.set(170+rnd()*130,48+rnd()*30,1); scene.add(s);
   }
-  /* the ring: a huge curved band arcing up from the horizon across the sky, drawn behind everything */
-  (function(){
-    var RR=1100, WD=460, cy=RR-60, SEG=160, A0=-3.1416, A1=3.1416, pos=[], uv=[], idx=[], u, v;
-    for(u=0;u<=SEG;u++){
-      var ph=A0+(A1-A0)*u/SEG;
-      for(v=0;v<=1;v++){ pos.push(RR*Math.sin(ph), cy+RR*Math.cos(ph), (v-0.5)*WD); uv.push(u/SEG*3,v); }
-    }
-    for(u=0;u<SEG;u++){ var a=u*2, b=a+1, c=a+2, d=a+3; idx.push(a,b,c, b,d,c); }
-    var rg=new THREE.BufferGeometry();
-    rg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));
-    rg.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(uv),2));
-    rg.setIndex(idx);
-    var cv=document.createElement('canvas'); cv.width=2048; cv.height=256; var g=cv.getContext('2d'), k;
-    var gr=g.createLinearGradient(0,0,0,256); gr.addColorStop(0,'#7f98bb'); gr.addColorStop(0.07,'#b3c8e3'); gr.addColorStop(0.5,'#e4eefa'); gr.addColorStop(0.93,'#b3c8e3'); gr.addColorStop(1,'#7f98bb');
-    g.fillStyle=gr; g.fillRect(0,0,2048,256);
-    for(k=0;k<260;k++){
-      var cx=rnd()*2048, cyy=20+rnd()*216, rw=40+rnd()*160, rh=6+rnd()*22, lite=rnd()<0.7;
-      for(var wx=-1;wx<=1;wx++){
-        g.save(); g.translate(cx+wx*2048,cyy); g.scale(rw/rh,1);
-        var rd=g.createRadialGradient(0,0,0,0,0,rh); rd.addColorStop(0,lite?'rgba(255,255,255,.55)':(rnd()<0.5?'rgba(95,120,95,.35)':'rgba(130,150,180,.3)')); rd.addColorStop(1,'rgba(0,0,0,0)');
-        g.fillStyle=rd; g.beginPath(); g.arc(0,0,rh,0,6.2832); g.fill(); g.restore();
-      }
-    }
-    g.fillStyle='rgba(40,70,120,.10)'; g.fillRect(0,0,2048,256);
-    g.fillStyle='rgba(60,80,110,.65)'; g.fillRect(0,0,2048,7); g.fillRect(0,249,2048,7);
-    var rt=new THREE.CanvasTexture(cv); rt.wrapS=THREE.RepeatWrapping; rt.needsUpdate=true;
-    var ringMesh=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({map:rt,side:THREE.DoubleSide,fog:false,depthTest:false,depthWrite:false}));
-    ringMesh.rotation.y=0.95; ringMesh.renderOrder=-9; ringMesh.frustumCulled=false;
-    ringMesh.onBeforeRender=function(r,sc,cam){ ringMesh.position.set(cam.position.x,0,cam.position.z); ringMesh.updateMatrixWorld(true); };
-    scene.add(ringMesh);
-  })();
   var plc=document.createElement('canvas'); plc.width=8; plc.height=128; var plg=plc.getContext('2d'), pk0;
   for(pk0=0;pk0<128;pk0+=4){ var pb=0.5+0.5*Math.sin(pk0*0.21)+0.3*Math.sin(pk0*0.57); plg.fillStyle='rgb('+Math.round(120+60*pb)+','+Math.round(150+50*pb)+','+Math.round(215+30*pb)+')'; plg.fillRect(0,pk0,8,4); }
   var planet=new THREE.Mesh(new THREE.SphereGeometry(70,24,16),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(plc),fog:false}));
@@ -9911,8 +9880,38 @@ function cutEnd(quiet){
   camera.rotation.z=0; p.pitch=0; camLag=0; MA.roll=0;
   if(!quiet){ $('ui').hidden=false; try{ $('mpHud').hidden=false; }catch(e){} mp.inv=tAcc+3; }
 }
+/* storm sky: two drifting layers of heavy dark cloud, lit up by every flash of lightning */
+function stormCloudTex(W,H,oct,c0,c1,a0,a1,alphaMode){
+  var cv=document.createElement('canvas'); cv.width=W; cv.height=H; var g=cv.getContext('2d'), im=g.createImageData(W,H), d=im.data, o, i, x, y, tabs=[];
+  for(o=0;o<oct.length;o++){ var gx=oct[o][0], gy=oct[o][1], tb=new Float32Array(gx*gy); for(i=0;i<tb.length;i++) tb[i]=Math.random(); tabs.push({gx:gx,gy:gy,tb:tb,w:oct[o][2]}); }
+  function sm(t){ return t*t*(3-2*t); }
+  for(y=0;y<H;y++) for(x=0;x<W;x++){
+    var n=0, ws=0;
+    for(o=0;o<tabs.length;o++){
+      var T=tabs[o], fx=x/W*T.gx, fy=y/H*(T.gy-1), ix=Math.floor(fx), iy=Math.floor(fy), tx=sm(fx-ix), ty=sm(fy-iy), x0=ix%T.gx, x1=(ix+1)%T.gx;
+      var a=T.tb[iy*T.gx+x0], b=T.tb[iy*T.gx+x1], c=T.tb[(iy+1)*T.gx+x0], e=T.tb[(iy+1)*T.gx+x1];
+      n+=T.w*((a+(b-a)*tx)*(1-ty)+(c+(e-c)*tx)*ty); ws+=T.w;
+    }
+    n/=ws; var k=Math.max(0,Math.min(1,(n-a0)/(a1-a0))); k=k*k*(3-2*k);
+    i=(y*W+x)*4; d[i]=c0[0]+(c1[0]-c0[0])*k; d[i+1]=c0[1]+(c1[1]-c0[1])*k; d[i+2]=c0[2]+(c1[2]-c0[2])*k; d[i+3]=alphaMode?255*k:255;
+  }
+  g.putImageData(im,0,0); var t=new THREE.CanvasTexture(cv); t.wrapS=THREE.RepeatWrapping; t.anisotropy=2; return t;
+}
+function stormClouds(){
+  var oct=[[4,3,0.5],[8,5,0.3],[16,9,0.2],[32,17,0.1]];
+  function dome(tex,R,ro,tr){ var m=new THREE.Mesh(new THREE.SphereGeometry(R,32,20),new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,fog:false,depthWrite:false,transparent:tr})); m.renderOrder=ro; m.frustumCulled=false; scene.add(m); return m; }
+  var a=dome(stormCloudTex(512,256,oct,[10,13,22],[62,70,90],0.3,0.75,false),1480,-8,false);
+  var b=dome(stormCloudTex(512,256,oct,[44,50,66],[118,128,148],0.5,0.85,true),1420,-7,true);
+  TM.clouds={a:a,b:b};
+}
+function stormCloudTick(dt,k){
+  var C=TM.clouds; if(!C) return;
+  C.a.rotation.y+=dt*0.006; C.b.rotation.y-=dt*0.011; C.a.position.copy(camera.position); C.b.position.copy(camera.position);
+  var f=0.8+k*2.4; C.a.material.color.setRGB(f,f,f*1.05); C.b.material.color.setRGB(f*1.1,f*1.1,f*1.15);
+}
 /* New Mombasa at night: the same heavy rain, lightning and thunder as the training ground */
 function momStormInit(){
+  stormClouds();
   trRainInit(function(o){ TM.rainObj=o; scene.add(o); }); TM.rain=TRN.rain; TRN.rain=null; trRainStart();
   var bolt=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xe8f0ff,fog:false,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
   bolt.geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3)); bolt.frustumCulled=false; bolt.visible=false; scene.add(bolt);
@@ -9934,6 +9933,7 @@ function momStormTick(dt){
   if(T.th>0){ T.th-=dt; if(T.th<=0){ trThunder(); T.th=0; } }
   hemi.intensity=0.55+1.4*k; sun.intensity=0.15+1.2*k;
   scene.background.setRGB(0.07+0.2*k,0.085+0.24*k,0.12+0.3*k); scene.fog.color.copy(scene.background);
+  stormCloudTick(dt,k);
 }
 /* street light pools: a coloured one over each flag, a warm one on the hill and a few along the streets */
 function momLights(){
@@ -10009,18 +10009,15 @@ function tmEnter(team){
     hemi.intensity=0.6; hemi.color.setHex(0x7f9fe0); hemi.groundColor.setHex(0x1c2a48); sun.intensity=0.5; sun.color.setHex(0x9db4ff);
     if(skyDome) skyDome.material.color.setScalar(0.1);
     if(stars){ stars.visible=true; stars.material.opacity=1; }
+    /* now a thunderstorm: heavy cloud, rain instead of snow, lightning and thunder */
+    TM.storm=true; scene.background.setRGB(0.07,0.085,0.12); scene.fog.color.copy(scene.background); scene.fog.near=10; scene.fog.far=230;
+    hemi.intensity=0.55; hemi.color.setHex(0x6f86b8); hemi.groundColor.setHex(0x1c2030); sun.intensity=0.15; sun.color.setHex(0x9db4ff);
+    if(stars) stars.visible=false; if(TM.snow) TM.snow.visible=false;
+    momStormInit();
   }
   CTF.on=false; if(mp.ctf) ctfInit();
   KH.on=false; if(mp.koth) khInit();
   TM.wire=null; /* barbed wire removed */
-  try{   /* a Halo ring arcing across the sky */
-    var rc2=document.createElement('canvas'); rc2.width=512; rc2.height=64; var rg=rc2.getContext('2d'), ri;
-    rg.fillStyle='#7f93a8'; rg.fillRect(0,0,512,64); for(ri=0;ri<64;ri++){ rg.fillStyle='rgba('+(110+((ri*37)%60))+','+(140+((ri*53)%50))+','+(150+((ri*29)%60))+',0.55)'; rg.fillRect(ri*8,0,3+(ri%3),64); }
-    rg.fillStyle='rgba(235,245,255,.7)'; rg.fillRect(0,0,512,5); rg.fillRect(0,59,512,5);
-    var rt2=new THREE.CanvasTexture(rc2); rt2.wrapS=rt2.wrapT=THREE.RepeatWrapping; rt2.repeat.set(24,1);
-    var haloRing=new THREE.Mesh(new THREE.CylinderGeometry(1450,1450,170,128,1,true),new THREE.MeshBasicMaterial({map:rt2,side:THREE.BackSide,fog:false,transparent:true,opacity:0.9,depthWrite:false}));
-    haloRing.rotation.z=Math.PI/2; haloRing.rotation.y=0.55; haloRing.renderOrder=-5; haloRing.frustumCulled=false; scene.add(haloRing);
-  }catch(e){}
   TM.objs=scene.children.slice(n0).concat([TM.mesh]);
   /* team-coloured vehicles */
   TM.tint=[]; tmTintRover(rover,TEAMS[team].c,true); tmTintJet(jetObj.group,TEAMS[team].c,true);
@@ -10039,7 +10036,7 @@ function tmExit(){
   mgClear();
   covClear();
   if(CUT.on) cutEnd(true); CUT.prep=null;
-  CTF.on=false; KH.on=false; TM.wire=null; EM_STEP=4.4; TM.ship=false; TM.mom=false; TM.isl=false; TM.water=null; bgScenery.forEach(function(m){ m.visible=true; }); if(skyDome) skyDome.visible=true; trRainStop(); TM.rain=null; TM.lt=null;
+  CTF.on=false; KH.on=false; TM.wire=null; EM_STEP=4.4; TM.ship=false; TM.mom=false; TM.isl=false; TM.storm=false; TM.clouds=null; TM.water=null; bgScenery.forEach(function(m){ m.visible=true; }); if(skyDome) skyDome.visible=true; trRainStop(); TM.rain=null; TM.lt=null;
   if(stars){ stars.visible=night>0.05; stars.material.opacity=Math.min(1,night*1.2); }
   teamPaint(fpMaterials(),-1); TP.rigId=null;
   TM.on=false;
@@ -10960,7 +10957,7 @@ function mpTick(dt){
     }
   }
   for(var id in mp.peers) mpUpdatePeer(mp.peers[id],dt);
-  if(TM.on){ tmUpdate(dt); if(TM.mom) momStormTick(dt); if(TM.isl) islTick(dt); }
+  if(TM.on){ tmUpdate(dt); if(TM.mom||TM.storm) momStormTick(dt); if(TM.isl) islTick(dt); }
   var txt, R=mp.rem;
   if(mp.mode==='dm'){
     var n=1; for(var q in mp.peers) n++;
