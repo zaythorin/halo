@@ -6875,8 +6875,8 @@ function updateWeapon(dt){
 
 /* ---------- grenades: frag bounces and goes off quickly, plasma sticks and goes off a little later ---------- */
 var GDEF={
-  frag:{n:'FRAG',stick:false,fuse:1.6,speed:21,r:0.11,rest:0.28,R:22.5,inner:4,dmg:190,direct:0},
-  plasma:{n:'PLASMA',stick:true,fuse:2.5,speed:18.5,r:0.13,rest:0,R:18,inner:3.6,dmg:150,direct:175,stickMin:1.2}
+  frag:{n:'FRAG',stick:false,fuse:1.6,speed:21,r:0.11,rest:0.28,R:14,inner:3,dmg:190,direct:0},
+  plasma:{n:'PLASMA',stick:true,fuse:2.5,speed:18.5,r:0.13,rest:0,R:11,inner:2.5,dmg:150,direct:175,stickMin:1.2}
 };
 var gren={frag:3,plasma:2}, GMAX={frag:8,plasma:8}, GGRAV=15, THROW_DUR=0.55, THROW_REL=0.36;
 var grens=[], throwT=0, throwKind='frag', throwDone=true, shakeT=0, shakeAmp=0;
