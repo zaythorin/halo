@@ -1622,7 +1622,7 @@ var sfx={
   ar:function(){ if(sample('ar',0.8,0.97+Math.random()*0.06)) return; noise(0.09,0.55,'bandpass',3500,800); tone(150,70,0.07,'square',0.12); },
   ccarb:function(){ if(sample('covCarb',0.9,0.97+Math.random()*0.06)) return; tone(1200,400,0.1,'sawtooth',0.2); },
   cfuel:function(){ if(sample('covFuel',1)) return; sfx.rocket(); },
-  cspike:function(){ tone(1100,380,0.06,'sawtooth',0.14); noise(0.06,0.18,'highpass',2500,1200); tone(260,120,0.05,'square',0.08); },
+  cspike:function(){ sfx.cneedle(); },   /* the needler's own shot sound */
   cneedle:function(){ if(sample('covNeedle',0.55,0.96+Math.random()*0.08)) return; tone(1500,600,0.06,'square',0.12); },
   cpist:function(){ if(sample('covPPis',0.8,0.97+Math.random()*0.06)) return; tone(900,300,0.12,'sawtooth',0.2); },
   cball:function(){ sample('covPChargeFire',0.8); },
@@ -2296,12 +2296,12 @@ function pisTick(dt){
 var COV_OH=3.0;
 /* every Covenant weapon swaps in on its own: a Covenant gun and a UNSC gun can be carried together */
 function buildSpiker(){
-  var g=new THREE.Group(); g.add(covModel('spik'));
+  var g=new THREE.Group(), sm=covModel('spik'); sm.rotation.y=Math.PI; g.add(sm);   /* turned round: muzzle forwards */
   var mag=new THREE.Group(); mag.visible=false; g.add(mag);
   var mz=new THREE.Object3D(); mz.position.set(COVM.spik.muzzle[0],COVM.spik.muzzle[1],COVM.spik.muzzle[2]); g.add(mz);
   var lh=makeHand(true), rh=makeHand(false); lh.rotation.set(0.55,-0.35,0);
-  g.add(lh); rh.position.set(0.0,-0.1,0.17); rh.rotation.set(0.6,0.3,0); g.add(rh);
-  g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh};
+  g.add(lh); rh.position.set(0.0,-0.1,0.17); rh.rotation.set(0.6,0.3,0); g.add(rh); lh.visible=false;   /* one-handed like the needler */
+  g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh,lhVis:false};
   return g;
 }
 /* Spiker spikes: yellow, fast, straight; they do not home and they do not explode (the damage is done on the spot, this is the visible spike) */
@@ -2309,7 +2309,7 @@ var SPK={list:[],geo:null,glow:null,mat:null,mat2:null};
 function spikeFx(from,to){
   try{
     if(!SPK.geo){
-      SPK.geo=new THREE.CylinderGeometry(0.01,0.018,0.3,6); SPK.geo.rotateX(Math.PI/2); SPK.glow=new THREE.CylinderGeometry(0.035,0.045,0.26,6); SPK.glow.rotateX(Math.PI/2);
+      SPK.geo=new THREE.CylinderGeometry(0.006,0.012,0.34,6); SPK.geo.rotateX(Math.PI/2); SPK.glow=new THREE.CylinderGeometry(0.022,0.03,0.3,6); SPK.glow.rotateX(Math.PI/2);
       SPK.mat=new THREE.MeshBasicMaterial({color:0xffe066,fog:false}); SPK.mat2=new THREE.MeshBasicMaterial({color:0xffb020,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
     }
     var m=new THREE.Group(); m.add(new THREE.Mesh(SPK.geo,SPK.mat)); m.add(new THREE.Mesh(SPK.glow,SPK.mat2));
@@ -2990,7 +2990,7 @@ covInit();
 /* SPIKER (index 18): the Covenant spike rifle. Fast automatic fire of straight yellow spikes: they neither home nor explode */
 (function(){
   var b=weapons[6], w=Object.assign({},b,{name:'SPIKER',id:'spiker',auto:true,burst:0,dmg:12,head:1.6,rate:0.1,mag:40,magSize:40,reserve:160,maxRes:240,reload:2.1,reloadDur:2.1,spread:0.013,bloomAdd:0.003,bloomMax:0.03,kick:0.012,vmKick:0.03,sfx:'cspike',noEject:true,spike:true,flv:[0xffd23a,1.0,2.0,0.04]});
-  delete w.group2; w.rsnd=undefined; w.slideKick=0; w.group=buildSpiker(); w.group.scale.setScalar(0.82);
+  delete w.group2; w.rsnd=undefined; w.slideKick=0; w.group=buildSpiker(); w.group.scale.setScalar(0.68);
   var an=reloadAnim([-0.03,-0.1,-0.17],[0,-0.05,0.1],[0.03,0.03,0],AR_ROT,false); an.base=[0.02,-0.02,-0.05]; w.anim=an;
   w._i={mag:w.mag,reserve:w.reserve};
   weapons.push(w); vm.add(w.group); w.group.visible=false;
