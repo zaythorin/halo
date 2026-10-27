@@ -430,6 +430,9 @@ body{letter-spacing:.02em}
 #bCrouch{left:calc(106px + var(--sl));bottom:calc(214px + var(--sb))}
 #ui.driving #bCrouch{display:none}
 @media (pointer:coarse){#bSprint{left:auto !important;right:calc(14px + var(--sr)) !important;bottom:calc(224px + var(--sb)) !important}#bCrouch{left:calc(12px + var(--sl));bottom:calc(120px + var(--sb))}}
+/* weapon art sits right beside the ammo count and is bigger */
+.info .ammo{align-items:center !important;gap:12px}
+.info .ammo #wname{margin:0 4px 0 0;line-height:0}
 </style>
 
 <canvas id="gl"></canvas>
@@ -454,8 +457,7 @@ body{letter-spacing:.02em}
   </div>
 
   <div class="panel info" id="info">
-    <div id="wname">MAGNUM</div>
-    <div class="ammo"><span id="mag">12</span><span class="x">/</span><span id="res">72</span></div>
+    <div class="ammo"><div id="wname">MAGNUM</div><span id="mag">12</span><span class="x">/</span><span id="res">72</span></div>
     <div class="magbar" id="magBar"></div>
     <div class="kv gren"><span>GRENADES</span><b><svg class="gi fg" viewBox="0 0 20 22"><path d="M8 1h4v3h-4z"/><path d="M10 4C5 4 2 8 2 13s3 8 8 8 8-3 8-8-3-9-8-9zm0 3c3 0 5 2.4 5 6s-2 5-5 5-5-1.4-5-5 2-6 5-6z" fill-rule="evenodd"/></svg><u id="gFrag">3</u></b><b><svg class="gi" viewBox="0 0 20 22"><path d="M10 1l2 4 5 1-3 4 1 5-5-2-5 2 1-5-3-4 5-1z"/><circle cx="10" cy="16" r="4"/></svg><u id="gPlasma">2</u></b></div>
   </div>
@@ -5666,8 +5668,8 @@ function wIconURL(idx){
     if(!rackTpl) buildRackTpl();
     var tpl=rackTpl[idx]; if(!tpl) throw 0;
     if(!WICON.r){
-      var cv=document.createElement('canvas'); cv.width=256; cv.height=96;
-      WICON.r=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true,preserveDrawingBuffer:true}); WICON.r.setSize(256,96,false); WICON.r.setClearColor(0x000000,0);
+      var cv=document.createElement('canvas'); cv.width=384; cv.height=144;
+      WICON.r=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true,preserveDrawingBuffer:true}); WICON.r.setSize(384,144,false); WICON.r.setClearColor(0x000000,0);
       var sc=new THREE.Scene(); sc.overrideMaterial=new THREE.MeshLambertMaterial({color:0xffffff});
       sc.add(new THREE.AmbientLight(0xffffff,0.78)); var dl=new THREE.DirectionalLight(0xffffff,0.7); dl.position.set(-2,3,4); sc.add(dl);
       WICON.sc=sc; WICON.cam=new THREE.OrthographicCamera(-1,1,1,-1,0.1,50);
@@ -5687,7 +5689,7 @@ function wIconURL(idx){
 function wIconSet(w){
   var el=els.wname; if(!el) return;
   var idx=weapons.indexOf(w), u=idx>=0?wIconURL(idx):null;
-  if(u){ el.innerHTML='<img alt="'+w.name+'" src="'+u+'" style="height:30px;display:block;filter:drop-shadow(0 0 5px rgba(60,200,230,.85)) drop-shadow(0 1px 0 rgba(0,0,0,.6))">'; }
+  if(u){ el.innerHTML='<img alt="'+w.name+'" src="'+u+'" style="height:64px;max-width:170px;object-fit:contain;display:block;filter:drop-shadow(0 0 5px rgba(60,200,230,.85)) drop-shadow(0 1px 0 rgba(0,0,0,.6))">'; }
   else el.textContent=w.name;
 }
 function setWeapon(i){
