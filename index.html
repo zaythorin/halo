@@ -426,6 +426,7 @@ body{letter-spacing:.02em}
 @media (min-width:900px) and (pointer:fine){.status,.info{zoom:1.28}#tracker{width:214px;height:214px}}
 @media (max-width:899px),(pointer:coarse){.status,.info{zoom:1.1}}
 /* touch: SPRINT sits above SWAP on the right, CROUCH takes the old sprint spot on the left */
+#bPing{right:calc(14px + var(--sr));bottom:calc(282px + var(--sb))}
 #bCrouch{left:calc(106px + var(--sl));bottom:calc(214px + var(--sb))}
 #ui.driving #bCrouch{display:none}
 @media (pointer:coarse){#bSprint{left:auto !important;right:calc(14px + var(--sr)) !important;bottom:calc(224px + var(--sb)) !important}#bCrouch{left:calc(12px + var(--sl));bottom:calc(120px + var(--sb))}}
@@ -478,6 +479,7 @@ body{letter-spacing:.02em}
   <button type="button" class="btn" id="bSprint">SPRINT</button>
   <button type="button" class="btn" id="bCrouch">CROUCH</button>
   <button type="button" class="btn" id="bDual">DROP 1</button>
+  <button type="button" class="btn" id="bPing" hidden>PING</button>
   <button type="button" class="btn" id="bMelee">MELEE</button>
   <button type="button" class="btn" id="bMsl">MISSILE</button>
   <button type="button" class="btn" id="bFrag">FRAG</button>
@@ -524,6 +526,9 @@ body{letter-spacing:.02em}
       <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
       <button type="button" class="go alt" id="pGfx">GRAPHICS: HIGH</button>
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
+      <button type="button" class="go alt" id="pAnn">ANNOUNCER: ON</button>
+      <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
+      <button type="button" class="go alt" id="pFov">FIELD OF VIEW: 62</button>
       <button type="button" class="go alt" id="toMenu">MAIN MENU</button>
     </div>
     <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button><br>Code <input type="text" class="devCode" maxlength="12" autocomplete="off" placeholder="code" style="width:6em;font:inherit;padding:4px"> <button type="button" class="ghost devCodeGo" style="display:inline-block;padding:4px 12px">ENTER</button> <span class="devMsg"></span></div></details>
@@ -2618,6 +2623,27 @@ function heatGlow(w){
 }
 var MPF={l:null,t:0};
 /* other players' shots: a brief muzzle light where they fired, and a whiz and jolt if the shot passes close to you */
+var PINGS=[], PNG={tex:null};
+function pingShow(pos,col,who){
+  try{
+    if(!PNG.tex){ var c=document.createElement('canvas'); c.width=c.height=64; var g=c.getContext('2d'); g.strokeStyle='#fff'; g.lineWidth=5; g.beginPath(); g.arc(32,32,24,0,6.2832); g.stroke(); g.beginPath(); g.moveTo(32,12); g.lineTo(32,52); g.moveTo(12,32); g.lineTo(52,32); g.stroke(); PNG.tex=new THREE.CanvasTexture(c); }
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:PNG.tex,color:col,transparent:true,depthTest:false,depthWrite:false,fog:false})); sp.renderOrder=9; sp.position.copy(pos); sp.userData={t:7};
+    scene.add(sp); PINGS.push(sp); if(PINGS.length>6){ var o=PINGS.shift(); scene.remove(o); }
+    tone(1100,1500,0.08,'triangle',0.08); setTimeout(function(){ tone(1500,1500,0.1,'triangle',0.08); },90);
+    showToast((who||'PLAYER')+' PINGED');
+  }catch(e){}
+}
+function pingTick(dt){
+  for(var i=PINGS.length-1;i>=0;i--){ var sp=PINGS[i]; sp.userData.t-=dt; var d=Math.max(1,sp.position.distanceTo(camera.position)); sp.scale.setScalar(Math.max(0.6,d*0.045)); sp.material.opacity=Math.min(1,sp.userData.t); if(sp.userData.t<=0){ scene.remove(sp); PINGS.splice(i,1); } }
+}
+function mpPing(){
+  if(!mp.on||state!=='play') return;
+  camera.updateMatrixWorld(true);
+  var o=new V3(), d=new V3(); camera.getWorldPosition(o); camera.getWorldDirection(d);
+  ray.set(o,d); ray.far=300; var hs=ray.intersectObjects(coverMeshes,false), pt=hs.length?hs[0].point.clone():o.clone().addScaledVector(d,60);
+  pt.y+=0.4; pingShow(pt,TEAMS[mp.team]?TEAMS[mp.team].c:0xffffff,'YOU');
+  mpSend({t:'ping',x:r2(pt.x),y:r2(pt.y),z:r2(pt.z)});
+}
 function mpShotFx(fo,fe,fdd){
   try{
     if(fdd>2&&fdd<70){
@@ -2631,6 +2657,7 @@ function mpShotFx(fo,fe,fdd){
   }catch(e){}
 }
 function heatTick(dt){
+  pingTick(dt);
   if(MPF.l&&MPF.t>0){ MPF.t-=dt; if(MPF.t<=0) MPF.l.intensity=0; }
   for(var i=0;i<weapons.length;i++){
     var w=weapons[i]; if(!w.hg||!w.bh) continue;
@@ -3965,7 +3992,19 @@ function medalShow(txt,sub,col){
 }
 function medalChime(n){ try{ var b=520+n*60; tone(b,b*1.5,0.12,'triangle',0.09); setTimeout(function(){ tone(b*1.5,b*2,0.2,'triangle',0.09); },110); if(n>=3) setTimeout(function(){ tone(b*2,b*2.5,0.26,'sine',0.08); },230); }catch(err){} }
 var MDS={};
-function medalAward(name,sub,col,chime){ MDS[name]=(MDS[name]||0)+1; medalShow(name,sub,col); medalChime(chime||2); }
+var ANN={on:true,voice:undefined};
+try{ ANN.on=localStorage.getItem('halo-ann')!=='0'; }catch(e){}
+/* the announcer: the browser's own speech voice, pitched down, says the medal out loud */
+function announce(t){
+  if(!ANN.on||!window.speechSynthesis||!window.SpeechSynthesisUtterance) return;
+  try{
+    var u=new SpeechSynthesisUtterance(String(t).toLowerCase()); u.pitch=0.45; u.rate=0.9; u.volume=0.9;
+    if(ANN.voice===undefined){ var vs=speechSynthesis.getVoices()||[]; ANN.voice=null; for(var i=0;i<vs.length;i++){ if(/^en/i.test(vs[i].lang)&&/male|daniel|alex|fred|david|arthur|oliver/i.test(vs[i].name)&&!/female/i.test(vs[i].name)){ ANN.voice=vs[i]; break; } } }
+    if(ANN.voice) u.voice=ANN.voice;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
+function medalAward(name,sub,col,chime){ MDS[name]=(MDS[name]||0)+1; medalShow(name,sub,col); medalChime(chime||2); if(name!=='HEADSHOT') announce(name); }
 function medalPanel(){
   try{
     var card=$('over').querySelector('.card'), el=$('oMedals'); if(!el){ el=document.createElement('div'); el.id='oMedals'; el.style.cssText='margin:10px 0 4px;text-align:center;font:700 12px monospace;letter-spacing:.14em;color:#ffd24a;line-height:1.7'; card.insertBefore(el,card.querySelector('.pbtns')); }
@@ -4592,6 +4631,7 @@ var HINTS={seen:{},bT:0,hT:0};
 try{ HINTS.seen=JSON.parse(localStorage.getItem('halo-hints')||'{}')||{}; }catch(e){}
 function hintOnce(k,t){ if(HINTS.seen[k]) return; HINTS.seen[k]=1; try{ localStorage.setItem('halo-hints',JSON.stringify(HINTS.seen)); }catch(e){} showToast(t); }
 function feelTick(dt){
+  var pb=$('bPing'); if(pb&&pb.hidden===!!mp.on) pb.hidden=!mp.on;
   if(state!=='play') return;
   /* low shield: a beep that speeds up as the shield drops, and goes quiet once the shield is gone */
   if(p.shield>0&&p.shield<30&&p.health>0){
@@ -8083,6 +8123,16 @@ function toggleMusic(){
 }
 $('sndBtn').addEventListener('click',toggleMusic);
 $('pMusic').addEventListener('click',toggleMusic);
+/* settings: announcer voice, look speed and field of view, remembered between visits */
+(function(){
+  var SB=0.0042, SM=[60,80,100,130,160], FV=[62,70,78,86,95], si=2, fi=0;
+  try{ var a=+localStorage.getItem('halo-sens'); if(SM.indexOf(a)>=0) si=SM.indexOf(a); var f=+localStorage.getItem('halo-fov'); if(FV.indexOf(f)>=0) fi=FV.indexOf(f); }catch(e){}
+  function apply(){ SENS=SB*SM[si]/100; BASE_FOV=FV[fi]; $('pSens').textContent='LOOK SPEED: '+SM[si]+'%'; $('pFov').textContent='FIELD OF VIEW: '+FV[fi]; $('pAnn').textContent='ANNOUNCER: '+(ANN.on?'ON':'OFF'); }
+  apply();
+  $('pSens').addEventListener('click',function(){ si=(si+1)%SM.length; try{ localStorage.setItem('halo-sens',String(SM[si])); }catch(e){} apply(); });
+  $('pFov').addEventListener('click',function(){ fi=(fi+1)%FV.length; try{ localStorage.setItem('halo-fov',String(FV[fi])); }catch(e){} apply(); });
+  $('pAnn').addEventListener('click',function(){ ANN.on=!ANN.on; try{ localStorage.setItem('halo-ann',ANN.on?'1':'0'); }catch(e){} apply(); if(ANN.on) announce('announcer on'); });
+})();
 tpLabels();
 
 /* pause, resume, back to the menu */
@@ -8320,6 +8370,7 @@ hold($('bSwap'),swapWeapon);
 hold($('bZoom'),toggleZoom);
 hold($('bDual'),dwToggle);
 hold($('bSprint'),function(){ ctrl.sprintTouch=!ctrl.sprintTouch; $('bSprint').classList.toggle('on',ctrl.sprintTouch); if(ctrl.sprintTouch){ ctrl.crouchTouch=false; $('bCrouch').classList.remove('on'); } });
+hold($('bPing'),function(){ mpPing(); });
 hold($('bCrouch'),function(){ ctrl.crouchTouch=!ctrl.crouchTouch; $('bCrouch').classList.toggle('on',ctrl.crouchTouch); if(ctrl.crouchTouch){ ctrl.sprintTouch=false; $('bSprint').classList.remove('on'); } });
 hold($('bMelee'),startMelee);
 hold($('bMsl'),function(){ if(p.air) fireMissile(); });
@@ -8345,7 +8396,7 @@ window.addEventListener('keydown',function(ev){
   else if(ev.code==='Digit2') swapWeapon(1);
   else if(ev.code==='KeyV'||ev.code==='KeyF'){ if(ev.repeat) return; if(p.air) fireMissile(); else startMelee(); }
   else if(ev.code==='KeyZ') toggleZoom();
-  else if(ev.code==='KeyB') tpToggle();
+  else if(ev.code==='KeyN') mpPing();
   else if(ev.code==='KeyY'){ if(!ev.repeat) grFire(); }
   else if(ev.code==='Tab'){ ev.preventDefault(); sbShow(true); }
   else if(ev.code==='KeyX'){ if(!ev.repeat) turDropKey(); }
@@ -10063,7 +10114,7 @@ function tmTintAvatar(av,team){
   var mats=av.userData.built.mats;
   teamPaint(mats,team);
   var col=TEAMS[team].c, mk=new THREE.Mesh(new THREE.OctahedronGeometry(0.2),new THREE.MeshBasicMaterial({color:col,fog:false,depthTest:team===mp.team?false:true,transparent:true}));
-  mk.position.y=2.65*(av.userData.hs||1); mk.renderOrder=5; av.add(mk); av.userData.tmk=mk;
+  mk.position.y=2.65*(av.userData.hs||1); mk.renderOrder=5; mk.visible=(team===mp.team); /* no diamond over enemies, only over teammates */ av.add(mk); av.userData.tmk=mk;
 }
 
 /* ================= ONLINE PLAY: up to four players over WebRTC (PeerJS) =================
@@ -10086,7 +10137,7 @@ function mpSend(o,to){
     for(var i=0;i<mp.conns.length;i++){ var c=mp.conns[i]; if(!c.cn.open) continue; if(to!==undefined&&c.id!==to) continue; try{ c.cn.send(o); }catch(e){} }
   }else if(mp.conn&&mp.conn.open){ if(to!==undefined) o.to=to; try{ mp.conn.send(o); }catch(e){} }
 }
-var MP_RELAY={st:1,fx:1,dead:1,boom:1,vs:1,vc:1,vx:1,vhit:1,tu:1,rk:1,gr:1,vg:1};
+var MP_RELAY={ping:1,st:1,fx:1,dead:1,boom:1,vs:1,vc:1,vx:1,vhit:1,tu:1,rk:1,gr:1,vg:1};
 function mpOnData(cn,m){
   if(!m||!m.t) return;
   if(mp.host){
@@ -10571,6 +10622,9 @@ function mpRecv(m){
       R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0; R.iv=m.iv|0; R.cr=m.cr||0;
       var nowt=performance.now(); if(R.lt){ var dtm=Math.max(0.02,(nowt-R.lt)/1000), sv=Math.hypot(m.x-R.sx,m.z-R.sz)/dtm; R.sp=(R.sp||0)*0.6+Math.min(12,sv)*0.4; } R.lt=nowt; R.sx=m.x; R.sz=m.z;
       if(!R.has){ R.x=m.x; R.y=m.y; R.z=m.z; R.yaw=m.yaw; R.has=true; } break;
+    case 'ping':
+      if(state==='play'&&(mp.mode!=='dm'||mpTeamOf(m.f)===mp.team)) pingShow(new V3(m.x,m.y,m.z),TEAMS[mpTeamOf(m.f)]?TEAMS[mpTeamOf(m.f)].c:0xffffff,mpNm?mpNm(m.f):'PLAYER');
+      break;
     case 'fx':
       if(state!=='play'&&state!=='dying') break;
       var fo=new V3(m.o[0],m.o[1],m.o[2]), fe=new V3(m.e[0],m.e[1],m.e[2]);
