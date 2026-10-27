@@ -6873,7 +6873,7 @@ function updateWeapon(dt){
 
 /* ---------- grenades: frag bounces and goes off quickly, plasma sticks and goes off a little later ---------- */
 var GDEF={
-  frag:{n:'FRAG',stick:false,fuse:1.6,speed:21,r:0.11,rest:0.45,R:22.5,inner:4,dmg:190,direct:0},
+  frag:{n:'FRAG',stick:false,fuse:1.6,speed:21,r:0.11,rest:0.28,R:22.5,inner:4,dmg:190,direct:0},
   plasma:{n:'PLASMA',stick:true,fuse:2.5,speed:18.5,r:0.13,rest:0,R:18,inner:3.6,dmg:150,direct:175,stickMin:1.2}
 };
 var gren={frag:3,plasma:2}, GMAX={frag:5,plasma:5}, GGRAV=15, THROW_DUR=0.55, THROW_REL=0.36;
@@ -7049,12 +7049,15 @@ function hitSurface(g,n,kind){
   if(vn<0){
     var k=(1+d.rest)*vn;
     V.x-=k*n.x; V.y-=k*n.y; V.z-=k*n.z;
-    var vn2=V.x*n.x+V.y*n.y+V.z*n.z, f=(kind==='wall')?0.88:0.74;
+    var vn2=V.x*n.x+V.y*n.y+V.z*n.z, f=(kind==='wall')?0.7:0.5;
     V.x=(V.x-vn2*n.x)*f+vn2*n.x; V.y=(V.y-vn2*n.y)*f+vn2*n.y; V.z=(V.z-vn2*n.z)*f+vn2*n.z;
     g.spin.multiplyScalar(0.75);
     if(-vn>3&&g.age-g.lastTink>0.07){ g.lastTink=g.age; gsfx.tink(distToPlayer(g.pos)); }
   }
-  if(kind!=='wall'&&V.lengthSq()<1.7){ V.set(0,0,0); }
+  if(kind!=='wall'){
+    if(Math.abs(V.y)<2.2){ V.x*=0.82; V.z*=0.82; }   /* rolling friction: once it stops bouncing it slides to a halt */
+    if(V.lengthSq()<5){ V.set(0,0,0); }
+  }
 }
 function stepGrenade(g,h){
   var d=g.def, P=g.pos, V=g.vel, r=d.r, i, b, e;
