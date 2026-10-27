@@ -4322,12 +4322,12 @@ function updateBolts(dt){
 var pkGeo=new THREE.OctahedronGeometry(0.28);
 var ammoPkMat=new THREE.MeshBasicMaterial({color:0xd9a950}), hpPkMat=new THREE.MeshBasicMaterial({color:0x92c9a2});
 /* ---------- equipment: walk over a glowing pad. Bubble Shield: a dome around you that blocks all damage for 12 s. Regenerator: a green field where you drop it that heals health and shields for 14 s. Pads come back after 45 s ---------- */
-var EQ={list:[],bt:0,bm:null,hit:0,fields:[],owner:null};
+var EQ={camo:0,list:[],bt:0,bm:null,hit:0,fields:[],owner:null};
 function eqReset(){}
 function eqClear(){ EQ.list=[]; EQ.fields=[]; EQ.bt=0; EQ.bm=null; FS.fp=[]; }
 function eqPad(x,y,z,type){
   eqReset();
-  var col=type==='bubble'?0x4ad8ff:type==='gren'?0xffa23a:0x6bff7a, g=new THREE.Group();
+  var col=type==='bubble'?0x4ad8ff:type==='gren'?0xffa23a:type==='over'?0xb06bff:type==='camo'?0xe8ffe8:0x6bff7a, g=new THREE.Group();
   var ring=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,0.06,20),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.55})); ring.position.y=0.04; g.add(ring);
   var core=type==='bubble'?new THREE.Mesh(new THREE.IcosahedronGeometry(0.32,1),new THREE.MeshBasicMaterial({color:col,wireframe:true})):new THREE.Mesh(new THREE.BoxGeometry(0.34,0.34,0.34),new THREE.MeshBasicMaterial({color:col,wireframe:true}));
   core.position.y=0.9; g.add(core);
@@ -4344,6 +4344,8 @@ function eqTick(dt){
     if(state==='play'&&!p.inVeh&&Math.hypot(it.x-p.x,it.z-p.z)<1.4&&Math.abs(p.y-it.y)<2.2){
       it.g.visible=false; it.cool=45; sfx.pickup();
       if(it.type==='bubble'){ EQ.bt=12; showToast('BUBBLE SHIELD'); medalShow('BUBBLE SHIELD','12 SECONDS OF PROTECTION','#4ad8ff'); }
+      else if(it.type==='over'){ p.ov=100; it.cool=90; showToast('OVERSHIELD'); medalShow('OVERSHIELD','EXTRA PROTECTION','#b06bff'); }
+      else if(it.type==='camo'){ EQ.camo=20; it.cool=90; showToast('ACTIVE CAMO'); medalShow('ACTIVE CAMO','HARD TO SEE FOR 20 SECONDS','#e8ffe8'); }
       else if(it.type==='gren'){ gren.frag=Math.min(GMAX.frag,gren.frag+2); gren.plasma=Math.min(GMAX.plasma,gren.plasma+2); showToast('GRENADES  +2 FRAG  +2 PLASMA'); medalShow('GRENADE CRATE','+2 FRAG  +2 PLASMA','#ffa23a'); it.cool=30; }
       else{
         var f=new THREE.Mesh(new THREE.CylinderGeometry(2.8,2.8,0.12,28,1,true),new THREE.MeshBasicMaterial({color:0x6bff7a,transparent:true,opacity:0.3,side:THREE.DoubleSide,depthWrite:false}));
@@ -4461,10 +4463,11 @@ function hurt(n){
   if(p.inVeh&&!GN.on&&!MG.seat){ damageVehicle(n*0.8); return; }
   MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7);
   if(hitDir.x||hitDir.z){ var ax=-hitDir.x, az=-hitDir.z, al=Math.hypot(ax,az)||1; ax/=al; az/=al; var sn0=Math.sin(p.yaw), cs0=Math.cos(p.yaw); dmgAng=Math.atan2(ax*cs0-az*sn0,-ax*sn0-az*cs0)*57.2958; dmgT=0.9; dmgSh=shAbs&&p.shield>=n; }
+  if(p.ov>0){ var oa=Math.min(p.ov,n); p.ov-=oa; n-=oa; shHitT=0.4; if(p.ov<=0){ sfx.shieldBreak(); SHFX.brk=0.7; showToast('OVERSHIELD DOWN'); } if(n<=0) return; }
   if(shAbs) shHitT=0.4;
   if(p.shield>0){ var a=Math.min(p.shield,n); p.shield-=a; n-=a; if(p.shield<=0){ sfx.shieldBreak(); SHFX.brk=0.7; } }
   if(n>0) p.health-=n;
-  if(p.health<=0){ p.health=0; gameOver(); }
+  if(p.health<=0){ p.health=0; p.ov=0; EQ.camo=0; gameOver(); }
 }
 var camLag=0;
 /* misc first-person animation state: landing, jumping, sprinting, strafing, flinching, idle weapon inspects */
@@ -4631,10 +4634,23 @@ function updateFov(dt){
   var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV;
   if(Math.abs(camera.fov-ft)>0.05){ camera.fov+=(ft-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); }
 }
-var HINTS={seen:{},bT:0,hT:0};
+var HINTS={seen:{},bT:0,hT:0}, _sfD=new THREE.Vector3(), _sfP=new THREE.Vector3();
 try{ HINTS.seen=JSON.parse(localStorage.getItem('halo-hints')||'{}')||{}; }catch(e){}
 function hintOnce(k,t){ if(HINTS.seen[k]) return; HINTS.seen[k]=1; try{ localStorage.setItem('halo-hints',JSON.stringify(HINTS.seen)); }catch(e){} showToast(t); }
+var SUNFL=null;
 function feelTick(dt){
+  if(EQ.camo>0&&state==='play'){ EQ.camo-=dt; if(EQ.camo<=0) showToast('CAMO FADED'); }
+  try{
+    var sf=els.shieldFill; if(sf){ var ovOn=p.ov>0; if(sf._ov!==ovOn){ sf._ov=ovOn; sf.style.background=ovOn?'linear-gradient(180deg,#e3c7ff,#9a52ff)':''; } }
+    /* sun flare: a glow and a streak when you look towards the sun */
+    if(!SUNFL){ SUNFL=document.createElement('div'); SUNFL.style.cssText='position:fixed;left:0;top:0;width:360px;height:360px;margin:-180px 0 0 -180px;pointer-events:none;z-index:2;opacity:0;background:radial-gradient(circle,rgba(255,244,214,.95) 0,rgba(255,226,160,.45) 14%,rgba(255,200,120,.12) 38%,rgba(255,200,120,0) 62%);mix-blend-mode:screen'; document.body.appendChild(SUNFL); }
+    var sv2=(state==='play'&&GFX.lvl>=1)?1:0;
+    if(sv2){
+      camera.getWorldDirection(_sfD); var dd=_sfD.dot(GFX.dir);
+      if(dd>0.75){ _sfP.copy(camera.position).addScaledVector(GFX.dir,1000).project(camera); var ox=(_sfP.x*0.5+0.5)*window.innerWidth, oy=(-_sfP.y*0.5+0.5)*window.innerHeight; SUNFL.style.left=ox+'px'; SUNFL.style.top=oy+'px'; SUNFL.style.opacity=(Math.pow((dd-0.75)/0.25,1.6)*0.75).toFixed(2); }
+      else if(SUNFL.style.opacity!=='0') SUNFL.style.opacity='0';
+    }else if(SUNFL.style.opacity!=='0') SUNFL.style.opacity='0';
+  }catch(e){}
   var pb=$('bPing'); if(pb&&pb.hidden===!!mp.on) pb.hidden=!mp.on;
   if(state!=='play') return;
   /* low shield: a beep that speeds up as the shield drops, and goes quiet once the shield is gone */
@@ -9155,6 +9171,8 @@ function tmUnscProps(cx,cy,cz,av){
   /* equipment pads: one Bubble Shield and one Regenerator per team */
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'bubble'); }
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'regen'); }
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'over'); }
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'camo'); }
   /* grenade crates: two per team, refill 2 frag and 2 plasma, back after 30 seconds */
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'gren'); }
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'gren'); }
@@ -9904,6 +9922,14 @@ function tmEnter(team){
   CTF.on=false; if(mp.ctf) ctfInit();
   KH.on=false; if(mp.koth) khInit();
   TM.wire=null; /* barbed wire removed */
+  try{   /* a Halo ring arcing across the sky */
+    var rc2=document.createElement('canvas'); rc2.width=512; rc2.height=64; var rg=rc2.getContext('2d'), ri;
+    rg.fillStyle='#7f93a8'; rg.fillRect(0,0,512,64); for(ri=0;ri<64;ri++){ rg.fillStyle='rgba('+(110+((ri*37)%60))+','+(140+((ri*53)%50))+','+(150+((ri*29)%60))+',0.55)'; rg.fillRect(ri*8,0,3+(ri%3),64); }
+    rg.fillStyle='rgba(235,245,255,.7)'; rg.fillRect(0,0,512,5); rg.fillRect(0,59,512,5);
+    var rt2=new THREE.CanvasTexture(rc2); rt2.wrapS=rt2.wrapT=THREE.RepeatWrapping; rt2.repeat.set(24,1);
+    var haloRing=new THREE.Mesh(new THREE.CylinderGeometry(1450,1450,170,128,1,true),new THREE.MeshBasicMaterial({map:rt2,side:THREE.BackSide,fog:false,transparent:true,opacity:0.9,depthWrite:false}));
+    haloRing.rotation.z=Math.PI/2; haloRing.rotation.y=0.55; haloRing.renderOrder=-5; haloRing.frustumCulled=false; scene.add(haloRing);
+  }catch(e){}
   TM.objs=scene.children.slice(n0).concat([TM.mesh]);
   /* team-coloured vehicles */
   TM.tint=[]; tmTintRover(rover,TEAMS[team].c,true); tmTintJet(jetObj.group,TEAMS[team].c,true);
@@ -10141,7 +10167,7 @@ function tmTintAvatar(av,team){
   var mats=av.userData.built.mats;
   teamPaint(mats,team);
   var col=TEAMS[team].c, mk=new THREE.Mesh(new THREE.OctahedronGeometry(0.2),new THREE.MeshBasicMaterial({color:col,fog:false,depthTest:team===mp.team?false:true,transparent:true}));
-  mk.position.y=2.65*(av.userData.hs||1); mk.renderOrder=5; mk.visible=(team===mp.team); /* no diamond over enemies, only over teammates */ av.add(mk); av.userData.tmk=mk;
+  mk.position.y=2.65*(av.userData.hs||1); mk.renderOrder=5; mk.visible=(team===mp.team); /* no diamond over enemies, only over teammates */ av.add(mk); av.userData.tmk=mk; av.userData.tmTeam=team;
 }
 
 /* ================= ONLINE PLAY: up to four players over WebRTC (PeerJS) =================
@@ -10646,7 +10672,7 @@ function mpRecv(m){
       if(!R) break;
       if(pe&&m.ch) mpSetPeerChar(pe,m.ch);
       if(pe&&m.nm&&pe.nm!==m.nm) mpSetName(pe,m.nm);
-      R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0; R.iv=m.iv|0; R.cr=m.cr||0;
+      R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0; R.iv=m.iv|0; R.cr=m.cr||0; R.cm=m.cm|0;
       var nowt=performance.now(); if(R.lt){ var dtm=Math.max(0.02,(nowt-R.lt)/1000), sv=Math.hypot(m.x-R.sx,m.z-R.sz)/dtm; R.sp=(R.sp||0)*0.6+Math.min(12,sv)*0.4; } R.lt=nowt; R.sx=m.x; R.sz=m.z;
       if(!R.has){ R.x=m.x; R.y=m.y; R.z=m.z; R.yaw=m.yaw; R.has=true; } break;
     case 'ping':
@@ -10811,7 +10837,8 @@ function mpUpdatePeer(pe,dt){
   au.fl.visible=au.kick>0.75&&au.w!==5;
   if(a.visible) poseAvatar(a,au.ph,au.mk);
   au.cr=(au.cr||0)+((R.cr||0)-(au.cr||0))*Math.min(1,dt*10); a.scale.y=1-0.28*au.cr;
-  a.visible=!!R.al&&!R.iv; a.position.set(R.x,R.y,R.z); a.rotation.y=R.yaw+Math.PI;
+  a.visible=!!R.al&&!R.iv; if(a.visible&&R.cm&&au.tmTeam!==mp.team&&au.kick<0.3&&Math.hypot(R.x-p.x,R.z-p.z)>7) a.visible=false;   /* active camo: only seen up close or when firing */
+  a.position.set(R.x,R.y,R.z); a.rotation.y=R.yaw+Math.PI;
   if(au.tmk) au.tmk.rotation.y+=dt*2;
 }
 function mpTick(dt){
@@ -10819,7 +10846,7 @@ function mpTick(dt){
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
-    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:(slots[sel]===17?8:slots[sel]),rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:((p.inVeh&&!GN.on)||p.air)?1:0,cr:r2(CR)});
+    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:(slots[sel]===17?8:slots[sel]),rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:((p.inVeh&&!GN.on)||p.air)?1:0,cr:r2(CR),cm:EQ.camo>0?1:0});
   }
   if(mp.host&&mp.mode==='ff'){
     mp.enT-=dt; if(mp.enT<=0){ mp.enT=0.09; mpSend({t:'en',a:mpSnapshot()}); }
