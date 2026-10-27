@@ -4036,6 +4036,7 @@ function partyBurst(e){
 }
 function onKill(e,head){
   medalKill(head);
+  try{ if(!e.air&&Math.random()<(e.elite||e.hunter?0.5:0.18)){ var gk0=Math.random()<0.5?'frag':'plasma'; if(gren[gk0]>=GMAX[gk0]) gk0=gk0==='frag'?'plasma':'frag'; if(gren[gk0]<GMAX[gk0]){ gren[gk0]++; showToast('DROPPED A '+GDEF[gk0].n+' GRENADE'); sfx.pickup(); } } }catch(e0){}   /* enemies sometimes drop a grenade */
   if(e.air){ kills++; score+=500; showToast('BANSHEE DOWN  +500'); sfx.kill(); return; }
   if(e.kami){ kamiBlast(e); }
   if(e.fcar) floodBurst(e);
@@ -4324,7 +4325,7 @@ function eqReset(){}
 function eqClear(){ EQ.list=[]; EQ.fields=[]; EQ.bt=0; EQ.bm=null; FS.fp=[]; }
 function eqPad(x,y,z,type){
   eqReset();
-  var col=type==='bubble'?0x4ad8ff:0x6bff7a, g=new THREE.Group();
+  var col=type==='bubble'?0x4ad8ff:type==='gren'?0xffa23a:0x6bff7a, g=new THREE.Group();
   var ring=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,0.06,20),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.55})); ring.position.y=0.04; g.add(ring);
   var core=type==='bubble'?new THREE.Mesh(new THREE.IcosahedronGeometry(0.32,1),new THREE.MeshBasicMaterial({color:col,wireframe:true})):new THREE.Mesh(new THREE.BoxGeometry(0.34,0.34,0.34),new THREE.MeshBasicMaterial({color:col,wireframe:true}));
   core.position.y=0.9; g.add(core);
@@ -4341,6 +4342,7 @@ function eqTick(dt){
     if(state==='play'&&!p.inVeh&&Math.hypot(it.x-p.x,it.z-p.z)<1.4&&Math.abs(p.y-it.y)<2.2){
       it.g.visible=false; it.cool=45; sfx.pickup();
       if(it.type==='bubble'){ EQ.bt=12; showToast('BUBBLE SHIELD'); medalShow('BUBBLE SHIELD','12 SECONDS OF PROTECTION','#4ad8ff'); }
+      else if(it.type==='gren'){ gren.frag=Math.min(GMAX.frag,gren.frag+2); gren.plasma=Math.min(GMAX.plasma,gren.plasma+2); showToast('GRENADES  +2 FRAG  +2 PLASMA'); medalShow('GRENADE CRATE','+2 FRAG  +2 PLASMA','#ffa23a'); it.cool=30; }
       else{
         var f=new THREE.Mesh(new THREE.CylinderGeometry(2.8,2.8,0.12,28,1,true),new THREE.MeshBasicMaterial({color:0x6bff7a,transparent:true,opacity:0.3,side:THREE.DoubleSide,depthWrite:false}));
         f.position.set(it.x,it.y+0.07,it.z); scene.add(f); TM.objs.push(f);
@@ -6876,7 +6878,7 @@ var GDEF={
   frag:{n:'FRAG',stick:false,fuse:1.6,speed:21,r:0.11,rest:0.28,R:22.5,inner:4,dmg:190,direct:0},
   plasma:{n:'PLASMA',stick:true,fuse:2.5,speed:18.5,r:0.13,rest:0,R:18,inner:3.6,dmg:150,direct:175,stickMin:1.2}
 };
-var gren={frag:3,plasma:2}, GMAX={frag:5,plasma:5}, GGRAV=15, THROW_DUR=0.55, THROW_REL=0.36;
+var gren={frag:3,plasma:2}, GMAX={frag:8,plasma:8}, GGRAV=15, THROW_DUR=0.55, THROW_REL=0.36;
 var grens=[], throwT=0, throwKind='frag', throwDone=true, shakeT=0, shakeAmp=0;
 var _gn=new V3(), _bn=new V3(), _en=new V3(), _la=new V3(), _lb=new V3();
 function gv(d){ return Math.max(0.12,Math.min(1,1-d/70)); }
@@ -9141,6 +9143,9 @@ function tmUnscProps(cx,cy,cz,av){
   /* equipment pads: one Bubble Shield and one Regenerator per team */
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'bubble'); }
   if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'regen'); }
+  /* grenade crates: two per team, refill 2 frag and 2 plasma, back after 30 seconds */
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'gren'); }
+  if((sp=tmRackSpot(cx,cy,cz,av))){ av.push(sp); eqPad(sp[0],sp[1],sp[2],'gren'); }
 }
 function tmSpawnRacks(avoid){
   [0,1].forEach(function(t){
