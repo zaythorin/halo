@@ -648,6 +648,8 @@ GFX.rt.crossVectors(new V3(0,1,0),GFX.dir).normalize(); GFX.up.crossVectors(GFX.
   }catch(e){}
   GFX.lvl=co?1:3;
   try{ var sv=localStorage.getItem('halo-gfx2'); if(sv!==null&&+sv>=0&&+sv<=3) GFX.lvl=+sv; }catch(e){}
+  /* HIGH and ULTRA: every texture made from here on is filtered sharply at grazing angles (ground and walls stay crisp into the distance) */
+  if(GFX.lvl>=2){ try{ THREE.Texture.DEFAULT_ANISOTROPY=Math.min(16,renderer.capabilities.getMaxAnisotropy()); }catch(e){} }
 })();
 scene.add(sun.target);
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -663,7 +665,7 @@ function gfxApply(){
   /* ultra: filmic tone mapping, a sky-bounce fill light, sharp textures at grazing angles, a soft vignette */
   var tmOn=L===3;
   if(tmOn!==GFX.tmOn){ GFX.tmOn=tmOn; renderer.toneMapping=tmOn?THREE.ACESFilmicToneMapping:THREE.NoToneMapping; renderer.toneMappingExposure=1.18; scene.traverse(function(o){ if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(function(m){ m.needsUpdate=true; }); } }); }
-  try{ GFX.aniso=tmOn?Math.min(16,renderer.capabilities.getMaxAnisotropy()):1; }catch(e){}
+  try{ GFX.aniso=L>=2?Math.min(16,renderer.capabilities.getMaxAnisotropy()):1; }catch(e){}
   if(!GFX.fill){ GFX.fill=new THREE.DirectionalLight(0x9fc0e8,0.0); GFX.fill.position.set(90,50,-110); scene.add(GFX.fill); }
   GFX.fill.visible=tmOn;
   if(!GFX.vig){ var vg=document.createElement('div'); vg.style.cssText='position:fixed;inset:0;z-index:1;pointer-events:none;display:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(0,0,0,.34) 100%)'; document.body.appendChild(vg); GFX.vig=vg; }
@@ -692,7 +694,7 @@ function gfxPre(){
   if(ISLCHK.n>0&&TM.isl){ ISLCHK.n--; if(ISLCHK.n===0){ ISLCHK.list.forEach(function(m){ try{ var pr=renderer.properties.get(m).currentProgram; if(pr&&pr.diagnostics&&pr.diagnostics.runnable===false){ console.error('island shader failed, using plain material',m); m.onBeforeCompile=function(){}; m.customProgramCacheKey=function(){ return 'islplain'; }; m.needsUpdate=true; } }catch(e){} }); } }
   if(GFX.fill&&GFX.fill.visible) GFX.fill.intensity=0.3*Math.min(1,sun.intensity/0.95);
   if(GFX.lvl<1) return;
-  if(GFX.lvl===3&&GFX.aq.length){ var tq=GFX.aq.pop(); if(tq.anisotropy<GFX.aniso){ tq.anisotropy=GFX.aniso; tq.needsUpdate=true; } }
+  if(GFX.lvl>=2&&GFX.aq.length){ var tq=GFX.aq.pop(); if(tq.anisotropy<GFX.aniso){ tq.anisotropy=GFX.aniso; tq.needsUpdate=true; } }
   GFX.sweepT-=dtm; if(GFX.sweepT<=0){ GFX.sweepT=700; gfxMark(scene); }
   /* the shadow box follows the camera, snapped to whole shadow pixels so edges do not crawl */
   var px=camera.position.x, py=camera.position.y, pz=camera.position.z, tex=2*GFX.S/sun.shadow.mapSize.x;
@@ -915,7 +917,7 @@ function covTex(g,kind,rnd,col){
 var BTEX={};
 function buildTex(kind,desert){
   var key=kind+(desert?'d':'s'); if(BTEX[key]) return BTEX[key];
-  var c=document.createElement('canvas'); c.width=c.height=256; var g=c.getContext('2d'), i, sd=kind.length*977+(desert?13:5);
+  var c=document.createElement('canvas'); c.width=c.height=512; var g=c.getContext('2d'), i, sd=kind.length*977+(desert?13:5); g.scale(2,2); /* drawn at double resolution so lines and edges stay crisp up close */
   function rnd(){ sd=(sd*16807)%2147483647; return sd/2147483647; }
   var B={wall:desert?[222,192,146]:[205,211,218],col:desert?[196,160,114]:[183,191,200],roof:desert?[176,142,98]:[170,179,189],floor:desert?[150,126,90]:[100,108,120],deck:desert?[160,130,88]:[120,130,142],cvf:[70,62,88],cvw:[120,92,134],cvd:[88,70,112],cvg:[176,140,76]}[kind]||[200,200,200];
   function col(k){ k=Math.max(0,Math.min(1.4,k)); return 'rgb('+Math.round(B[0]*k)+','+Math.round(B[1]*k)+','+Math.round(B[2]*k)+')'; }
@@ -940,6 +942,8 @@ function buildTex(kind,desert){
     for(i=0;i<14;i++){ var sx=rnd()*256, sl=20+rnd()*80; var gr=g.createLinearGradient(0,0,0,sl); gr.addColorStop(0,'rgba(30,40,50,0.22)'); gr.addColorStop(1,'rgba(30,40,50,0)'); g.fillStyle=gr; g.save(); g.translate(sx,rnd()*160); g.fillRect(0,0,3,sl); g.restore(); }
   }
   for(i=0;i<2200;i++){ g.fillStyle=rnd()<0.5?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.07)'; g.fillRect(rnd()*256,rnd()*256,1+rnd()*2,1+rnd()*2); }
+  for(i=0;i<9000;i++){ g.fillStyle=rnd()<0.5?'rgba(0,0,0,0.09)':'rgba(255,255,255,0.08)'; g.fillRect(rnd()*256,rnd()*256,0.5,0.5); }
+  g.setTransform(1,0,0,1,0,0); var gim=g.getImageData(0,0,512,512), gd=gim.data, gq; for(gq=0;gq<gd.length;gq+=4){ var gn=(rnd()-0.5)*16; gd[gq]+=gn; gd[gq+1]+=gn; gd[gq+2]+=gn; } g.putImageData(gim,0,0); /* fine per-pixel grain */
   var tx=new THREE.CanvasTexture(c); tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.anisotropy=4; tx.userData={tile:4};
   return (BTEX[key]=tx);
 }
@@ -1332,7 +1336,7 @@ safe(function(){
   geo.computeVertexNormals();
   var tMat=new THREE.MeshLambertMaterial({vertexColors:true});
   function detTex(kind){
-    var S=256, c=document.createElement('canvas'); c.width=c.height=S; var g=c.getContext('2d'), k, sd=kind==='g'?11:23;
+    var S=256, c=document.createElement('canvas'); c.width=c.height=S*2; var g=c.getContext('2d'), k, sd=kind==='g'?11:23; g.scale(2,2);
     function rr(){ sd=(sd*16807)%2147483647; return sd/2147483647; }
     g.fillStyle='rgb(128,128,128)'; g.fillRect(0,0,S,S);
     function wrap(fn){ for(var ox=-1;ox<=1;ox++) for(var oy=-1;oy<=1;oy++){ g.save(); g.translate(ox*S,oy*S); fn(); g.restore(); } }
@@ -1343,6 +1347,7 @@ safe(function(){
       for(k=0;k<520;k++){ var x2=rr()*S,y2=rr()*S,r2=4+rr()*26,v2=80+rr()*100; wrap(function(){ var gr=g.createRadialGradient(x2,y2,0,x2,y2,r2); gr.addColorStop(0,'rgba('+(v2|0)+','+(v2|0)+','+(v2|0)+',.4)'); gr.addColorStop(1,'rgba(128,128,128,0)'); g.fillStyle=gr; g.fillRect(x2-r2,y2-r2,r2*2,r2*2); }); }
       for(k=0;k<70;k++){ var cx=rr()*S,cy=rr()*S,an2=rr()*6.28; wrap(function(){ g.strokeStyle='rgba(40,40,40,.55)'; g.lineWidth=1+rr()*1.2; g.beginPath(); g.moveTo(cx,cy); var px=cx,py=cy,a2=an2; for(var q=0;q<7;q++){ a2+=(rr()-0.5)*1.1; px+=Math.cos(a2)*9; py+=Math.sin(a2)*9; g.lineTo(px,py); } g.stroke(); }); }
     }
+    g.setTransform(1,0,0,1,0,0); var dim=g.getImageData(0,0,S*2,S*2), dd=dim.data, dq; for(dq=0;dq<dd.length;dq+=4){ var dn=(rr()-0.5)*22; dd[dq]+=dn; dd[dq+1]+=dn; dd[dq+2]+=dn; } g.putImageData(dim,0,0); /* gritty micro detail up close */
     var t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t;
   }
   var dtG=detTex('g'), dtR=detTex('r');
@@ -7645,7 +7650,7 @@ function trArcShape(o){
 }
 /* ---- abandoned, bombed-out metropolis square at night: heavy rain, thunder, wrecked cars, a broken fountain ---- */
 function trTex(kind){
-  var c=document.createElement('canvas'), g, i, j; c.width=c.height=256; g=c.getContext('2d');
+  var c=document.createElement('canvas'), g, i, j; c.width=c.height=512; g=c.getContext('2d'); g.scale(2,2);
   if(kind==='f'){ /* building face: 8 m tile, two bays by two floors */
     g.fillStyle='#34373d'; g.fillRect(0,0,256,256);
     for(i=0;i<3600;i++){ var v=38+Math.random()*44|0; g.fillStyle='rgba('+v+','+(v+2)+','+(v+7)+',0.55)'; g.fillRect(Math.random()*256,Math.random()*256,1+Math.random()*2,1+Math.random()*2); }
