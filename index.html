@@ -100,6 +100,13 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 .btn.down{background:rgba(255,179,71,.35);border-color:var(--amber)}
 .btn.on{border-color:var(--shield);color:var(--shield)}
 .btn:focus-visible{outline:2px solid var(--shield);outline-offset:2px}
+#ui.editing .btn{display:grid !important;outline:2px dashed rgba(255,200,90,.8);outline-offset:3px}
+#ui.editing .btn.sel{outline:2px solid #6be4ff;background:rgba(107,228,255,.28)}
+#lyBar{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:80;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:94vw;background:rgba(8,14,20,.92);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:8px 12px;color:#fff;font:700 12px var(--font-ui);letter-spacing:.12em}
+#lyBar[hidden]{display:none}
+#lyBar button{font:700 12px var(--font-ui);letter-spacing:.12em;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);color:#fff}
+#lyBar #lyDone{background:#ffb347;color:#111;border-color:#ffb347}
+#lyBar input{width:120px}
 #bFire{width:104px;height:104px;border-radius:50%;border-color:var(--amber);color:var(--amber);font-size:15px;right:calc(18px + var(--sr));bottom:calc(22px + var(--sb))}
 #bJump{right:calc(158px + var(--sr));bottom:calc(14px + var(--sb))}
 #bReload{right:calc(172px + var(--sr));bottom:calc(86px + var(--sb))}
@@ -513,6 +520,7 @@ body{letter-spacing:.02em}
   </div>
 </div>
 
+<div id="lyBar" hidden><span id="lyTxt">DRAG BUTTONS. TAP ONE TO RESIZE</span><input type="range" id="lySize" min="50" max="180" value="100" disabled><button type="button" id="lyReset">RESET</button><button type="button" id="lyDone">DONE</button></div>
 <div class="overlay" id="pause" hidden>
   <div class="card">
     <h2>PAUSED</h2>
@@ -529,6 +537,7 @@ body{letter-spacing:.02em}
       <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
       <button type="button" class="go alt" id="pGfx">GRAPHICS: HIGH</button>
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
+      <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
       <button type="button" class="go alt" id="pAnn">ANNOUNCER: ON</button>
       <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
       <button type="button" class="go alt" id="pFov">FIELD OF VIEW: 62</button>
@@ -8212,6 +8221,7 @@ function pauseGame(){
 }
 function resumeGame(){
   if(state!=='paused') return;
+  if(typeof lyExit==='function') lyExit();
   $('controls').hidden=true; $('pause').hidden=true;
   state='play';
   if(ac&&ac.resume) ac.resume();
@@ -8272,6 +8282,59 @@ function pauseRespawn(){
   resumeGame(); showToast('RESPAWNED');
 }
 $('pRespawn').addEventListener('click',pauseRespawn);
+/* ---------- editable touch-button layout: drag any button, tap to resize, saved on this device ---------- */
+var LY={on:false,sel:null,map:{},drag:null};
+try{ LY.map=JSON.parse(localStorage.getItem('halo-layout')||'{}')||{}; }catch(e){ LY.map={}; }
+function lyApply(el){
+  var m=LY.map[el.id];
+  if(!m){ ['left','top','right','bottom','transform'].forEach(function(k){ el.style.removeProperty(k); }); return; }
+  el.style.setProperty('left',(m[0]*innerWidth)+'px','important'); el.style.setProperty('top',(m[1]*innerHeight)+'px','important');
+  el.style.setProperty('right','auto','important'); el.style.setProperty('bottom','auto','important');
+  el.style.setProperty('transform','translate(-50%,-50%) scale('+(m[2]||1)+')','important');
+}
+function lyApplyAll(){ var bs=document.querySelectorAll('#ui .btn'); for(var i=0;i<bs.length;i++) lyApply(bs[i]); }
+function lySave(){ try{ localStorage.setItem('halo-layout',JSON.stringify(LY.map)); }catch(e){} }
+function lySelect(el){
+  if(LY.sel) LY.sel.classList.remove('sel');
+  LY.sel=el; var sl=$('lySize');
+  if(el){ el.classList.add('sel'); var m=LY.map[el.id]; sl.disabled=false; sl.value=Math.round(((m&&m[2])||1)*100); $('lyTxt').textContent='RESIZE: '+(el.textContent||el.id).trim(); }
+  else{ sl.disabled=true; $('lyTxt').textContent='DRAG BUTTONS. TAP ONE TO RESIZE'; }
+}
+function lyEnter(){
+  if(state!=='paused') return;
+  LY.on=true; $('pause').hidden=true; $('ui').classList.add('editing'); $('lyBar').hidden=false; lySelect(null);
+}
+function lyExit(){
+  if(!LY.on) return;
+  LY.on=false; LY.drag=null; lySelect(null); lySave(); $('ui').classList.remove('editing'); $('lyBar').hidden=true;
+  if(state==='paused') $('pause').hidden=false;
+}
+document.addEventListener('pointerdown',function(ev){
+  if(!LY.on) return;
+  var b=ev.target.closest&&ev.target.closest('#ui .btn'); if(!b) return;
+  ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+  var r=b.getBoundingClientRect(), sc=(LY.map[b.id]&&LY.map[b.id][2])||1;
+  LY.drag={el:b,ox:ev.clientX-(r.left+r.width/2),oy:ev.clientY-(r.top+r.height/2),sc:sc,moved:false,id:ev.pointerId};
+  lySelect(b);
+},true);
+document.addEventListener('pointermove',function(ev){
+  var d=LY.drag; if(!LY.on||!d) return;
+  ev.preventDefault();
+  var cx=Math.max(20,Math.min(innerWidth-20,ev.clientX-d.ox)), cy=Math.max(20,Math.min(innerHeight-20,ev.clientY-d.oy));
+  d.moved=true; LY.map[d.el.id]=[cx/innerWidth,cy/innerHeight,d.sc]; lyApply(d.el);
+},true);
+function lyUp(){ if(LY.drag){ LY.drag=null; lySave(); } }
+document.addEventListener('pointerup',lyUp,true); document.addEventListener('pointercancel',lyUp,true);
+$('lySize').addEventListener('input',function(){
+  var el=LY.sel; if(!el) return; var m=LY.map[el.id];
+  if(!m){ var r=el.getBoundingClientRect(); m=[(r.left+r.width/2)/innerWidth,(r.top+r.height/2)/innerHeight,1]; }
+  m[2]=this.value/100; LY.map[el.id]=m; lyApply(el); lySave();
+});
+$('lyReset').addEventListener('click',function(){ LY.map={}; lySave(); lyApplyAll(); lySelect(null); });
+$('lyDone').addEventListener('click',lyExit);
+$('pLayout').addEventListener('click',lyEnter);
+window.addEventListener('resize',lyApplyAll);
+lyApplyAll();
 function openControls(){ $('controls').hidden=false; }
 function charLabel(t){ $('charBtn').textContent='CHARACTER: '+(t||CHAR_NAMES[curChar]); }
 $('charBtn').addEventListener('click',function(){
