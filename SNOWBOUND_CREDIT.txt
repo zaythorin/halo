@@ -1,0 +1,11 @@
+Model Information:
+* title:	Halo 3>Multiplayer>Default>Snowbound
+* source:	https://sketchfab.com/3d-models/halo-3multiplayerdefaultsnowbound-c0ae74719dc24eedb338b5a6bbddce83
+* author:	jameslucino117 (https://sketchfab.com/jameslucino117)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+This work is based on "Halo 3>Multiplayer>Default>Snowbound" (https://sketchfab.com/3d-models/halo-3multiplayerdefaultsnowbound-c0ae74719dc24eedb338b5a6bbddce83) by jameslucino117 (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+Changes: cropped to the central valley, scaled, geometry simplified and textures reduced for use in this game.
