@@ -82,6 +82,11 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #toast{top:calc(28vh + var(--st));font-size:clamp(14px,2.4vw,20px);letter-spacing:.18em;color:var(--amber)}
 #banner.show{animation:fade 2.4s ease-out forwards}
 #toast.show{animation:fade 1.5s ease-out forwards}
+#kfeed{position:absolute;left:calc(10px + var(--sl));top:calc(32vh + var(--st));width:min(46vw,260px);pointer-events:none;display:flex;flex-direction:column;gap:3px;font:700 11px var(--font-ui);letter-spacing:.08em;text-shadow:0 1px 4px #000,0 0 8px rgba(0,0,0,.8)}
+#kfeed div{background:rgba(0,0,0,.32);padding:2px 7px;border-left:2px solid #ffb347;border-radius:2px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:kfin .18s ease-out;transition:opacity .5s}
+#kfeed div.out{opacity:0}
+#kfeed i{font-style:normal;opacity:.6;font-weight:400}
+@keyframes kfin{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
 #killMsg{position:absolute;left:0;right:0;top:calc(34vh + var(--st));text-align:center;pointer-events:none;font-weight:900;letter-spacing:.14em;text-shadow:0 2px 14px rgba(0,0,0,.8);display:none}
 #killMsg b{display:block;font-size:clamp(12px,2vw,16px);color:#ccc;letter-spacing:.3em;margin-bottom:4px}
 #killMsg span{display:block;font-size:clamp(22px,4.6vw,40px)}
@@ -480,6 +485,7 @@ body{letter-spacing:.02em}
 
   <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
 
+  <div id="kfeed"></div>
   <button type="button" class="btn" id="bFire">FIRE</button>
   <button type="button" class="btn" id="bJump">JUMP</button>
   <button type="button" class="btn" id="bReload">RELOAD</button>
@@ -4064,7 +4070,23 @@ function partyBurst(e){
     medalAward('GRUNT BIRTHDAY PARTY','','#ff9ad0',3);
   }catch(err){}
 }
+/* kill feed (small text down the left edge): who killed whom, and with what */
+function killFeed(by,byCol,vic,vicCol,how){
+  try{
+    var f=$('kfeed'); if(!f) return;
+    var d=document.createElement('div');
+    function sp(t,c){ var b=document.createElement('span'); b.textContent=t; if(c) b.style.color=c; return b; }
+    if(by!==null&&by!==undefined&&by!==''){ d.appendChild(sp(by,byCol)); var i=document.createElement('i'); i.textContent=' \u25B8 '; d.appendChild(i); }
+    d.appendChild(sp(vic,vicCol));
+    if(how){ var h=document.createElement('i'); h.textContent='  ['+how+']'; d.appendChild(h); }
+    f.appendChild(d);
+    while(f.children.length>5) f.removeChild(f.firstChild);
+    setTimeout(function(){ d.classList.add('out'); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },520); },5000);
+  }catch(err){}
+}
+function enemyLabel(e){ return (e.air?'BANSHEE':e.flood?'FLOOD':e.kami?'KAMIKAZE':e.hunter?'HUNTER':e.elite?'ELITE':(e.kind||'ENEMY').toString().toUpperCase()); }
 function onKill(e,head){
+  try{ killFeed('YOU','#6be4ff',enemyLabel(e),'#ff9a6a',(head?'HEADSHOT ':'')+(weapons[sel]?weapons[sel].name:'')); }catch(err){}
   medalKill(head);
   try{ if(!e.air&&Math.random()<(e.elite||e.hunter?0.5:0.18)){ var gk0=Math.random()<0.5?'frag':'plasma'; if(gren[gk0]>=GMAX[gk0]) gk0=gk0==='frag'?'plasma':'frag'; if(gren[gk0]<GMAX[gk0]){ gren[gk0]++; showToast('DROPPED A '+GDEF[gk0].n+' GRENADE'); sfx.pickup(); } } }catch(e0){}   /* enemies sometimes drop a grenade */
   if(e.air){ kills++; score+=500; showToast('BANSHEE DOWN  +500'); sfx.kill(); return; }
@@ -10867,6 +10889,7 @@ function mpOnDeath(){
       km.children[2].textContent=(kby!==undefined&&khow)?khow:'';
       km.style.display='block';
     }catch(e){}
+    if(!mp.host){ try{ var kc2=function(id){ var t=mpTeamOf(id); return (t!==undefined&&TEAMS[t])?TEAMS[t].css:'#fff'; }; if(kby!==undefined) killFeed(mpNm(kby),kc2(kby),mpNm(mp.id),kc2(mp.id),khow); else killFeed(null,null,mpNm(mp.id),kc2(mp.id),'DIED'); }catch(err){} }
     mp.lastBy=undefined; mp.lastHow=undefined; mp.cause=undefined;
   }
   mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:0,al:0,hp:0,w:(slots[sel]===17?8:slots[sel]),iv:0,ch:curChar});
@@ -10954,6 +10977,8 @@ function mpRecv(m){
           var kt=m.by!==undefined&&mpTeamOf(m.by)!==undefined&&mpTeamOf(m.by)!==m.vt?mpTeamOf(m.by):1-m.vt;
           if(!mp.ctf&&!mp.koth){ mp.score[kt]++; mpSend({t:'sc',s:mp.score}); mpCheckEnd(); }
         }
+        try{ var kc=function(id){ var t=mpTeamOf(id); return (t!==undefined&&TEAMS[t])?TEAMS[t].css:'#fff'; };
+          if(m.by!==undefined) killFeed(mpNm(m.by),kc(m.by),m.f!==undefined?mpNm(m.f):'?',m.f!==undefined?kc(m.f):'#fff',m.w||''); else killFeed(null,null,m.f!==undefined?mpNm(m.f):'?',m.f!==undefined?kc(m.f):'#fff','DIED'); }catch(err){}
         if(m.by===mp.id){ marker('kill'); sfx.kill(); showToast('FRAGGED '+(m.f!==undefined?mpNm(m.f):'')+(m.w?'  ('+m.w+')':'')); }
       }
       break;
