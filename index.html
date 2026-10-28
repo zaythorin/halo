@@ -2295,6 +2295,7 @@ function pisFire(w){
   pbSpawn(mz,aim,hit&&(hit.object.userData.enemy||hit.object.userData.dm)?hit:null);
   if(mp.on) mpFx('cball',mz,mz.clone().addScaledVector(aim,70));
   sample('covPChargeFire',1); covHeat(w); w.bat=Math.max(0,w.bat-10); w.heat=Math.min(1,w.heat+0.3); fireCool=0.6;
+  MA.jz+=(Math.random()-0.5)*0.07; MA.jy+=(Math.random()-0.5)*0.045; MA.jx+=Math.random()*0.02;   /* each shot kicks the gun a slightly different way */
   recoilKick(w); setFlash(w); vmKick=Math.min(0.2,vmKick+0.1); p.pitch+=0.02; noiseT=tAcc; noiseR=60;
 }
 function pisTick(dt){
@@ -4624,7 +4625,7 @@ function hurt(n){
 var camLag=0;
 /* misc first-person animation state: landing, jumping, sprinting, strafing, flinching, idle weapon inspects */
 var gpSprint=false;
-var MA={want:false,mx:0,mxs:0,air:0,land:0,sprint:0,idle:0,insp:-1,inspT:0,inspK:0,inspDur:2.4,flinch:0,flx:1,breath:0,roll:0,man:false};
+var MA={want:false,mx:0,mxs:0,air:0,land:0,sprint:0,idle:0,insp:-1,inspT:0,inspK:0,inspDur:2.4,flinch:0,flx:1,breath:0,roll:0,man:false,jz:0,jy:0,jx:0,sp:0,sv:0,wasMov:0,rv:[0,0,0]};
 /* manual weapon inspect: I key or the INSPECT button; turns the gun over to show it off */
 function weaponInspect(){
   if(state!=='play'||reloading||swapT>0||meleeT>0||throwT>0||ctrl.fire||zoomed||p.inVeh||p.air) return;
@@ -6173,6 +6174,7 @@ function startReload(){
   if(state!=='play'||p.inVeh||reloading||swapT>0||meleeT>0||throwT>0||w.mag>=w.magSize||w.reserve<=0) return;
   if(zoomed&&(w.scope||w.lscope)) zoomOff();
   burstLeft=0; reloading=true; reloadT=0; reloadEmpty=(w.mag===0);
+  MA.rv=[(Math.random()-0.5)*0.22,(Math.random()-0.5)*0.2,(Math.random()-0.5)*0.03];   /* every reload is handled a little differently */
   if(w.shells){ w.reloadDur=999; w.shPh='lead'; w.shT=0; w.shIn=false; return; }
   w.reloadDur=((reloadEmpty||w.rsnd)?w.reload:w.reload*0.82)*(w.rsnd?1:0.92);   /* slightly snappier reloads (Covenant weapons keep their own timing) */
   if(w.rsnd) sample(w.rsnd,0.9);
@@ -7026,7 +7028,7 @@ function updateWeapon(dt){
   var spr=(ma.want&&mov>0.5&&p.onGround&&!busy)?1:0; ma.sprint+=(spr-ma.sprint)*Math.min(1,dt*6);
   ma.breath=spr?Math.min(1,ma.breath+dt*0.45):Math.max(0,ma.breath-dt*0.12);
   if(mov<0.05&&p.onGround&&!busy&&ma.insp<0) ma.idle+=dt; else if(mov>=0.05||busy) ma.idle=0;
-  if(ma.insp<0&&ma.idle>8){ ma.insp=(Math.random()*3)|0; ma.inspT=0; ma.idle=0; ma.inspDur=2.2+Math.random()*0.8; }
+  if(ma.insp<0&&ma.idle>8){ ma.insp=(Math.random()*5)|0; ma.inspT=0; ma.idle=0; ma.inspDur=2.2+Math.random()*0.8; }
   if(ma.insp>=0){
     ma.inspT+=dt; var live=(!busy&&(ma.man||mov<0.05)&&ma.inspT<ma.inspDur)?1:0; ma.inspK+=(live-ma.inspK)*Math.min(1,dt*6);
     if(!live&&ma.inspK<0.02){ ma.insp=-1; ma.inspK=0; ma.man=false; }
@@ -7034,10 +7036,25 @@ function updateWeapon(dt){
       var u=Math.min(1,ma.inspT/ma.inspDur), si=Math.sin(u*Math.PI), k2=ma.inspK;
       if(ma.insp===0){ vm.rotation.z+=0.95*si*k2; vm.rotation.y-=0.55*si*k2; vm.position.y+=0.045*si*k2; vm.position.x-=0.07*si*k2; }
       else if(ma.insp===1){ vm.rotation.x+=0.45*Math.sin(u*Math.PI*2)*k2; vm.position.y+=0.03*si*k2; vm.position.z+=0.04*Math.sin(u*Math.PI*2)*k2; vm.rotation.z-=0.15*si*k2; }
+      else if(ma.insp===4){ vm.position.y-=0.05*si*k2; vm.position.x+=0.06*si*k2; vm.rotation.z-=0.8*si*k2; vm.rotation.x+=0.5*si*k2; vm.rotation.y+=0.3*si*k2; }   /* tip the gun up to check the sight */
       else if(ma.insp===3){ var ie=Math.min(1,si*2.4)*k2, sw=Math.sin(u*Math.PI*2); vm.position.x-=0.2*ie; vm.position.y+=0.07*ie; vm.position.z+=0.14*ie; vm.rotation.y-=(1.05+0.45*sw)*ie; vm.rotation.z+=(0.3+0.35*Math.sin(u*Math.PI*4))*ie; vm.rotation.x+=0.25*sw*ie; }
       else{ vm.position.y-=0.09*si*k2; vm.rotation.z-=0.3*Math.sin(u*Math.PI*2)*k2; vm.rotation.y+=0.35*Math.sin(u*Math.PI*2)*k2; vm.rotation.x-=0.12*si*k2; }
     }
   }
+  /* realism layer: shot jitter, reload variation and the empty-mag bolt slap, a settle spring when you stop, a walking figure-eight */
+  var jd=Math.min(1,dt*11); ma.jz-=ma.jz*jd; ma.jy-=ma.jy*jd; ma.jx-=ma.jx*jd;
+  vm.rotation.z+=ma.jz; vm.rotation.y+=ma.jy; vm.rotation.x+=ma.jx;
+  if(reloading&&!weapons[cur].shells&&weapons[cur].reloadDur<50){
+    var ru=Math.min(1,reloadT/weapons[cur].reloadDur), rs=Math.sin(ru*Math.PI);
+    vm.rotation.z+=ma.rv[0]*rs; vm.rotation.y+=ma.rv[1]*rs; vm.position.x+=ma.rv[2]*rs;
+    var nod=Math.exp(-Math.pow((ru-0.76)/0.05,2));   /* a small nod as the magazine seats */
+    vm.rotation.x+=0.05*nod; vm.position.y-=0.008*nod;
+    if(reloadEmpty){ var sl=Math.exp(-Math.pow((ru-0.9)/0.035,2)); vm.position.z+=0.03*sl; vm.rotation.x+=0.06*sl; vm.rotation.y-=0.04*sl; }   /* slap the bolt home on an empty gun */
+  }
+  var mvNow=mov>0.15?1:0; if(ma.wasMov&&!mvNow&&p.onGround) ma.sv-=0.9; ma.wasMov=mvNow;
+  var sdt=Math.min(dt,0.02); ma.sv+=(-ma.sp*150-ma.sv*10)*sdt; ma.sp+=ma.sv*sdt; if(ma.sp>0.2) ma.sp=0.2; if(ma.sp<-0.2) ma.sp=-0.2;
+  vm.position.y+=ma.sp*0.05; vm.rotation.x+=ma.sp*0.35;
+  if(mov>0.15&&p.onGround&&!zoomed&&ma.sprint<0.5){ var wk=tAcc*9; vm.position.x+=Math.sin(wk*0.5)*0.006*mov; vm.rotation.z+=Math.sin(wk*0.5)*0.012*mov; vm.rotation.y+=Math.cos(wk)*0.006*mov; }
   var lowHp=p.health<35?(1-p.health/35)*0.8:0;
   vm.position.x+=0.05*ma.sprint+ma.mxs*0.012; vm.position.y+=-0.05*ma.sprint-Math.abs(Math.sin(tAcc*9))*0.012*ma.sprint+0.03*ma.air-0.09*ma.land+Math.sin(tAcc*5.2)*0.006*(ma.breath+lowHp); vm.position.z+=-0.02*ma.sprint+0.03*ma.land+0.05*ma.flinch;
   vm.rotation.x+=-0.22*ma.sprint+0.1*ma.air-0.18*ma.land+0.2*ma.flinch; vm.rotation.y+=0.45*ma.sprint; vm.rotation.z+=0.12*ma.sprint-ma.mxs*0.07+0.25*ma.flinch*ma.flx;
