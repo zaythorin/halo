@@ -523,6 +523,7 @@ body{letter-spacing:.02em}
     </div>
     <div class="pbtns">
       <button type="button" class="go" id="resume">RESUME</button>
+      <button type="button" class="go alt" id="pRespawn">RESPAWN</button>
       <button type="button" class="go alt" id="restart">RESTART</button>
       <button type="button" class="go alt" id="pCtl">CONTROLS</button>
       <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
@@ -8258,6 +8259,19 @@ function toMenu(){
   if(ac&&ac.state==='suspended') ac.resume();
   playTheme();
 }
+/* pause menu RESPAWN: back to a spawn point with full health and shield; score, kills and wave are kept */
+function pauseRespawn(){
+  if(state!=='paused') return;
+  try{ if(mp.on&&mp.mode==='dm'){ if(p.air) leaveJetState(); else if(p.inVeh){ if(GN.on) leaveGunner(); else exitRover(); } } else if(p.air||p.inVeh){ mgForce(); if(p.air) leaveJetState(); else if(GN.on) leaveGunner(); else exitRover(); } }catch(e){}
+  p.air=false; p.inVeh=false; vm.visible=true;
+  var sx=0, sz=0, sy=groundH(0,0);
+  if(mp.on&&mp.mode==='dm'){ try{ var sp=tmSpawnPoint(mp.team); sx=sp.x; sz=sp.z; sy=sp.y; }catch(e){} mpPlace(sx,sz,sy); mp.inv=tAcc+4; }
+  else{ p.x=sx; p.z=sz; p.y=sy; p.yaw=0; p.pitch=0; }
+  p.vx=0; p.vz=0; p.vy=0; p.onGround=true; p.health=100; p.shield=100; p.lastHit=-10; vigT=0;
+  reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
+  resumeGame(); showToast('RESPAWNED');
+}
+$('pRespawn').addEventListener('click',pauseRespawn);
 function openControls(){ $('controls').hidden=false; }
 function charLabel(t){ $('charBtn').textContent='CHARACTER: '+(t||CHAR_NAMES[curChar]); }
 $('charBtn').addEventListener('click',function(){
