@@ -50,3 +50,16 @@ If you use this 3D model in your project be sure to copy paste this credit where
 This work is based on "Halo Battle Rifle Redesigned" (https://sketchfab.com/3d-models/halo-battle-rifle-redesigned-fd90d4c41b4b4ca2a9d99af274a23e1c) by CalWhite (https://sketchfab.com/CalWhite) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 -----
 
+
+-----
+Model Information:
+* title:	Weapons>Human>Spartan Laser
+* source:	https://sketchfab.com/3d-models/weaponshumanspartan-laser-9350382242ce4486a840ae224e63a081
+* author:	jameslucino117 (https://sketchfab.com/jameslucino117)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Weapons>Human>Spartan Laser" (https://sketchfab.com/3d-models/weaponshumanspartan-laser-9350382242ce4486a840ae224e63a081) by jameslucino117 (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
