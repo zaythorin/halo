@@ -8116,7 +8116,7 @@ function startGame(){
   $('menu').hidden=true; $('over').hidden=true; $('pause').hidden=true; $('controls').hidden=true; $('ui').hidden=false;
   fadeTheme(); if(ac&&ac.state==='suspended') ac.resume();
   lockMouse();
-  if(mp.on&&(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm'))) cutStart();
+  if(mp.on&&TM.on) flyStart(); else if(mp.on&&(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm'))) cutStart();
   devApplyNuke();
 }
 /* ---------- death: the player's Spartan model as a ragdoll, seen from a third-person camera ---------- */
@@ -8263,6 +8263,7 @@ function updateRagdoll(dt){
 }
 function updateDeathCam(dt){
   if(!rag) return;
+  if(mp.on&&mp.kc!==null&&mp.kc!==undefined&&deathT>1.2&&kcCam()) return;
   var P=rag.P, tx=(P.spine.x+P.chest.x)/2, ty=(P.spine.y+P.chest.y)/2, tz=(P.spine.z+P.chest.z)/2;
   deathCamA+=dt*0.25; deathCamD=Math.min(5.2,deathCamD+dt*0.35);
   var cx=tx+Math.sin(deathCamA)*deathCamD, cz=tz+Math.cos(deathCamA)*deathCamD, cy=ty+1.5;
@@ -8757,7 +8758,7 @@ function frame(now){
       updateBolts(dt); updateHBeams(dt);
       if(mp.on){
         mpTick(dt);
-        if(mp.mode==='dm'){ if(deathT>3.2&&!mp.over) mpRevive(false); }
+        if(mp.mode==='dm'){ if(deathT>((mp.kc!==null&&mp.kc!==undefined)?4.4:3.2)&&!mp.over) mpRevive(false); }
         else if(!mp.rem.al&&deathT>3.2){ state='over'; sample('gameOver',1); $('redeploy').hidden=true; $('over').hidden=false; }
         else if(mp.rem.al&&deathT>12) mpRevive(true);
       }
@@ -8765,6 +8766,7 @@ function frame(now){
     }
     updateDeathCam(dt); updateFx(dt); if(TM.on){ tmSnow(dt); tmDoors(dt); } renderer.render(scene,camera); return;
   }
+  if(FLY.on&&state==='play'){ flyFrame(dt); renderer.render(scene,camera); return; }
   if(CUT.on&&state==='play'){ cutFrame(dt); renderer.render(scene,camera); return; }
   if(state==='play'){
     aimFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
@@ -10029,6 +10031,81 @@ function cutSkip(){
   if(!CUT.on||CUT.t<1.0) return;
   if(CUT.t<CUT_WAKE){ CUT.t=CUT_WAKE; CUT.im=1; } else if(CUT.t<CUT_END-1.2) CUT.t=CUT_END-1.2;
 }
+/* ---------- match intro: a fly-through of the arena over both bases that lands on your spawn (Snowbound opens on a storm shot, lightning striking the enemy tower) ---------- */
+var FLY={on:false,t:0,D:9,el:[],cv:[],pc:null,tc:null,strike:null,hit:0};
+function flyDiv(css){ var e=document.createElement('div'); e.style.cssText=css; document.body.appendChild(e); FLY.el.push(e); return e; }
+function flySkip(){ if(FLY.on&&FLY.t>=0.8) FLY.t=Math.max(FLY.t,FLY.D); }
+function flyStart(){
+  if(FLY.on||CUT.on||!TM.on) return;
+  var te=1-mp.team, E=ctfHome(te), M=ctfHome(mp.team);
+  function gy(h){ return h.y!==undefined?h.y:groundH(h.x,h.z); }
+  var ey=gy(E), my=gy(M), dx=M.x-E.x, dz=M.z-E.z, dl=Math.max(1,Math.hypot(dx,dz)), px=-dz/dl, pz=dx/dl;
+  var eye=p.y+eyeC(), cxm=(E.x+M.x)/2, czm=(E.z+M.z)/2, cym=(ey+my)/2;
+  var fw=[-Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),-Math.cos(p.yaw)*Math.cos(p.pitch)];
+  var P=[], T=[]; FLY.strike=null; FLY.hit=0; FLY.D=9;
+  if(TM.snb){   /* storm shot: stand between the towers, look up into the cloud, a bolt hits the enemy tower, then rise into the fly-through */
+    var sy=cym+2, tx=te===0?-31.5:13.5; FLY.strike=[tx,7.5]; FLY.D=12;
+    P.push([cxm,sy,czm]); T.push([cxm+10,sy+80,czm+14]);
+    P.push([cxm,sy+1,czm]); T.push([tx,62,7.5]);
+  }
+  P.push([E.x+px*34,ey+24,E.z+pz*34]); T.push([E.x,ey+6,E.z]);
+  P.push([cxm,cym+46,czm]); T.push([cxm,cym,czm]);
+  P.push([M.x-px*30,my+22,M.z-pz*30]); T.push([M.x,my+6,M.z]);
+  P.push([p.x,eye,p.z]); T.push([p.x+fw[0]*10,eye+fw[1]*10,p.z+fw[2]*10]);
+  FLY.pc=new THREE.CatmullRomCurve3(P.map(function(v){ return new V3(v[0],v[1],v[2]); }),false,'centripetal');
+  FLY.tc=new THREE.CatmullRomCurve3(T.map(function(v){ return new V3(v[0],v[1],v[2]); }),false,'centripetal');
+  FLY.on=true; FLY.t=0; FLY.cv=camera.children.map(function(c){ var v=c.visible; c.visible=false; return v; });
+  $('ui').hidden=true; try{ $('mpHud').hidden=true; }catch(e){}
+  mp.inv=tAcc+FLY.D+4;
+  FLY.black=flyDiv('position:fixed;inset:0;background:#000;z-index:8;pointer-events:none;opacity:1');
+  flyDiv('position:fixed;left:0;right:0;top:0;height:9%;background:#000;z-index:7;pointer-events:none');
+  flyDiv('position:fixed;left:0;right:0;bottom:0;height:9%;background:#000;z-index:7;pointer-events:none');
+  FLY.cap=flyDiv('position:fixed;left:50%;bottom:17%;transform:translateX(-50%);z-index:9;pointer-events:none;text-align:center;white-space:pre;font:900 30px monospace;letter-spacing:.3em;color:#eaf2ff;text-shadow:0 0 14px #5fe9ff,0 2px 8px #000;opacity:0;transition:opacity .6s');
+  flyDiv('position:fixed;right:14px;bottom:calc(9% + 8px);z-index:9;pointer-events:none;font:700 11px monospace;letter-spacing:.14em;color:rgba(255,255,255,.55)').textContent='PRESS ANY KEY OR TAP TO SKIP';
+  ['keydown','pointerdown','touchstart'].forEach(function(n){ window.addEventListener(n,flySkip,true); });
+}
+function flyStrike(){
+  var T=TM.lt; if(!T||!T.bolt||!FLY.strike) return;
+  var x=FLY.strike[0], z=FLY.strike[1], pts=[], bx=x+9, bz=z+5, by=240, n=18, i;
+  for(i=0;i<n;i++){
+    var f=(i+1)/n, last=i===n-1, nx=last?x:bx+(x-bx)*0.12+(Math.random()-0.5)*9, nz=last?z:bz+(z-bz)*0.12+(Math.random()-0.5)*6, ny=last?64:by-(by-64)/n;
+    pts.push(bx,by,bz,nx,ny,nz); bx=nx; bz=nz; by=ny;
+  }
+  T.bolt.geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pts),3)); T.bolt.geometry.computeBoundingSphere();
+  T.f=0.7; T.th=0.45;
+}
+function flyFrame(dt){
+  var t=(FLY.t+=dt), D=FLY.D, u=Math.min(1,t/D), e=u*u*(3-2*u);
+  lookDX=0; lookDY=0; ctrl.jump=false;
+  camera.position.copy(FLY.pc.getPoint(e)); camera.up.set(0,1,0); camera.lookAt(FLY.tc.getPoint(e));
+  if(FLY.strike&&!FLY.hit&&t>=2.2){ FLY.hit=1; flyStrike(); }
+  if(mp.on) mpTick(dt);
+  FLY.black.style.opacity=String(t<0.7?1-t/0.7:0);
+  var t0=TM.snb?5.0:1.0, show=t>t0&&t<t0+3.6;
+  if(show&&!FLY.cap.textContent){ FLY.cap.textContent=(TM.snb?'SNOWBOUND':TM.isl?'SILENT CARTOGRAPHER':TM.mom?'NEW MOMBASA':TM.ship?'COVENANT SHIP':'ARENA')+'\n'+(mp.ctf?'CAPTURE THE FLAG':mp.koth?'KING OF THE HILL':'TEAM BATTLE'); }
+  FLY.cap.style.opacity=show?'1':'0';
+  if(t>=D) flyEnd(false);
+}
+function flyEnd(quiet){
+  if(!FLY.on) return; FLY.on=false;
+  FLY.el.forEach(function(e){ e.remove(); }); FLY.el=[];
+  camera.children.forEach(function(c,i){ if(FLY.cv[i]!==undefined) c.visible=FLY.cv[i]; });
+  ['keydown','pointerdown','touchstart'].forEach(function(n){ window.removeEventListener(n,flySkip,true); });
+  camera.rotation.z=0; camLag=0; MA.roll=0;
+  $('ui').hidden=false; try{ $('mpHud').hidden=false; }catch(e){}
+  if(!quiet){ mp.inv=tAcc+3; if(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm')) cutStart(); }   /* maps with the Pelican drop go straight into it */
+}
+/* kill-cam: after a kill online, the victim sees the killer's own view for the last three seconds before respawning */
+function kcCam(){
+  var pe=mp.kc!==null&&mp.kc!==undefined?mp.peers[mp.kc]:null, lb=$('kcLabel');
+  if(!pe||!pe.rem||!pe.rem.has||!pe.rem.al||!pe.avatar){ mp.kc=null; if(lb) lb.style.display='none'; return false; }
+  var R=pe.rem, fx=-Math.sin(R.yaw), fz=-Math.cos(R.yaw);
+  camera.position.set(R.x+fx*0.25,R.y+eyeC(),R.z+fz*0.25); camera.rotation.set(R.pit||0,R.yaw,0);
+  pe.avatar.visible=false;   /* we are inside the killer's head */
+  if(!lb){ lb=document.createElement('div'); lb.id='kcLabel'; lb.style.cssText='position:fixed;left:50%;top:12%;transform:translateX(-50%);z-index:9;pointer-events:none;font:900 15px monospace;letter-spacing:.25em;color:#fff;text-shadow:0 0 10px #000,0 2px 6px #000;padding:6px 14px;background:rgba(0,0,0,.35);border-left:3px solid #ff5a4a'; document.body.appendChild(lb); }
+  lb.textContent='KILL CAM  -  '+mpNm(mp.kc); lb.style.display='block';
+  return true;
+}
 function cutStart(){
   var P=CUT.prep; if(!P||!(TM.mom||TM.isl||TM.snb)||CUT.on) return;
   var sx=p.x, sy=p.y, sz=p.z, hl=Math.hypot(sx,sz), H=hl>30?{x:sx/hl,z:sz/hl}:{x:0,z:1}, V=38, D=V*CUT_FT/2;
@@ -10365,6 +10442,7 @@ function tmExit(){
   if(!TM.on) return;
   mgClear();
   covClear();
+  if(FLY.on) flyEnd(true);
   if(CUT.on) cutEnd(true); CUT.prep=null;
   CTF.on=false; KH.on=false; TM.wire=null; EM_STEP=4.4; TM.ship=false; TM.mom=false; TM.isl=false; TM.snb=false; TM.storm=false; TM.clouds=null; TM.water=null; bgScenery.forEach(function(m){ m.visible=true; }); if(skyDome) skyDome.visible=true; trRainStop(); TM.rain=null; TM.lt=null;
   if(stars){ stars.visible=night>0.05; stars.material.opacity=Math.min(1,night*1.2); }
@@ -11028,6 +11106,7 @@ function mpOppNear(P){
 }
 /* ---- death and respawn ---- */
 function mpOnDeath(){
+  mp.kc=null;
   state='dying'; MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
@@ -11037,6 +11116,7 @@ function mpOnDeath(){
     mgForce(); if(p.air) leaveJetState(); else if(p.inVeh){ if(GN.on) leaveGunner(); else exitRover(); }
     ctfDropMine(); grReset();
     var kby=(mp.lastBy!==undefined&&tAcc-(mp.lastByT||0)<15)?mp.lastBy:undefined, khow=mp.lastHow||'';
+    mp.kc=(kby!==undefined&&mp.peers[kby]&&mp.peers[kby].rem&&mp.peers[kby].rem.al)?kby:null;   /* the killer's view plays for the last three seconds */
     if(mp.cause&&tAcc-(mp.causeT||0)<1.5&&(kby===undefined||(mp.causeT||0)>(mp.lastByT||0))) khow=mp.cause;
     var dm={t:'dead',by:mp.lastBy,vt:mp.team,w:khow}; mpSend(dm); if(mp.host){ dm.f=0; mpRecv(dm); } else mpStatDead(mp.id,dm.by,dm.vt);
     try{
@@ -11054,6 +11134,7 @@ function mpOnDeath(){
   try{ startRagdoll(); }catch(err){ rag=null; }
 }
 function mpRevive(near){
+  mp.kc=null; try{ var kl=$('kcLabel'); if(kl) kl.style.display='none'; }catch(e){}
   removeRagdoll(); state='play'; vm.visible=true; p.health=100; p.shield=100; p.lastHit=-10; vigT=0;
   var R=mp.rem;
   if(mp.mode==='dm'){
