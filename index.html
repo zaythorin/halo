@@ -3003,6 +3003,32 @@ covInit();
   /* fuel rod cannon: hauled low and heavy while the cell is dropped in */
   F(16,[[0,0,0,0],[0.35,0,-0.1,0.06],[0.7,0,-0.1,0.06],[1,0,0,0]],null);
 })();
+/* REALISTIC RELOADS: the gun stays on target and is only canted slightly toward the free hand (no flips, spins or held-up poses); each weapon keeps its own small character */
+(function(){
+  function S(i,pk,rot,fxR,fxP){ var w=weapons[i], a=w&&w.anim; if(!a) return; if(pk) a.pk=pk; if(rot) a.rot=rot; a.fxR=fxR||null; a.fxP=fxP||null; }
+  var ARR=[[0,0,0,0],[0.14,-0.06,0.1,-0.22],[0.72,-0.08,0.12,-0.28],[0.82,-0.03,0.06,-0.1],[0.9,0.02,0.03,-0.03],[1,0,0,0]];
+  /* magnum: tilted a little toward the left hand, slide racked at the end */
+  S(0,[-0.03,0.04,0.03],[[0,0,0,0],[0.14,0.12,0.1,-0.4],[0.5,0.14,0.12,-0.45],[0.74,0.1,0.08,-0.35],[0.82,0.05,0.04,-0.15],[0.92,0.02,0,-0.04],[1,0,0,0]],[[0,0,0,0],[0.9,0,0,0],[0.945,0.05,0,0],[0.975,0.1,0,0.02],[1,0,0,0]],[[0,0,0,0],[0.74,0,0,0],[0.79,0,-0.02,0.015],[0.86,0,0,0],[1,0,0,0]]);
+  /* assault rifle: muzzle dipped slightly, mag well angled in, a small jolt as the handle is racked */
+  S(1,[-0.04,0.03,0.02],ARR,[[0,0,0,0],[0.9,0,0,0],[0.95,0.04,0,0.02],[1,0,0,0]]);
+  /* sniper: eased up and canted a touch while the bolt is worked */
+  S(2,[-0.03,0.04,0.03],[[0,0,0,0],[0.14,0.12,0.08,-0.2],[0.5,0.14,0.1,-0.24],[0.8,0.1,0.06,-0.15],[0.9,0.04,0.02,-0.05],[1,0,0,0]]);
+  /* rocket launcher: heavy, dips slightly while the new rocket is fed in */
+  S(3,[-0.06,0.06,0.03],[[0,0,0,0],[0.16,-0.1,0.08,-0.08],[0.5,-0.14,0.1,-0.1],[0.78,-0.08,0.06,-0.06],[0.9,0.03,0,0],[1,0,0,0]]);
+  /* SMG: brought in close and canted, quick and compact */
+  S(6,[-0.03,0.04,0.03],[[0,0,0,0],[0.1,0.1,0.12,-0.3],[0.5,0.12,0.14,-0.36],[0.74,0.08,0.1,-0.28],[0.84,0.03,0.04,-0.1],[1,0,0,0]]);
+  /* battle rifle: slow and deliberate, steady muzzle */
+  S(7,[-0.04,0.03,0.02],[[0,0,0,0],[0.14,-0.04,0.1,-0.22],[0.5,-0.06,0.12,-0.26],[0.78,-0.04,0.08,-0.18],[0.88,0.03,0,-0.04],[1,0,0,0]]);
+  S(9,[-0.04,0.03,0.02],[[0,0,0,0],[0.14,-0.04,0.1,-0.22],[0.5,-0.06,0.12,-0.26],[0.78,-0.04,0.08,-0.18],[0.88,0.03,0,-0.04],[1,0,0,0]]);
+  /* MMG: heavy, the weight dropping a little as the belt is seated */
+  S(10,[-0.04,-0.02,0.06],[[0,0,0,0],[0.15,0.08,0.1,-0.1],[0.5,0.1,0.12,-0.12],[0.76,0.06,0.08,-0.08],[0.88,0.01,0.02,0],[1,0,0,0]],null,[[0,0,0,0],[0.3,0.02,-0.05,0.04],[0.62,0.02,-0.05,0.04],[0.84,0,0.02,-0.02],[1,0,0,0]]);
+  /* Covenant guns: small, believable motions (the needler keeps its own) */
+  if(weapons[11]&&weapons[11].anim) S(11,null,null,[[0,0,0,0],[0.5,0,0,0],[0.66,-0.18,0,0.08],[1,0,0,0]]);
+  if(weapons[12]&&weapons[12].anim) S(12,null,null,[[0,0,0,0],[0.3,0,0.05,0],[0.5,0,-0.05,0],[0.7,0,0.03,0],[1,0,0,0]]);
+  if(weapons[13]&&weapons[13].anim) S(13,null,null,[[0,0,0,0],[0.3,0.14,0,0],[0.8,0.14,0,0],[1,0,0,0]],[[0,0,0,0],[0.3,0,0.04,0.03],[0.8,0,0.04,0.03],[1,0,0,0]]);
+  if(weapons[15]&&weapons[15].anim) S(15,null,null,[[0,0,0,0],[0.3,-0.05,0.08,-0.2],[0.74,-0.06,0.1,-0.24],[0.86,0,0.03,-0.06],[1,0,0,0]]);
+  if(weapons[16]&&weapons[16].anim) S(16,null,null,null,[[0,0,0,0],[0.35,0,-0.06,0.04],[0.7,0,-0.06,0.04],[1,0,0,0]]);
+})();
 /* NUKE LASER: a gold Spartan Laser that calls down a nuke. Only appears in-game after typing 117 in DEV MODE */
 (function(){
   var b=weapons[8], w=Object.assign({},b); w.id='nuke'; w.name='NUKE LASER'; w.nuke=true; w.slideKick=0; w.group=buildLaser();
@@ -6209,12 +6235,12 @@ var MELEE_SET={
 /* draw animation: after the old weapon drops away the new one swings up into place its own way */
 function swapFlourish(id,k){
   switch(id){
-    case 'magnum': return [0.5*k,0,0.45*k];
-    case 'ar': return [0.3*k,-0.55*k,0];
-    case 'sniper': return [0.7*k,0.1*k,0];
-    case 'shotgun': return [0.2*k,0,-0.8*k];
-    case 'rocket': return [0.9*k,0,0.15*k];
-    case 'sword': return [0.1*k,0.5*k,-0.9*k];
+    case 'magnum': return [0.22*k,0,0.18*k];
+    case 'ar': return [0.14*k,-0.22*k,0];
+    case 'sniper': return [0.3*k,0.04*k,0];
+    case 'shotgun': return [0.1*k,0,-0.3*k];
+    case 'rocket': return [0.4*k,0,0.06*k];
+    case 'sword': return [0.1*k,0.3*k,-0.5*k];
   }
   return [0,0,0];
 }
@@ -6239,7 +6265,7 @@ var MELEE_KF={
 var MELEE_LEN={rocket:0.72,mmg:0.7,fuel:0.72,beam:0.65,laser:0.65,nuke:0.65,sniper:0.6,br:0.55,smg:0.55,carbine:0.6};
 function meleeKF(list,t){
   for(var i=1;i<list.length;i++){
-    if(t<=list[i][0]){ var a=list[i-1], b=list[i], u=ss((t-a[0])/(b[0]-a[0])), o=[], k; for(k=0;k<6;k++) o.push(a[1][k]+(b[1][k]-a[1][k])*u); return o; }
+    if(t<=list[i][0]){ var a=list[i-1], b=list[i], u=ss((t-a[0])/(b[0]-a[0])), o=[], k; for(k=0;k<6;k++) o.push((a[1][k]+(b[1][k]-a[1][k])*u)*(k>=3?0.7:1)); return o; }   /* rotations toned down so bashes look weighty, not windmilling */
   }
   return list[list.length-1][1].slice();
 }
@@ -7034,11 +7060,11 @@ function updateWeapon(dt){
     if(!live&&ma.inspK<0.02){ ma.insp=-1; ma.inspK=0; ma.man=false; }
     else{
       var u=Math.min(1,ma.inspT/ma.inspDur), si=Math.sin(u*Math.PI), k2=ma.inspK;
-      if(ma.insp===0){ vm.rotation.z+=0.95*si*k2; vm.rotation.y-=0.55*si*k2; vm.position.y+=0.045*si*k2; vm.position.x-=0.07*si*k2; }
-      else if(ma.insp===1){ vm.rotation.x+=0.45*Math.sin(u*Math.PI*2)*k2; vm.position.y+=0.03*si*k2; vm.position.z+=0.04*Math.sin(u*Math.PI*2)*k2; vm.rotation.z-=0.15*si*k2; }
+      if(ma.insp===0){ vm.rotation.z+=0.5*si*k2; vm.rotation.y-=0.3*si*k2; vm.position.y+=0.045*si*k2; vm.position.x-=0.07*si*k2; }
+      else if(ma.insp===1){ vm.rotation.x+=0.22*Math.sin(u*Math.PI*2)*k2; vm.position.y+=0.03*si*k2; vm.position.z+=0.04*Math.sin(u*Math.PI*2)*k2; vm.rotation.z-=0.15*si*k2; }
       else if(ma.insp===4){ vm.position.y-=0.05*si*k2; vm.position.x+=0.06*si*k2; vm.rotation.z-=0.8*si*k2; vm.rotation.x+=0.5*si*k2; vm.rotation.y+=0.3*si*k2; }   /* tip the gun up to check the sight */
       else if(ma.insp===3){ var ie=Math.min(1,si*2.4)*k2, sw=Math.sin(u*Math.PI*2); vm.position.x-=0.2*ie; vm.position.y+=0.07*ie; vm.position.z+=0.14*ie; vm.rotation.y-=(1.05+0.45*sw)*ie; vm.rotation.z+=(0.3+0.35*Math.sin(u*Math.PI*4))*ie; vm.rotation.x+=0.25*sw*ie; }
-      else{ vm.position.y-=0.09*si*k2; vm.rotation.z-=0.3*Math.sin(u*Math.PI*2)*k2; vm.rotation.y+=0.35*Math.sin(u*Math.PI*2)*k2; vm.rotation.x-=0.12*si*k2; }
+      else{ vm.position.y-=0.09*si*k2; vm.rotation.z-=0.15*Math.sin(u*Math.PI*2)*k2; vm.rotation.y+=0.2*Math.sin(u*Math.PI*2)*k2; vm.rotation.x-=0.12*si*k2; }
     }
   }
   /* realism layer: shot jitter, reload variation and the empty-mag bolt slap, a settle spring when you stop, a walking figure-eight */
