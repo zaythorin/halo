@@ -112,10 +112,28 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #lyBar button{font:700 12px var(--font-ui);letter-spacing:.12em;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);color:#fff}
 #lyBar #lyDone{background:#ffb347;color:#111;border-color:#ffb347}
 #lyBar input{width:120px}
+#ach{z-index:21;justify-content:flex-start;padding-left:clamp(20px,6vw,90px)}
+#ach .card{align-items:stretch;gap:10px;max-width:min(520px,92vw);max-height:88vh;overflow:auto;text-align:left}
+#ach h2{color:var(--ink);font-size:clamp(22px,4vw,32px)}
+#achSum{opacity:.75;font-size:12px;letter-spacing:.2em}
+.achRow{border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 10px;background:rgba(255,255,255,.05)}
+.achRow.got{border-color:#ffb347;background:rgba(255,179,71,.14)}
+.achRow b{display:block;letter-spacing:.14em;font-size:13px}
+.achRow.got b::after{content:' \2713';color:#ffb347}
+.achRow span{display:block;opacity:.75;font-size:11px;letter-spacing:.06em;margin-top:2px}
+.achBar{height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:6px;overflow:hidden}
+.achBar i{display:block;height:100%;background:#6be4ff}
+.achRow.got .achBar i{background:#ffb347}
+#achPop{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translate(-50%,-30px);opacity:0;z-index:90;pointer-events:none;background:rgba(8,14,20,.92);border:1px solid #ffb347;border-radius:10px;padding:8px 18px;text-align:center;color:#fff;font:700 13px var(--font-ui);letter-spacing:.14em;transition:opacity .3s,transform .3s}
+#achPop.show{opacity:1;transform:translate(-50%,0)}
+#achPop small{display:block;color:#ffb347;font-size:10px;letter-spacing:.3em;margin-bottom:2px}
 #bFire{width:104px;height:104px;border-radius:50%;border-color:var(--amber);color:var(--amber);font-size:15px;right:calc(18px + var(--sr));bottom:calc(22px + var(--sb))}
 #bJump{right:calc(158px + var(--sr));bottom:calc(14px + var(--sb))}
 #bReload{right:calc(172px + var(--sr));bottom:calc(86px + var(--sb))}
 #bSwap{right:calc(14px + var(--sr));bottom:calc(166px + var(--sb))}
+#bInspect{right:calc(14px + var(--sr));bottom:calc(226px + var(--sb));width:76px;height:40px;font-size:10px}
+@media (pointer:fine){#bInspect{display:none}}
+#ui.driving #bInspect{display:none}
 #bZoom{right:calc(110px + var(--sr));bottom:calc(196px + var(--sb))}
 #bSprint{left:calc(22px + var(--sl));bottom:calc(214px + var(--sb))}
 #bView{left:calc(106px + var(--sl));bottom:calc(214px + var(--sb))}
@@ -490,6 +508,7 @@ body{letter-spacing:.02em}
   <button type="button" class="btn" id="bJump">JUMP</button>
   <button type="button" class="btn" id="bReload">RELOAD</button>
   <button type="button" class="btn" id="bSwap">SWAP</button>
+  <button type="button" class="btn" id="bInspect">INSPECT</button>
   <button type="button" class="btn" id="bZoom">ZOOM</button>
   <button type="button" class="btn" id="bSprint">SPRINT</button>
   <button type="button" class="btn" id="bCrouch">CROUCH</button>
@@ -516,6 +535,7 @@ body{letter-spacing:.02em}
     <button type="button" class="ghost mb" id="charBtn">CHARACTER: MASTER CHIEF</button>
     <button type="button" class="ghost mb" id="mpBtn">PLAY ONLINE</button>
     <button type="button" class="ghost mb" id="ctlBtn">CONTROLS</button>
+    <button type="button" class="ghost mb" id="achBtn">ACHIEVEMENTS</button>
     <button type="button" class="ghost mb" id="sndBtn">MUSIC: ON</button>
     <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">Salt Rifle (old battle rifle shape): &ldquo;BR-80 Battle Rifle&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Battlecruiser: &ldquo;CCS Class Battlecruiser&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button><br>Code <input type="text" class="devCode" maxlength="12" autocomplete="off" placeholder="code" style="width:6em;font:inherit;padding:4px"> <button type="button" class="ghost devCodeGo" style="display:inline-block;padding:4px 12px">ENTER</button> <span class="devMsg"></span></div></details>
   </div>
@@ -540,6 +560,7 @@ body{letter-spacing:.02em}
       <button type="button" class="go alt" id="pRespawn">RESPAWN</button>
       <button type="button" class="go alt" id="restart">RESTART</button>
       <button type="button" class="go alt" id="pCtl">CONTROLS</button>
+      <button type="button" class="go alt" id="pAch">ACHIEVEMENTS</button>
       <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
       <button type="button" class="go alt" id="pGfx">GRAPHICS: HIGH</button>
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
@@ -553,6 +574,15 @@ body{letter-spacing:.02em}
   </div>
 </div>
 
+<div class="overlay" id="ach" hidden>
+  <div class="card">
+    <h2>ACHIEVEMENTS</h2>
+    <div id="achSum"></div>
+    <div id="achList"></div>
+    <button type="button" class="go" id="achClose">CLOSE</button>
+  </div>
+</div>
+<div id="achPop"><small>ACHIEVEMENT UNLOCKED</small><span id="achPopT"></span></div>
 <div class="overlay" id="controls" hidden>
   <div class="card">
     <h2>CONTROLS</h2>
@@ -4040,7 +4070,7 @@ function announce(t){
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   }catch(e){}
 }
-function medalAward(name,sub,col,chime){ MDS[name]=(MDS[name]||0)+1; medalShow(name,sub,col); medalChime(chime||2); if(name!=='HEADSHOT') announce(name); }
+function medalAward(name,sub,col,chime){ MDS[name]=(MDS[name]||0)+1; try{ achAdd('medals',1); achCheck(); }catch(e){} medalShow(name,sub,col); medalChime(chime||2); if(name!=='HEADSHOT') announce(name); }
 function medalPanel(){
   try{
     var card=$('over').querySelector('.card'), el=$('oMedals'); if(!el){ el=document.createElement('div'); el.id='oMedals'; el.style.cssText='margin:10px 0 4px;text-align:center;font:700 12px monospace;letter-spacing:.14em;color:#ffd24a;line-height:1.7'; card.insertBefore(el,card.querySelector('.pbtns')); }
@@ -4050,7 +4080,7 @@ function medalPanel(){
 function medalKill(head){
   var n=tAcc;
   if(n-MD.gap<0.12) return; MD.gap=n;
-  MD.multi=(n-MD.last<4.5)?MD.multi+1:1; MD.last=n; MD.spree++;
+  MD.multi=(n-MD.last<4.5)?MD.multi+1:1; MD.last=n; MD.spree++; try{ achMax('spree',MD.spree); achMax('multi',MD.multi); }catch(e){}
   var sp=MD_SPREE[MD.spree], mu=MD_MULTI[Math.min(MD.multi,7)];
   if(sp) medalAward(sp,MD.spree+' KILLS WITHOUT DYING','#ff9a3a',5);
   else if(MD.multi>=2&&mu) medalAward(mu,'','#ffd24a',MD.multi);
@@ -4070,6 +4100,76 @@ function partyBurst(e){
     medalAward('GRUNT BIRTHDAY PARTY','','#ff9ad0',3);
   }catch(err){}
 }
+/* ---------- achievements: lifetime stats saved on this device ---------- */
+var ACH={s:{},got:{},dirty:false,q:[],showing:false};
+try{ var ach0=JSON.parse(localStorage.getItem('halo-ach')||'{}'); ACH.s=ach0.s||{}; ACH.got=ach0.got||{}; }catch(e){}
+var ACH_DEFS=[
+  {id:'first',n:'FIRST BLOOD',d:'Get your first kill',k:'kills',t:1},
+  {id:'k50',n:'ROOKIE',d:'Kill 50 enemies',k:'kills',t:50},
+  {id:'k250',n:'VETERAN',d:'Kill 250 enemies',k:'kills',t:250},
+  {id:'k1000',n:'LEGEND',d:'Kill 1000 enemies',k:'kills',t:1000},
+  {id:'h25',n:'SHARPSHOOTER',d:'Get 25 headshots',k:'heads',t:25},
+  {id:'h200',n:'HEAD HUNTER',d:'Get 200 headshots',k:'heads',t:200},
+  {id:'w5',n:'HOLDING THE LINE',d:'Reach wave 5',k:'wave',t:5},
+  {id:'w10',n:'LAST STAND',d:'Reach wave 10',k:'wave',t:10},
+  {id:'w20',n:'UNBREAKABLE',d:'Reach wave 20',k:'wave',t:20},
+  {id:'sc10',n:'HIGH ROLLER',d:'Score 10,000 in one game',k:'score',t:10000},
+  {id:'hun',n:'HUNTER SLAYER',d:'Kill 5 Hunters',k:'hunters',t:5},
+  {id:'eli',n:'ELITE HUNTER',d:'Kill 25 Elites',k:'elites',t:25},
+  {id:'flo',n:'FLOOD CONTROL',d:'Kill 50 Flood',k:'flood',t:50},
+  {id:'ban',n:'FLIGHT CONTROL',d:'Shoot down 3 Banshees',k:'banshees',t:3},
+  {id:'sp5',n:'KILLING SPREE',d:'5 kills without dying',k:'spree',t:5},
+  {id:'sp10',n:'RUNNING RIOT',d:'10 kills without dying',k:'spree',t:10},
+  {id:'mu3',n:'TRIPLE THREAT',d:'3 kills in quick succession',k:'multi',t:3},
+  {id:'swd',n:'SWORD MASTER',d:'15 kills with the energy sword',k:'w_sword',t:15},
+  {id:'snp',n:'ONE SHOT',d:'15 kills with the sniper rifle',k:'w_sniper',t:15},
+  {id:'mag',n:'HAND CANNON',d:'30 kills with the magnum',k:'w_magnum',t:30},
+  {id:'arm',n:'ARMOURY',d:'Get a kill with 6 different weapons',k:'wtypes',t:6},
+  {id:'ins',n:'SHOW OFF',d:'Inspect your weapon 10 times',k:'insp',t:10},
+  {id:'med',n:'DECORATED',d:'Earn 50 medals',k:'medals',t:50},
+  {id:'mp1',n:'FIRST FRAG',d:'Frag a player online',k:'mpk',t:1},
+  {id:'mp25',n:'WARMONGER',d:'Frag 25 players online',k:'mpk',t:25},
+  {id:'win',n:'VICTORY',d:'Win an online match',k:'wins',t:1},
+  {id:'hr',n:'DEDICATED',d:'Play for one hour',k:'sec',t:3600}
+];
+function achSave(){ try{ localStorage.setItem('halo-ach',JSON.stringify({s:ACH.s,got:ACH.got})); }catch(e){} }
+function achAdd(k,n){ ACH.s[k]=(ACH.s[k]||0)+n; ACH.dirty=true; }
+function achMax(k,v){ if(v>(ACH.s[k]||0)){ ACH.s[k]=v; ACH.dirty=true; } }
+function achCheck(){
+  if(!ACH.dirty) return; ACH.dirty=false;
+  var n=0; for(var w in ACH.s.wt||{}) n++; ACH.s.wtypes=n;
+  var changed=false;
+  ACH_DEFS.forEach(function(a){ if(!ACH.got[a.id]&&(ACH.s[a.k]||0)>=a.t){ ACH.got[a.id]=Date.now(); ACH.q.push(a.n); changed=true; } });
+  achSave(); if(changed) achPopNext();
+}
+function achPopNext(){
+  if(ACH.showing||!ACH.q.length) return;
+  ACH.showing=true; var nm=ACH.q.shift(), el=$('achPop');
+  $('achPopT').textContent=nm; el.classList.add('show');
+  try{ tone(660,990,0.12,'triangle',0.05); setTimeout(function(){ tone(990,1320,0.2,'triangle',0.05); },110); }catch(e){}
+  setTimeout(function(){ el.classList.remove('show'); setTimeout(function(){ ACH.showing=false; achPopNext(); },400); },3200);
+}
+function achKill(e,head){
+  var s=ACH.s; achAdd('kills',1); if(head) achAdd('heads',1);
+  if(e.hunter) achAdd('hunters',1); else if(e.elite) achAdd('elites',1); if(e.flood) achAdd('flood',1); if(e.air) achAdd('banshees',1);
+  var w=weapons[sel]; if(w&&w.id){ achAdd('w_'+w.id,1); if(!s.wt) s.wt={}; s.wt[w.id]=1; }
+  achMax('score',score); achCheck();
+}
+function achShow(){
+  var L=$('achList'); L.textContent=''; var got=0;
+  ACH_DEFS.forEach(function(a){
+    var v=Math.min(a.t,ACH.s[a.k]||0), ok=!!ACH.got[a.id]; if(ok) got++;
+    var r=document.createElement('div'); r.className='achRow'+(ok?' got':'');
+    var b=document.createElement('b'); b.textContent=a.n; var sp=document.createElement('span'); sp.textContent=a.d+(ok?'':'   ('+(a.k==='sec'?Math.floor(v/60)+' / '+Math.floor(a.t/60)+' min':v+' / '+a.t)+')');
+    var bar=document.createElement('div'); bar.className='achBar'; var f=document.createElement('i'); f.style.width=(ok?100:Math.round(100*v/a.t))+'%'; bar.appendChild(f);
+    r.appendChild(b); r.appendChild(sp); r.appendChild(bar); L.appendChild(r);
+  });
+  $('achSum').textContent=got+' OF '+ACH_DEFS.length+' UNLOCKED';
+  $('ach').hidden=false;
+}
+$('achBtn').addEventListener('click',achShow); $('pAch').addEventListener('click',achShow);
+$('achClose').addEventListener('click',function(){ $('ach').hidden=true; });
+setInterval(function(){ if(state==='play'){ achAdd('sec',5); achCheck(); } },5000);
 /* kill feed (small text down the left edge): who killed whom, and with what */
 function killFeed(by,byCol,vic,vicCol,how){
   try{
@@ -4086,6 +4186,7 @@ function killFeed(by,byCol,vic,vicCol,how){
 }
 function enemyLabel(e){ return (e.air?'BANSHEE':e.flood?'FLOOD':e.kami?'KAMIKAZE':e.hunter?'HUNTER':e.elite?'ELITE':(e.kind||'ENEMY').toString().toUpperCase()); }
 function onKill(e,head){
+  try{ achKill(e,head); }catch(err){}
   try{ killFeed('YOU','#6be4ff',enemyLabel(e),'#ff9a6a',(head?'HEADSHOT ':'')+(weapons[sel]?weapons[sel].name:'')); }catch(err){}
   medalKill(head);
   try{ if(!e.air&&Math.random()<(e.elite||e.hunter?0.5:0.18)){ var gk0=Math.random()<0.5?'frag':'plasma'; if(gren[gk0]>=GMAX[gk0]) gk0=gk0==='frag'?'plasma':'frag'; if(gren[gk0]<GMAX[gk0]){ gren[gk0]++; showToast('DROPPED A '+GDEF[gk0].n+' GRENADE'); sfx.pickup(); } } }catch(e0){}   /* enemies sometimes drop a grenade */
@@ -4450,6 +4551,7 @@ function updatePickups(dt){
 
 /* waves */
 function startWave(){
+  try{ achMax('wave',wave.n+1); achCheck(); }catch(e){}
   wave.n++; wave.fl=wave.n>=5; wave.hun=!wave.fl&&(wave.n%3===0); wave.toSpawn=wave.fl?8+(wave.n-4)*3:wave.hun?1+wave.n/3:4+wave.n*2; wave.active=true; wave.spawnT=wave.fl?9:0.5;
   showBanner('WAVE '+wave.n+(wave.hun?'  -  HUNTERS':''));
   if(wave.fl&&(!mp.on||mp.host)){ spawnRefugees(wave.n===5?7:4); }
@@ -4522,7 +4624,12 @@ function hurt(n){
 var camLag=0;
 /* misc first-person animation state: landing, jumping, sprinting, strafing, flinching, idle weapon inspects */
 var gpSprint=false;
-var MA={want:false,mx:0,mxs:0,air:0,land:0,sprint:0,idle:0,insp:-1,inspT:0,inspK:0,inspDur:2.4,flinch:0,flx:1,breath:0,roll:0};
+var MA={want:false,mx:0,mxs:0,air:0,land:0,sprint:0,idle:0,insp:-1,inspT:0,inspK:0,inspDur:2.4,flinch:0,flx:1,breath:0,roll:0,man:false};
+/* manual weapon inspect: I key or the INSPECT button; turns the gun over to show it off */
+function weaponInspect(){
+  if(state!=='play'||reloading||swapT>0||meleeT>0||throwT>0||ctrl.fire||zoomed||p.inVeh||p.air) return;
+  MA.insp=3; MA.inspT=0; MA.inspK=0; MA.inspDur=3.6; MA.man=true; MA.idle=0; achAdd('insp',1);
+}
 
 /* ---------- third-person view (toggle with B / D-pad down / VIEW button / pause menu) ---------- */
 var TP={on:false,act:false,rig:null,rigId:null,hold:new THREE.Group(),walk:0,curD:3.2,amp:0,hp:new V3(),pv:new V3(),bk:new V3()};
@@ -6921,12 +7028,13 @@ function updateWeapon(dt){
   if(mov<0.05&&p.onGround&&!busy&&ma.insp<0) ma.idle+=dt; else if(mov>=0.05||busy) ma.idle=0;
   if(ma.insp<0&&ma.idle>8){ ma.insp=(Math.random()*3)|0; ma.inspT=0; ma.idle=0; ma.inspDur=2.2+Math.random()*0.8; }
   if(ma.insp>=0){
-    ma.inspT+=dt; var live=(!busy&&mov<0.05&&ma.inspT<ma.inspDur)?1:0; ma.inspK+=(live-ma.inspK)*Math.min(1,dt*6);
-    if(!live&&ma.inspK<0.02){ ma.insp=-1; ma.inspK=0; }
+    ma.inspT+=dt; var live=(!busy&&(ma.man||mov<0.05)&&ma.inspT<ma.inspDur)?1:0; ma.inspK+=(live-ma.inspK)*Math.min(1,dt*6);
+    if(!live&&ma.inspK<0.02){ ma.insp=-1; ma.inspK=0; ma.man=false; }
     else{
       var u=Math.min(1,ma.inspT/ma.inspDur), si=Math.sin(u*Math.PI), k2=ma.inspK;
       if(ma.insp===0){ vm.rotation.z+=0.95*si*k2; vm.rotation.y-=0.55*si*k2; vm.position.y+=0.045*si*k2; vm.position.x-=0.07*si*k2; }
       else if(ma.insp===1){ vm.rotation.x+=0.45*Math.sin(u*Math.PI*2)*k2; vm.position.y+=0.03*si*k2; vm.position.z+=0.04*Math.sin(u*Math.PI*2)*k2; vm.rotation.z-=0.15*si*k2; }
+      else if(ma.insp===3){ var ie=Math.min(1,si*2.4)*k2, sw=Math.sin(u*Math.PI*2); vm.position.x-=0.2*ie; vm.position.y+=0.07*ie; vm.position.z+=0.14*ie; vm.rotation.y-=(1.05+0.45*sw)*ie; vm.rotation.z+=(0.3+0.35*Math.sin(u*Math.PI*4))*ie; vm.rotation.x+=0.25*sw*ie; }
       else{ vm.position.y-=0.09*si*k2; vm.rotation.z-=0.3*Math.sin(u*Math.PI*2)*k2; vm.rotation.y+=0.35*Math.sin(u*Math.PI*2)*k2; vm.rotation.x-=0.12*si*k2; }
     }
   }
@@ -8244,7 +8352,7 @@ function pauseGame(){
 function resumeGame(){
   if(state!=='paused') return;
   if(typeof lyExit==='function') lyExit();
-  $('controls').hidden=true; $('pause').hidden=true;
+  $('controls').hidden=true; $('ach').hidden=true; $('pause').hidden=true;
   state='play';
   if(ac&&ac.resume) ac.resume();
   lockMouse();
@@ -8523,6 +8631,7 @@ $('bScore').addEventListener('pointerdown',function(ev){ ev.preventDefault(); sb
 $('bScore').addEventListener('pointerup',function(){ sbShow(false); });
 $('bScore').addEventListener('pointercancel',function(){ sbShow(false); });
 hold($('bReload'),startReload);
+hold($('bInspect'),weaponInspect);
 hold($('bSwap'),swapWeapon);
 hold($('bZoom'),toggleZoom);
 hold($('bDual'),dwToggle);
@@ -8547,6 +8656,7 @@ window.addEventListener('keydown',function(ev){
   if(state!=='play') return;
   if(ev.code==='Space'){ ctrl.jump=true; ev.preventDefault(); }
   else if(ev.code==='KeyR') startReload();
+  else if(ev.code==='KeyI'){ if(!ev.repeat) weaponInspect(); }
   else if(ev.code==='KeyT'){ if(!ev.repeat) dwToggle(); }
   else if(ev.code==='KeyQ') swapWeapon();
   else if(ev.code==='Digit1') swapWeapon(0);
@@ -10175,17 +10285,21 @@ function tmEnter(team){
     if(stars) stars.visible=false;
     momStormInit(); momLights(); momCutPrep();
   }
-  if(TM.snb){ bgScenery.forEach(function(m){ m.visible=false; }); momCutPrep(); }   /* Snowbound keeps the night thunderstorm of the old snow map (below) */
+  if(TM.snb){ bgScenery.forEach(function(m){ m.visible=false; }); momCutPrep(); }   /* Snowbound: night, stars, falling snow and the ring (below) */
   if(!TM.desert&&!TM.ship&&!TM.mom&&!TM.isl){ /* snow map at night */
     scene.background.setHex(0x050a1c); scene.fog.color.setHex(0x0a1230); scene.fog.near=26; scene.fog.far=330;
     hemi.intensity=0.6; hemi.color.setHex(0x7f9fe0); hemi.groundColor.setHex(0x1c2a48); sun.intensity=0.5; sun.color.setHex(0x9db4ff);
     if(skyDome) skyDome.material.color.setScalar(0.1);
     if(stars){ stars.visible=true; stars.material.opacity=1; }
-    /* now a thunderstorm: heavy cloud, rain instead of snow, lightning and thunder */
-    TM.storm=true; scene.background.setRGB(0.07,0.085,0.12); scene.fog.color.copy(scene.background); scene.fog.near=10; scene.fog.far=230;
-    hemi.intensity=0.55; hemi.color.setHex(0x6f86b8); hemi.groundColor.setHex(0x1c2030); sun.intensity=0.15; sun.color.setHex(0x9db4ff);
-    if(stars) stars.visible=false; if(TM.snow) TM.snow.visible=false;
-    momStormInit();
+    if(TM.snow) TM.snow.visible=true;   /* snow falls here again (no rain) */
+    try{   /* the Halo ring arcing across the night sky */
+      var rc2=document.createElement('canvas'); rc2.width=512; rc2.height=64; var rg=rc2.getContext('2d'), ri;
+      rg.fillStyle='#7f93a8'; rg.fillRect(0,0,512,64); for(ri=0;ri<64;ri++){ rg.fillStyle='rgba('+(110+((ri*37)%60))+','+(140+((ri*53)%50))+','+(150+((ri*29)%60))+',0.55)'; rg.fillRect(ri*8,0,3+(ri%3),64); }
+      rg.fillStyle='rgba(235,245,255,.7)'; rg.fillRect(0,0,512,5); rg.fillRect(0,59,512,5);
+      var rt2=new THREE.CanvasTexture(rc2); rt2.wrapS=rt2.wrapT=THREE.RepeatWrapping; rt2.repeat.set(24,1);
+      var haloRing=new THREE.Mesh(new THREE.CylinderGeometry(1450,1450,170,128,1,true),new THREE.MeshBasicMaterial({map:rt2,side:THREE.BackSide,fog:false,transparent:true,opacity:0.9,depthWrite:false}));
+      haloRing.rotation.z=Math.PI/2; haloRing.rotation.y=0.55; haloRing.renderOrder=-5; haloRing.frustumCulled=false; scene.add(haloRing);
+    }catch(e){}
   }
   CTF.on=false; if(mp.ctf) ctfInit();
   KH.on=false; if(mp.koth) khInit();
@@ -10563,7 +10677,7 @@ function mpSt(id){ var S=mp.stats||(mp.stats={}); return S[id]||(S[id]={k:0,d:0,
 function mpStatDead(vid,by,vt){
   if(vid===undefined) return; mpSt(vid).d++;
   if(vid===mp.id) MD.spree=0;
-  if(by!==undefined){ var bt=mpTeamOf(by); if(bt!==undefined&&bt!==vt){ mpSt(by).k++; if(by===mp.id) medalKill(false); } }
+  if(by!==undefined){ var bt=mpTeamOf(by); if(bt!==undefined&&bt!==vt){ mpSt(by).k++; if(by===mp.id){ medalKill(false); try{ achAdd('mpk',1); achCheck(); }catch(e){} } } }
 }
 function sbFill(el){
   if(!el) return; el.textContent='';
@@ -10911,7 +11025,7 @@ function mpCheckEnd(){
   if(mp.mode!=='dm'||mp.over) return;
   var T=mpTarget();
   if(mp.score[0]>=T||mp.score[1]>=T){
-    mp.over=true; var wt=mp.score[0]>=T?0:1, win=wt===mp.team;
+    mp.over=true; var wt=mp.score[0]>=T?0:1, win=wt===mp.team; if(win){ try{ achAdd('wins',1); achCheck(); }catch(e){} }
     state='over'; removeRagdoll(); try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
     sample('gameOver',1); $('ui').hidden=true; vm.visible=false;
     $('oTitle').textContent=win?'VICTORY':'DEFEAT'; medalPanel();
@@ -11227,7 +11341,7 @@ function rumble(ms,strong,weak){
   try{ a.playEffect('dual-rumble',{startDelay:0,duration:ms,strongMagnitude:Math.min(1,strong),weakMagnitude:Math.min(1,weak)}); }catch(e){}
 }
 function gpMenu(g,pr,dt){
-  var ids=['mp','controls','pause','over','menu'], ov=null;
+  var ids=['ach','mp','controls','pause','over','menu'], ov=null;
   for(var i=0;i<ids.length;i++){ var o=$(ids[i]); if(o&&!o.hidden){ ov=o; break; } }
   if(!ov) return;
   var bs=[].slice.call(ov.querySelectorAll('button')).filter(function(b){ return !b.hidden&&!b.disabled&&b.offsetParent!==null; });
@@ -11241,7 +11355,7 @@ function gpMenu(g,pr,dt){
   else if(mv!==0){ idx=(idx+mv+bs.length)%bs.length; bs[idx].focus(); }
   if(pr(0)){ try{ bs[idx].click(); }catch(e){} }
   if(pr(1)){
-    if(ids[i]==='controls') $('ctlClose').click(); else if(ids[i]==='mp') $('mpBack').click(); else if(ids[i]==='pause') resumeGame();
+    if(ids[i]==='ach') $('achClose').click(); else if(ids[i]==='controls') $('ctlClose').click(); else if(ids[i]==='mp') $('mpBack').click(); else if(ids[i]==='pause') resumeGame();
   }
 }
 function gpPoll(dt){
