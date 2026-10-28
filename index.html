@@ -3033,7 +3033,7 @@ covInit();
 /* NUKE LASER: a gold Spartan Laser that calls down a nuke. Only appears in-game after typing 117 in DEV MODE */
 (function(){
   var b=weapons[8], w=Object.assign({},b); w.id='nuke'; w.name='NUKE LASER'; w.nuke=true; w.slideKick=0; w.group=buildLaser();
-  w.group.traverse(function(o){ if(o.material){ o.material=o.material.clone(); if(o.material.map){ o.material.map=null; o.material.emissiveMap=null; o.material.color.setHex(0xd9a73a); o.material.emissive.setHex(0x3a2806); o.material.specular.setHex(0xffe9a0); o.material.shininess=80; o.material.needsUpdate=true; } else if(o.material.color&&!o.userData.noTint) o.material.color.multiply(new THREE.Color(1.0,0.78,0.25)); } });
+  w.group.traverse(function(o){ if(o.material){ o.material=o.material.clone(); if(o.material.map&&o.material.isMeshPhongMaterial&&o.material.emissive&&o.material.specular){ o.material.map=null; o.material.emissiveMap=null; o.material.color.setHex(0xd9a73a); o.material.emissive.setHex(0x3a2806); o.material.specular.setHex(0xffe9a0); o.material.shininess=80; o.material.needsUpdate=true; } else if(o.material.color&&!o.userData.noTint) o.material.color.multiply(new THREE.Color(1.0,0.78,0.25)); } });
   w._i={mag:100,reserve:0}; w.mag=100; w.reserve=0; w.maxRes=0;
   weapons.push(w); vm.add(w.group); w.group.visible=false;
   RCT.nuke=RCT.laser; NOISE.nuke=140; AMMO_PK.push(0); AMMO_WAVE.push(0);
