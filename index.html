@@ -8263,7 +8263,7 @@ function updateRagdoll(dt){
 }
 function updateDeathCam(dt){
   if(!rag) return;
-  if(mp.on&&mp.kc!==null&&mp.kc!==undefined&&deathT>1.2&&kcCam()) return;
+  if(mp.on&&mp.kc!==null&&mp.kc!==undefined&&deathT>0.7&&kcCam(dt)) return;
   var P=rag.P, tx=(P.spine.x+P.chest.x)/2, ty=(P.spine.y+P.chest.y)/2, tz=(P.spine.z+P.chest.z)/2;
   deathCamA+=dt*0.25; deathCamD=Math.min(5.2,deathCamD+dt*0.35);
   var cx=tx+Math.sin(deathCamA)*deathCamD, cz=tz+Math.cos(deathCamA)*deathCamD, cy=ty+1.5;
@@ -8758,7 +8758,7 @@ function frame(now){
       updateBolts(dt); updateHBeams(dt);
       if(mp.on){
         mpTick(dt);
-        if(mp.mode==='dm'){ if(deathT>((mp.kc!==null&&mp.kc!==undefined)?4.4:3.2)&&!mp.over) mpRevive(false); }
+        if(mp.mode==='dm'){ if(deathT>((mp.kc!==null&&mp.kc!==undefined&&mp.kcRec)?0.7+mp.kcRec.dur+0.6:3.2)&&!mp.over) mpRevive(false); }
         else if(!mp.rem.al&&deathT>3.2){ state='over'; sample('gameOver',1); $('redeploy').hidden=true; $('over').hidden=false; }
         else if(mp.rem.al&&deathT>12) mpRevive(true);
       }
@@ -10095,16 +10095,55 @@ function flyEnd(quiet){
   $('ui').hidden=false; try{ $('mpHud').hidden=false; }catch(e){}
   if(!quiet){ mp.inv=tAcc+3; if(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm')) cutStart(); }   /* maps with the Pelican drop go straight into it */
 }
-/* kill-cam: after a kill online, the victim sees the killer's own view for the last three seconds before respawning */
-function kcCam(){
-  var pe=mp.kc!==null&&mp.kc!==undefined?mp.peers[mp.kc]:null, lb=$('kcLabel');
-  if(!pe||!pe.rem||!pe.rem.has||!pe.rem.al||!pe.avatar){ mp.kc=null; if(lb) lb.style.display='none'; return false; }
-  var R=pe.rem, fx=-Math.sin(R.yaw), fz=-Math.cos(R.yaw);
-  camera.position.set(R.x+fx*0.25,R.y+eyeC(),R.z+fz*0.25); camera.rotation.set(R.pit||0,R.yaw,0);
+/* kill-cam: after you are killed online you get a replay of your own death from the killer's point of view (the last ~3 seconds), then you respawn */
+function mpRecSample(dt){
+  var R=mp.rec||(mp.rec={t:0,self:[],pe:{}}); R.t-=dt; if(R.t>0||state!=='play') return; R.t=0.033;
+  var now=tAcc, id, pe, L;
+  R.self.push([now,p.x,p.y,p.z,p.yaw,p.pitch,(slots[sel]===17?8:slots[sel])]);
+  while(R.self.length&&now-R.self[0][0]>4.2) R.self.shift();
+  for(id in mp.peers){
+    pe=mp.peers[id]; var rm=pe.rem; if(!rm||!rm.has||!rm.al) continue;
+    L=R.pe[id]||(R.pe[id]=[]); L.push([now,rm.x,rm.y,rm.z,rm.yaw,rm.pit||0,0]); while(L.length&&now-L[0][0]>4.2) L.shift();
+  }
+}
+function kcAt(L,t){
+  var i=0; while(i<L.length-2&&L[i+1][0]<t) i++;
+  var a=L[i], b=L[Math.min(i+1,L.length-1)], k=b[0]>a[0]?Math.max(0,Math.min(1,(t-a[0])/(b[0]-a[0]))):0;
+  return {x:a[1]+(b[1]-a[1])*k,y:a[2]+(b[2]-a[2])*k,z:a[3]+(b[3]-a[3])*k,yaw:a[4]+angDiff(b[4]-a[4])*k,pit:a[5]+(b[5]-a[5])*k,w:a[6]};
+}
+function kcFreeze(){   /* called the moment you die: keep the last three seconds of the killer and of yourself */
+  mp.kcRec=null; var rec=mp.rec;
+  if(mp.kc===null||mp.kc===undefined||!rec) return;
+  var A=rec.pe[mp.kc], B=rec.self; if(!A||A.length<8||!B||B.length<8){ mp.kc=null; return; }
+  var tEnd=Math.min(A[A.length-1][0],B[B.length-1][0]), t0=Math.max(A[0][0],B[0][0],tEnd-3.0);
+  if(tEnd-t0<0.6){ mp.kc=null; return; }
+  mp.kcRec={A:A.slice(),B:B.slice(),t0:t0,dur:tEnd-t0};
+}
+function kcCam(dt){
+  var K=mp.kcRec, pe=(mp.kc!==null&&mp.kc!==undefined)?mp.peers[mp.kc]:null, lb=$('kcLabel');
+  if(!K||!pe||!pe.avatar){ mp.kc=null; mp.kcRec=null; if(lb) lb.style.display='none'; return false; }
+  var kt=deathT-0.7, tt=K.t0+Math.min(Math.max(kt,0),K.dur), S=kcAt(K.A,tt), V=kcAt(K.B,tt), V2=kcAt(K.B,Math.max(K.t0,tt-0.15));
+  var fx=-Math.sin(S.yaw), fz=-Math.cos(S.yaw);
+  camera.position.set(S.x+fx*0.25,S.y+EYE,S.z+fz*0.25); camera.rotation.set(S.pit,S.yaw,0);
   pe.avatar.visible=false;   /* we are inside the killer's head */
+  if(rag) rag.root.visible=false;   /* the real ragdoll only appears once the replay is over */
+  /* you, replayed: running the way you were running, then going down at the end */
+  var av=mp.kcAv;
+  if(!av){ av=mp.kcAv=buildChiefAvatar(); tmTintAvatar(av,mp.team); av.rotation.order='YXZ'; scene.add(av); }
+  var au=av.userData, sp=Math.min(9,Math.hypot(V.x-V2.x,V.z-V2.z)/0.15);
+  if(au.wg&&au.w!==(V.w|0)){ au.w=V.w|0; au.wg.forEach(function(g,gi){ g.visible=gi===au.w; }); }
+  au.mk=(au.mk||0)+((Math.min(1,sp/2.2))-(au.mk||0))*Math.min(1,dt*10); au.ph=(au.ph||0)+dt*sp*1.25; au.pit=V.pit; au.kick=0; au.rl=0; au.air=0;
+  try{ au.pv.rotation.x=-au.pit*0.9; au.wr.position.set(-0.1,-0.12,0.42); }catch(e){}
+  av.visible=true; poseAvatar(av,au.ph,au.mk);
+  var fall=Math.max(0,Math.min(1,(kt-(K.dur-0.4))/0.5)); fall=fall*fall*(3-2*fall);
+  av.position.set(V.x,V.y-0.5*fall,V.z); av.rotation.set(-1.45*fall,V.yaw+Math.PI,0);
   if(!lb){ lb=document.createElement('div'); lb.id='kcLabel'; lb.style.cssText='position:fixed;left:50%;top:12%;transform:translateX(-50%);z-index:9;pointer-events:none;font:900 15px monospace;letter-spacing:.25em;color:#fff;text-shadow:0 0 10px #000,0 2px 6px #000;padding:6px 14px;background:rgba(0,0,0,.35);border-left:3px solid #ff5a4a'; document.body.appendChild(lb); }
-  lb.textContent='KILL CAM  -  '+mpNm(mp.kc); lb.style.display='block';
+  lb.textContent='KILL CAM  -  '+mpNm(mp.kc)+'  -  REPLAY OF YOUR DEATH'; lb.style.display='block';
   return true;
+}
+function kcClear(){
+  mp.kc=null; mp.kcRec=null; if(mp.kcAv){ scene.remove(mp.kcAv); mp.kcAv=null; }
+  try{ var kl=$('kcLabel'); if(kl) kl.style.display='none'; }catch(e){}
 }
 function cutStart(){
   var P=CUT.prep; if(!P||!(TM.mom||TM.isl||TM.snb)||CUT.on) return;
@@ -11106,7 +11145,7 @@ function mpOppNear(P){
 }
 /* ---- death and respawn ---- */
 function mpOnDeath(){
-  mp.kc=null;
+  kcClear();
   state='dying'; MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
@@ -11116,7 +11155,8 @@ function mpOnDeath(){
     mgForce(); if(p.air) leaveJetState(); else if(p.inVeh){ if(GN.on) leaveGunner(); else exitRover(); }
     ctfDropMine(); grReset();
     var kby=(mp.lastBy!==undefined&&tAcc-(mp.lastByT||0)<15)?mp.lastBy:undefined, khow=mp.lastHow||'';
-    mp.kc=(kby!==undefined&&mp.peers[kby]&&mp.peers[kby].rem&&mp.peers[kby].rem.al)?kby:null;   /* the killer's view plays for the last three seconds */
+    mp.kc=(kby!==undefined&&mp.peers[kby]&&mp.peers[kby].rem&&mp.peers[kby].rem.al)?kby:null;
+    kcFreeze();   /* the last three seconds, replayed from the killer's view */
     if(mp.cause&&tAcc-(mp.causeT||0)<1.5&&(kby===undefined||(mp.causeT||0)>(mp.lastByT||0))) khow=mp.cause;
     var dm={t:'dead',by:mp.lastBy,vt:mp.team,w:khow}; mpSend(dm); if(mp.host){ dm.f=0; mpRecv(dm); } else mpStatDead(mp.id,dm.by,dm.vt);
     try{
@@ -11134,7 +11174,7 @@ function mpOnDeath(){
   try{ startRagdoll(); }catch(err){ rag=null; }
 }
 function mpRevive(near){
-  mp.kc=null; try{ var kl=$('kcLabel'); if(kl) kl.style.display='none'; }catch(e){}
+  kcClear();
   removeRagdoll(); state='play'; vm.visible=true; p.health=100; p.shield=100; p.lastHit=-10; vigT=0;
   var R=mp.rem;
   if(mp.mode==='dm'){
@@ -11358,6 +11398,7 @@ function mpUpdatePeer(pe,dt){
 }
 function mpTick(dt){
   if(!mp.on||!(mp.conn||mp.conns.length)) return;
+  mpRecSample(dt);
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
