@@ -5598,6 +5598,7 @@ function updateRover(dt){
   var ox0=veh.x, oz0=veh.z;
   veh.x+=veh.wx*dt; veh.z+=veh.wz*dt;
   if(!veh.air&&!climbOK(ox0,oz0,veh.x,veh.z,veh.y)){ veh.x=ox0; veh.z=oz0; veh.wx*=0.3; veh.wz*=0.3; }
+  if(TM.snb&&!veh.air&&rvGAt(veh.x,veh.z,veh.y)<=TM.gy+0.5){ veh.x=ox0; veh.z=oz0; veh.wx*=0.15; veh.wz*=0.15; }   /* the edge of the playable ground is a wall: it cannot be driven off */
   if(veh.air&&TM.snb&&structBlock(veh.x,veh.z,veh.y)){ veh.x=ox0; veh.z=oz0; veh.wx*=0.2; veh.wz*=0.2; }   /* walls are solid in the air too */
   if(!TM.snb&&groundH(veh.x,veh.z)<WATER_Y+0.2){ var wk=Math.max(0,1-dt*3); veh.wx*=wk; veh.wz*=wk; }
   var bx0=veh.x, bz0=veh.z;
