@@ -3425,7 +3425,7 @@ function updateAlly(a,dt){
   if(a.flash>0){ a.flash-=dt; } var fl2=a.flash>0; if(fl2!==a.fl){ a.fl=fl2; for(var mi=0;mi<a.mats.length;mi++) a.mats[mi].emissive.setHex(fl2?0x888888:(a.mats[mi]===undefined?0:a.mats[mi].userData.em||0)); }
 }
 /* ---------- warthog gunner: stop next to a marine and he hops on the turret ---------- */
-var gunner=null, stopT=0, gnTgt=null, gnTgtT=0, gnBurst=8, gnFire=0, SEAT=new V3(0,-0.59,0.55), _gs=new V3();
+var gunner=null, stopT=0, gnTgt=null, gnTgtT=0, gnBurst=8, gnFire=0, SEAT=new V3(0,-0.25,0.62)   /* standing on the new Warthog's bed behind the gun, so his body shows above the bodywork */, _gs=new V3();
 function gunnerCall(){
   var best=null, bd=14, i;
   for(i=0;i<allies.length;i++){ var a=allies[i]; if(a.dead||a.mounted) continue; var d=Math.hypot(a.x-veh.x,a.z-veh.z); if(d<bd){ bd=d; best=a; } }
