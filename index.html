@@ -5195,6 +5195,7 @@ function placeRover(){
   veh.x=s.x; veh.z=s.z; veh.h=TM.on?TM.home[TM.team].r.h:Math.atan2(s.x,s.z); veh.v=0; veh.pv=0; veh.accel=0; veh.hp=veh.maxHp;
   veh.alive=true; veh.respawnT=0; veh.turYaw=0; veh.gunPitch=0; veh.steerVis=0;
   veh.wx=veh.wz=0; veh.y=s.y!==undefined?s.y:groundH(s.x,s.z); veh.vy=0; veh.air=false; veh.sv=0; veh.bs=veh.bv=veh.rs=veh.rv=veh.ps=veh.pq=0; veh.ap=veh.ar=0; veh.tip=0; veh.fs=0;
+  veh.safe=TM.snb?{x:veh.x,y:veh.y,z:veh.z,h:veh.h}:null;
   rover.group.visible=true; rover.turret.rotation.y=0; rover.gun.rotation.x=0; if(rover.chief) rover.chief.visible=false;
   syncRoverPose(); beacon.visible=true; beacon.position.set(veh.x,veh.y+3.6,veh.z);
 }
@@ -5475,8 +5476,8 @@ function enterGunner(){
 function leaveGunner(){
   if(!GN.on) return; GN.on=false;
   p.inVeh=false; vm.visible=true; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on');
-  p.x=veh.x+(-Math.cos(veh.h))*2.6*RK; p.z=veh.z+Math.sin(veh.h)*2.6*RK; resolveCircle(p,0.45,0);
-  p.y=groundH(p.x,p.z); p.vx=p.vz=p.vy=0; p.pitch=0;
+  p.x=veh.x+(-Math.cos(veh.h))*2.6*RK; p.z=veh.z+Math.sin(veh.h)*2.6*RK; resolveCircle(p,0.45,TM.snb?veh.y:0);
+  p.y=rvGAt(p.x,p.z,veh.y+1); p.vx=p.vz=p.vy=0; p.pitch=0; p.onGround=true;
   if(TM.on&&mp.on&&TM.drv.g){ TM.drv.g[TM.team]=-1; mpSend({t:'vc',k:'g',vt:TM.team,d:-1}); }
 }
 function gnReset(){ GN.on=false; }
@@ -5597,6 +5598,7 @@ function updateRover(dt){
   var ox0=veh.x, oz0=veh.z;
   veh.x+=veh.wx*dt; veh.z+=veh.wz*dt;
   if(!veh.air&&!climbOK(ox0,oz0,veh.x,veh.z,veh.y)){ veh.x=ox0; veh.z=oz0; veh.wx*=0.3; veh.wz*=0.3; }
+  if(veh.air&&TM.snb&&structBlock(veh.x,veh.z,veh.y)){ veh.x=ox0; veh.z=oz0; veh.wx*=0.2; veh.wz*=0.2; }   /* walls are solid in the air too */
   if(!TM.snb&&groundH(veh.x,veh.z)<WATER_Y+0.2){ var wk=Math.max(0,1-dt*3); veh.wx*=wk; veh.wz*=wk; }
   var bx0=veh.x, bz0=veh.z;
   resolveCircle(veh,1.55*RK,TM.snb?veh.y:0);
