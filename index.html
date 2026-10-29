@@ -5534,24 +5534,41 @@ function boomAt(x,y,z){
     spawnProp(m,new V3(x,y,z),v,new V3(Math.random()*10,Math.random()*10,Math.random()*10),1.4+Math.random()*0.8);
   }
 }
+/* a destroyed Warthog stays behind as a burnt-out, smoking wreck until it respawns */
+var WR={me:null,en:null};
+function wreckMake(){
+  var w=buildRover(); w.group.scale.setScalar(RK); w.group.rotation.order='YXZ';
+  w.group.traverse(function(o){ if(o.isMesh) o.material=new THREE.MeshLambertMaterial({color:o.material&&o.material.transparent?0x050505:0x1b1a19}); });
+  w.turret.rotation.y=0.7; w.gun.rotation.x=-0.35; w.group.visible=false; w.st=0; scene.add(w.group); return w;
+}
+function wreckShow(k,x,y,z,h){
+  var w=WR[k]||(WR[k]=wreckMake()); w.group.position.set(x,y+0.12,z); w.group.rotation.set(0.1,h,0.42); w.group.visible=true; w.st=0;
+}
+function wreckHide(k){ if(WR[k]) WR[k].group.visible=false; }
+function wreckTick(k,dt){
+  var w=WR[k]; if(!w||!w.group.visible) return; w.st-=dt;
+  if(w.st<=0){ w.st=0.22; var P=w.group.position; puffSmoke(new V3(P.x+(Math.random()-0.5)*1.2,P.y+1.6,P.z+(Math.random()-0.5)*1.2),1.6+Math.random()*1.2,1.8,0x2a2a2a); }
+}
 function destroyRover(){
-  var wasIn=p.inVeh;
+  var wasIn=p.inVeh, wasGn=GN.on;
   gunnerDismount();
   veh.alive=false; veh.respawnT=25; veh.hp=0;
-  if(wasIn) exitRover();
+  if(wasGn) leaveGunner(); else if(wasIn) exitRover();
   rover.group.visible=false; beacon.visible=false; stopEngine();
+  wreckShow('me',veh.x,veh.y,veh.z,veh.h);
   boomAt(veh.x,veh.y+1.0,veh.z);
   for(var i=0;i<enemies.length;i++){
     var e=enemies[i];
     if(!e.dead && !e.air && Math.hypot(e.x-veh.x,e.z-veh.z)<8){ if(damageEnemy(e,120)) onKill(e,false); }
   }
   tmSendVx('r'); showBanner('ROVER DESTROYED');
-  if(Math.hypot(p.x-veh.x,p.z-veh.z)<6) hurt(wasIn?25:20);
+  if(wasIn){ mp.cause='WARTHOG EXPLOSION'; mp.causeT=tAcc; p.shield=0; p.ov=0; hurt(9999); }   /* whoever was inside dies with it */
+  else if(Math.hypot(p.x-veh.x,p.z-veh.z)<6) hurt(20);
 }
 function updateRover(dt){
   if(!veh.alive){
-    veh.respawnT-=dt; beacon.visible=false;
-    if(veh.respawnT<=0){ placeRover(); showToast('ROVER READY'); }
+    veh.respawnT-=dt; beacon.visible=false; wreckTick('me',dt);
+    if(veh.respawnT<=0){ wreckHide('me'); placeRover(); showToast('ROVER READY'); }
     return;
   }
   if(TM.on&&tmBlocked('r')){ tmNetRoverStep(dt); return; }
@@ -10869,11 +10886,11 @@ function tmRecvVeh(m){
     var mine=m.vt===TM.team;
     if(mine){
       TM.drv[k][m.vt]=-1; TM.net[k]=null;
-      if(k==='r'&&veh.alive&&(!p.inVeh||GN.on)){ veh.alive=false; veh.respawnT=25; veh.hp=0; rover.group.visible=false; beacon.visible=false; boomAt(veh.x,groundH(veh.x,veh.z)+1,veh.z); }
+      if(k==='r'&&veh.alive&&(!p.inVeh||GN.on)){ var gnDie=GN.on; veh.alive=false; veh.respawnT=25; veh.hp=0; rover.group.visible=false; beacon.visible=false; wreckShow('me',veh.x,veh.y,veh.z,veh.h); boomAt(veh.x,veh.y+1,veh.z); if(gnDie){ leaveGunner(); mp.cause='WARTHOG EXPLOSION'; mp.causeT=tAcc; p.shield=0; p.ov=0; hurt(9999); } }
       if(k==='j'&&jet.alive&&!p.air){ jet.alive=false; jet.respawnT=45; jet.hp=0; jetObj.group.visible=false; jbeacon.visible=false; boomAt(jet.x,jet.y,jet.z); }
     }else if(TM.ev&&TM.ev[k]&&TM.ev[k].alive){
       var e=TM.ev[k]; e.alive=false; e.rt=k==='r'?25:45; e.g.visible=false; e.mk.visible=false; TM.drv[k][m.vt]=-1; e.tgt=null;
-      var c=e.cur; boomAt(c.x,(k==='r'?groundH(c.x,c.z)+1:c.y),c.z);
+      var c=e.cur; if(k==='r') wreckShow('en',c.x,e.o.gy,c.z,c.h); boomAt(c.x,(k==='r'?e.o.gy+1:c.y),c.z);
     }
   }else if(m.t==='vg'){
     if(m.vt===TM.team&&TM.drv.r[TM.team]===mp.id) TM.gun={tur:m.tur,gp:m.gp,t:tAcc};
@@ -10895,14 +10912,14 @@ function tmUpdate(dt){
   var ev=TM.ev; if(!ev) return;
   var k=Math.min(1,dt*10), et=1-TM.team, hm=TM.home[et];
   var r=ev.r, j=ev.j;
-  if(!r.alive){ r.rt-=dt; if(r.rt<=0){ r.alive=true; r.o.gy=hm.r.y; r.cur={x:hm.r.x,z:hm.r.z,h:hm.r.h,sp:0,st:0,tur:0,gp:0}; r.tgt=null; r.g.visible=true; TM.drv.r[et]=-1; } }
+  if(!r.alive){ wreckTick('en',dt); r.rt-=dt; if(r.rt<=0){ wreckHide('en'); r.alive=true; r.o.gy=hm.r.y; r.cur={x:hm.r.x,z:hm.r.z,h:hm.r.h,sp:0,st:0,tur:0,gp:0}; r.tgt=null; r.g.visible=true; TM.drv.r[et]=-1; } }
   if(!j.alive){ j.rt-=dt; if(j.rt<=0){ j.alive=true; j.cur={x:hm.j.x,y:groundH(hm.j.x,hm.j.z)+1.65,z:hm.j.z,yaw:hm.j.yaw,pit:0,roll:0}; j.tgt=null; j.g.visible=true; TM.drv.j[et]=-1; } }
   if(r.alive){
     var t=r.tgt, c=r.cur;
     if(t){ c.x+=(t.x-c.x)*k; c.z+=(t.z-c.z)*k; c.h+=angDiff(t.h-c.h)*k; c.sp=t.sp; c.st=t.st; c.tur=t.tur; c.gp=t.gp; }
     tmPoseRover(r.o,c); r.g.visible=true;
     if(TM.drv.r[et]>=0){ ensureChief(r.o,et); r.o.chief.visible=true; if(r.o.wheelSpin) r.o.wheelSpin.rotation.z=-c.st*1.3; } else if(r.o.chief) r.o.chief.visible=false;   /* the enemy driver is seen at the wheel */
-    r.mk.visible=true; r.mk.position.set(c.x,groundH(c.x,c.z)+4.6,c.z); r.mk.rotation.y+=dt*2;
+    r.mk.visible=true; r.mk.position.set(c.x,r.o.gy+4.6,c.z); r.mk.rotation.y+=dt*2;
   }else r.mk.visible=false;
   if(j.alive){
     var t2=j.tgt, c2=j.cur;
@@ -10941,7 +10958,7 @@ function tmProjHit(P){
   }
   var ev=TM.ev, et=1-TM.team;
   if(ev){
-    if(ev.r.alive&&TM.drv.r[et]>=0){ var c=ev.r.cur; if(Math.hypot(P.x-c.x,P.z-c.z)<3.6&&Math.abs(P.y-(groundH(c.x,c.z)+1.4))<2.6) return true; }
+    if(ev.r.alive&&TM.drv.r[et]>=0){ var c=ev.r.cur; if(Math.hypot(P.x-c.x,P.z-c.z)<3.6&&Math.abs(P.y-(ev.r.o.gy+1.4))<2.6) return true; }
     if(ev.j.alive&&TM.drv.j[et]>=0){ var c2=ev.j.cur; if(Math.hypot(P.x-c2.x,P.z-c2.z)<4.2&&Math.abs(P.y-c2.y)<3) return true; }
   }
   return false;
@@ -10960,7 +10977,7 @@ function tmBlastDamage(P,R,d){
     }
   }
   var ev=TM.ev, et=1-TM.team; if(!ev) return;
-  if(ev.r.alive&&TM.drv.r[et]>=0){ var c=ev.r.cur, cy=groundH(c.x,c.z)+1, vd=Math.sqrt((c.x-P.x)*(c.x-P.x)+(cy-P.y)*(cy-P.y)+(c.z-P.z)*(c.z-P.z)), vm=falloff(Math.max(0,vd-1.2),d)*0.6; if(vm>1) mpSend({t:'vhit',k:'r',vt:et,n:Math.round(vm),w:bw}); }
+  if(ev.r.alive&&TM.drv.r[et]>=0){ var c=ev.r.cur, cy=ev.r.o.gy+1, vd=Math.sqrt((c.x-P.x)*(c.x-P.x)+(cy-P.y)*(cy-P.y)+(c.z-P.z)*(c.z-P.z)), vm=falloff(Math.max(0,vd-1.2),d)*0.6; if(vm>1) mpSend({t:'vhit',k:'r',vt:et,n:Math.round(vm),w:bw}); }
   if(ev.j.alive&&TM.drv.j[et]>=0){ var c2=ev.j.cur, jd=Math.sqrt((c2.x-P.x)*(c2.x-P.x)+(c2.y-P.y)*(c2.y-P.y)+(c2.z-P.z)*(c2.z-P.z)), jm=falloff(Math.max(0,jd-2.5),d)*0.45; if(jm>1) mpSend({t:'vhit',k:'j',vt:et,n:Math.round(jm),w:bw}); }
 }
 /* team suits: the green armour is recoloured to the team colour */
