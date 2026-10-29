@@ -5584,11 +5584,20 @@ function updateRover(dt){
   var bx0=veh.x, bz0=veh.z;
   resolveCircle(veh,1.55*RK,TM.snb?veh.y:0);
   var push=Math.hypot(veh.x-bx0,veh.z-bz0);
-  if(push>0.005){ if(drive&&spd>9&&push>0.04&&tAcc-(veh.crT||0)>0.6){ veh.crT=tAcc; whCrash(spd/20); } var pk=Math.max(0.2,1-push*6); veh.wx*=pk; veh.wz*=pk; }
+  if(push>0.005){ if(drive&&spd>9&&push>0.04&&tAcc-(veh.crT||0)>0.6){ veh.crT=tAcc; whCrash(spd/20); } if(veh.air){   /* in the air a wall only removes the speed going into it, so it slides down the face instead of dropping dead */
+      var pnx=(veh.x-bx0)/push, pnz=(veh.z-bz0)/push, pdt=veh.wx*pnx+veh.wz*pnz; if(pdt<0){ veh.wx-=pdt*pnx; veh.wz-=pdt*pnz; }
+    } else{ var pk=Math.max(0.2,1-push*6); veh.wx*=pk; veh.wz*=pk; } }
   fxh=-Math.sin(veh.h); fzh=-Math.cos(veh.h); rxh=Math.cos(veh.h); rzh=-Math.sin(veh.h);
   veh.v=veh.wx*fxh+veh.wz*fzh; vl=veh.wx*rxh+veh.wz*rzh; spd=Math.hypot(veh.wx,veh.wz);
   /* height: follow the ground, leave it off crests and edges, fall slowly (floaty) */
-  var gh=rvG(veh.x,veh.z);
+  /* while falling, look for the floor from where we were a moment ago, so a fast drop cannot pass straight through it */
+  var gh=veh.air?rvGAt(veh.x,veh.z,Math.max(veh.y,veh.y-veh.vy*dt)):rvG(veh.x,veh.z);
+  if(TM.snb){
+    if(gh>TM.gy+0.5){ if(!veh.air) veh.safe={x:veh.x,y:gh,z:veh.z,h:veh.h}; }
+    else if(veh.safe&&veh.y<veh.safe.y-4){   /* no floor under it at all: put it back on the last solid ground */
+      veh.x=veh.safe.x; veh.z=veh.safe.z; veh.y=veh.safe.y; veh.wx=veh.wz=0; veh.vy=0; veh.air=false; veh.sv=0; gh=veh.safe.y;
+    } else if(veh.safe&&!veh.air){ veh.air=true; veh.vy=0; }
+  }
   if(!veh.air){
     var sv0=veh.sv, svn=(gh-veh.y)*idt; veh.sv+=(svn-veh.sv)*0.35;
     veh.bv-=(veh.sv-sv0)*0.12;
