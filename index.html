@@ -4538,8 +4538,16 @@ function eqDomeMake(x,y,z,dur){
 }
 function eqDeploy(){
   if(!EQ.carry||state!=='play'||p.inVeh) return;
-  EQ.carry=0; var yy=p.y+0.4; eqDomeMake(p.x,yy,p.z,12); sfx.pickup(); tone(300,700,0.3,'sine',0.1);
-  showToast('BUBBLE SHIELD DEPLOYED'); if(mp.on) mpSend({t:'dome',x:p.x,y:yy,z:p.z,d:12});
+  var ty=EQ.carry; EQ.carry=0; sfx.pickup();
+  if(ty==='bubble'){ var yy=p.y+0.4; eqDomeMake(p.x,yy,p.z,12); tone(300,700,0.3,'sine',0.1); showToast('BUBBLE SHIELD DEPLOYED'); if(mp.on) mpSend({t:'dome',x:p.x,y:yy,z:p.z,d:12}); }
+  else if(ty==='over'){ p.ov=100; tone(400,900,0.3,'sine',0.1); showToast('OVERSHIELD'); }
+  else if(ty==='camo'){ EQ.camo=20; tone(900,300,0.4,'sine',0.08); showToast('ACTIVE CAMO'); }
+  else if(ty==='regen'){
+    var f=new THREE.Mesh(new THREE.CylinderGeometry(2.8,2.8,0.12,28,1,true),new THREE.MeshBasicMaterial({color:0x6bff7a,transparent:true,opacity:0.3,side:THREE.DoubleSide,depthWrite:false}));
+    f.position.set(p.x,p.y+0.07,p.z); scene.add(f); TM.objs.push(f);
+    var ring2=new THREE.Mesh(new THREE.RingGeometry(0.2,2.8,32),new THREE.MeshBasicMaterial({color:0x6bff7a,transparent:true,opacity:0.18,side:THREE.DoubleSide,depthWrite:false})); ring2.rotation.x=-Math.PI/2; ring2.position.y=0.03; f.add(ring2);
+    EQ.fields.push({m:f,x:p.x,z:p.z,y:p.y,t:14}); showToast('REGENERATOR DEPLOYED');
+  }
 }
 /* does the segment run from outside into a dome? (blocks bullets, rockets, grenades) */
 function eqDomeSeg(x0,y0,z0,x1,y1,z1,out){
@@ -4566,22 +4574,15 @@ function eqTick(dt){
   for(i=0;i<EQ.list.length;i++){
     it=EQ.list[i]; it.t+=dt; it.core.rotation.y+=dt*1.8; it.core.position.y=0.9+Math.sin(it.t*2.4)*0.08;
     if(it.cool>0){ it.cool-=dt; if(it.cool<=0) it.g.visible=true; continue; }
-    if(state==='play'&&!p.inVeh&&Math.hypot(it.x-p.x,it.z-p.z)<1.4&&Math.abs(p.y-it.y)<2.2&&!(it.type==='bubble'&&EQ.carry)){
+    if(state==='play'&&!p.inVeh&&Math.hypot(it.x-p.x,it.z-p.z)<1.4&&Math.abs(p.y-it.y)<2.2&&!(it.type!=='gren'&&EQ.carry)){
       it.g.visible=false; it.cool=45; sfx.pickup();
-      if(it.type==='bubble'){ EQ.carry=1; showToast('BUBBLE SHIELD  -  PRESS B TO DEPLOY'); medalShow('BUBBLE SHIELD','PRESS B TO DEPLOY','#4ad8ff'); }
-      else if(it.type==='over'){ p.ov=100; it.cool=90; showToast('OVERSHIELD'); medalShow('OVERSHIELD','EXTRA PROTECTION','#b06bff'); }
-      else if(it.type==='camo'){ EQ.camo=20; it.cool=90; showToast('ACTIVE CAMO'); medalShow('ACTIVE CAMO','HARD TO SEE FOR 20 SECONDS','#e8ffe8'); }
-      else if(it.type==='gren'){ gren.frag=Math.min(GMAX.frag,gren.frag+2); gren.plasma=Math.min(GMAX.plasma,gren.plasma+2); showToast('GRENADES  +2 FRAG  +2 PLASMA'); medalShow('GRENADE CRATE','+2 FRAG  +2 PLASMA','#ffa23a'); it.cool=30; }
-      else{
-        var f=new THREE.Mesh(new THREE.CylinderGeometry(2.8,2.8,0.12,28,1,true),new THREE.MeshBasicMaterial({color:0x6bff7a,transparent:true,opacity:0.3,side:THREE.DoubleSide,depthWrite:false}));
-        f.position.set(it.x,it.y+0.07,it.z); scene.add(f); TM.objs.push(f);
-        var ring2=new THREE.Mesh(new THREE.RingGeometry(0.2,2.8,32),new THREE.MeshBasicMaterial({color:0x6bff7a,transparent:true,opacity:0.18,side:THREE.DoubleSide,depthWrite:false})); ring2.rotation.x=-Math.PI/2; ring2.position.y=0.03; f.add(ring2);
-        EQ.fields.push({m:f,x:it.x,z:it.z,y:it.y,t:14}); showToast('REGENERATOR'); medalShow('REGENERATOR','STAND IN THE FIELD','#6bff7a');
-      }
+      var EQN={bubble:['BUBBLE SHIELD','#4ad8ff'],over:['OVERSHIELD','#b06bff'],camo:['ACTIVE CAMO','#e8ffe8'],regen:['REGENERATOR','#6bff7a']};
+      if(it.type==='gren'){ gren.frag=Math.min(GMAX.frag,gren.frag+2); gren.plasma=Math.min(GMAX.plasma,gren.plasma+2); showToast('GRENADES  +2 FRAG  +2 PLASMA'); medalShow('GRENADE CRATE','+2 FRAG  +2 PLASMA','#ffa23a'); it.cool=30; }
+      else{ EQ.carry=it.type; if(it.type==='over'||it.type==='camo') it.cool=90; showToast(EQN[it.type][0]+'  -  PRESS B TO USE'); medalShow(EQN[it.type][0],'PRESS B TO USE',EQN[it.type][1]); }
     }
   }
   /* bubble shield: carried until you choose to drop it, then a big hexagonal dome stands where you put it */
-  var bbn=document.getElementById('bBubble'); if(bbn&&bbn.hidden===!!(EQ.carry&&state==='play')) bbn.hidden=!(EQ.carry&&state==='play');
+  var bbn=document.getElementById('bBubble'); if(bbn){ if(bbn.hidden===!!(EQ.carry&&state==='play')) bbn.hidden=!(EQ.carry&&state==='play'); if(EQ.carry&&bbn.dataset.k!==EQ.carry){ bbn.dataset.k=EQ.carry; bbn.textContent={bubble:'BUBBLE',over:'OVERSHIELD',camo:'CAMO',regen:'REGEN'}[EQ.carry]; } }
   var inD=false, di;
   for(di=EQ.domes.length-1;di>=0;di--){
     var D=EQ.domes[di]; D.t-=dt; D.hit=Math.max(0,D.hit-dt);
@@ -11148,6 +11149,13 @@ function buildChiefAvatar(){
   return av;
 }
 function rotX(q,c,a){ var dy=q[1]-c[1], dz=q[2]-c[2], ca=Math.cos(a), sa=Math.sin(a); return [q[0],c[1]+dy*ca-dz*sa,c[2]+dy*sa+dz*ca]; }
+function camoFx(a,au,op){
+  if(op>=1&&!au.cmOn) return;
+  if(!au.cmM){ au.cmM=[]; a.traverse(function(o){ if(!o.material) return; var ms=Array.isArray(o.material)?o.material:[o.material], k; for(k=0;k<ms.length;k++){ ms[k]=ms[k].clone(); au.cmM.push([ms[k],ms[k].transparent,ms[k].depthWrite]); } o.material=Array.isArray(o.material)?ms:ms[0]; }); }
+  var i, on=op<1; au.cmOn=on;
+  for(i=0;i<au.cmM.length;i++){ var m=au.cmM[i][0]; m.transparent=on||au.cmM[i][1]; m.depthWrite=on?false:au.cmM[i][2]; m.opacity=on?op:1; m.needsUpdate=m.needsUpdate||false; }
+  a.scale.set(1+(on?0.02*Math.sin(tAcc*21):0),1,1+(on?0.02*Math.cos(tAcc*17):0));
+}
 function poseAvatar(av,ph,mk){
   var u=av.userData, S=u.S, R=u.R, P={}, run=u.run||0, ck=u.crk||0, dF=u.dF===undefined?1:u.dF, dS=u.dS||0;
   var dirS=(Math.abs(dS)>Math.abs(dF)*1.1)?0.65:(dF<-0.3?-1:1);   /* sidestep = shorter strides, backing up = legs swing the other way */
@@ -11470,7 +11478,7 @@ function mpUpdatePeer(pe,dt){
   au.fl.visible=au.kick>0.75&&au.w!==5;
   if(a.visible) poseAvatar(a,au.ph,au.mk);
   au.cr=au.crk||0;   /* crouch is posed with bent legs now, not squashed */
-  a.visible=!!R.al&&!R.iv; if(a.visible&&R.cm&&au.tmTeam!==mp.team&&au.kick<0.3&&Math.hypot(R.x-p.x,R.z-p.z)>7) a.visible=false;   /* active camo: only seen up close or when firing */
+  a.visible=!!R.al&&!R.iv; camoFx(a,au,a.visible&&R.cm&&au.tmTeam!==mp.team?(0.1+0.07*Math.sin(tAcc*9+R.x)+Math.min(0.45,au.kick*0.5)+(Math.hypot(R.x-p.x,R.z-p.z)<3.5?0.2:0)):1);   /* active camo: a faint shimmering ghost, clearer up close or when firing */
   a.position.set(R.x,R.y,R.z); a.rotation.y=R.yaw+Math.PI;
   if(au.tmk) au.tmk.rotation.y+=dt*2;
 }
