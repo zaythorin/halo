@@ -1184,6 +1184,7 @@ function hpMesh(){
   var g=new THREE.Group(), m=new THREE.Mesh(hpTpl.geo,hpTpl.mat); m.rotation.x=-Math.PI/2; m.scale.setScalar(1.7); g.add(m); return g;
 }
 function spawnPacks(){
+  return;   /* health packs removed */
   for(var i=0;i<packSpots.length;i++){
     var s0=packSpots[i], m=hpMesh(); m.position.set(s0[0],s0[1]+0.12,s0[2]); m.rotation.y=i*2.1+0.7; scene.add(m);
     pickups.push({m:m,type:'health',t:Math.random()*6,life:1e9,fixed:true,base:s0[1],cool:0});
@@ -4234,7 +4235,7 @@ function onKill(e,head){
   showToast((head?'HEADSHOT  +':'+')+pts);
   sfx.kill();
   if(Math.random()<(e.finf?0.04:0.4)){
-    var type=Math.random()<0.55?'ammo':'health';
+    var type='ammo';   /* health packs removed */
     var m=type==='ammo'?new THREE.Mesh(pkGeo,ammoPkMat):hpMesh(), by0=e.fy!==undefined?e.fy:groundH(e.x,e.z);
     m.position.set(e.x,by0+0.12,e.z); m.rotation.y=Math.random()*6.28; scene.add(m); pickups.push({m:m,type:type,t:0,life:25,base:by0});
   }
@@ -4894,7 +4895,7 @@ function feelTick(dt){
     HINTS.bT-=dt; if(HINTS.bT<=0){ HINTS.bT=0.35+p.shield/30*0.65; tone(1250,1250,0.07,'square',0.05); }
     hintOnce('shl','SHIELD LOW - GET INTO COVER');
   } else HINTS.bT=0;
-  if(p.health>0&&p.health<35&&p.shield<=0) hintOnce('hpl','HEALTH LOW - HIDE AND WAIT, OR GRAB A HEALTH PACK');
+  if(p.health>0&&p.health<35&&p.shield<=0) hintOnce('hpl','HEALTH LOW - HIDE AND LET YOUR SHIELD RECHARGE');
   HINTS.hT-=dt; if(HINTS.hT>0) return; HINTS.hT=0.5;
   if(wpNear>=0&&!p.inVeh) hintOnce('rack','PRESS E (OR TAKE) TO SWAP IN THE WEAPON YOU ARE LOOKING AT');
   var w=weapons[cur];
@@ -11512,7 +11513,7 @@ function mpTick(dt){
 }
 function dropLoot(x,y,z){
   if(Math.random()<0.4){
-    var type=Math.random()<0.55?'ammo':'health';
+    var type='ammo';   /* health packs removed */
     var m=type==='ammo'?new THREE.Mesh(pkGeo,ammoPkMat):hpMesh();
     m.position.set(x,y+0.12,z); m.rotation.y=Math.random()*6.28; scene.add(m); pickups.push({m:m,type:type,t:0,life:25,base:y});
   }
