@@ -2928,7 +2928,7 @@ function hud(){
   if(hudCache.air!==p.air){ hudCache.air=p.air; els.bJump.textContent=drv?(p.air?'UP':'BRAKE'):'JUMP'; }
   if(drv) setW('rvFill',(MG.seat?100:(p.air?jet.hp/jet.maxHp:veh.hp/veh.maxHp))*100/(MG.seat?100:100));
   var mgn=mgNear(), dd=Math.hypot(p.x-veh.x,p.z-veh.z), showUse=drv||MG.seat===2||!!mgn||(veh.alive&&dd<4.4)||nearJet()||wpNear>=0||!!TUR.pk;
-  var ulab=(drv||MG.seat)?'EXIT':(mgn?(mgn.seat===1?'DRIVE':(mgn.seat===2?'RIDE':'FULL')):TUR.pk?'LEAVE':wpNear>=0?((wpicks[wpNear]&&wpicks[wpNear].mount)?'MAN':'TAKE'):((nearJet()&&!(veh.alive&&dd<4.4))?'FLY':(TM.on&&tmBlocked('r')?'GUN':'DRIVE'))); if(hudCache.ulab!==ulab){ hudCache.ulab=ulab; els.bUse.textContent=ulab; }
+  var ulab=(drv||MG.seat)?'EXIT':(mgn?(mgn.seat===1?'DRIVE':(mgn.seat===2?'RIDE':'FULL')):TUR.pk?'LEAVE':wpNear>=0?((wpicks[wpNear]&&wpicks[wpNear].mount)?'MAN':'TAKE'):((nearJet()&&!(veh.alive&&dd<4.4))?'FLY':((TM.on&&tmBlocked('r'))||whRear()?'GUN':'DRIVE'))); if(hudCache.ulab!==ulab){ hudCache.ulab=ulab; els.bUse.textContent=ulab; }
   if(hudCache.use!==showUse){ hudCache.use=showUse; els.bUse.hidden=!showUse; }
   var showHook=!!(TM.on&&!p.inVeh&&!p.air); if(hudCache.hook!==showHook){ hudCache.hook=showHook; $('bHook').hidden=!showHook; }
   var showSc=!!(mp.on&&mp.mode==='dm'); if(hudCache.sc!==showSc){ hudCache.sc=showSc; $('bScore').hidden=!showSc; }
@@ -5464,11 +5464,12 @@ function mgBlips(blip){
 /* ---------- rover gunner seat (team battle): a teammate rides the turret while someone else drives ---------- */
 var GN={on:false,t:0};
 function enterGunner(){
-  if(p.inVeh||state!=='play'||!TM.on||!mp.on||!veh.alive||!tmBlocked('r')) return;
-  var g=TM.drv.g[TM.team]; if(g>=0&&g!==mp.id){ showToast('GUN SEAT TAKEN'); return; }
+  if(p.inVeh||state!=='play'||!veh.alive) return;
+  var mpT=TM.on&&mp.on&&TM.drv.g;
+  if(mpT){ var g=TM.drv.g[TM.team]; if(g>=0&&g!==mp.id){ showToast('GUN SEAT TAKEN'); return; } }
   GN.on=true; GN.t=0; p.inVeh=true; reloading=false; swapT=0; pendingW=null; fireEdgeT=0; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on');
   vm.visible=false; ctrl.jump=false; p.yaw=veh.h; p.pitch=-0.1; p.vx=p.vz=p.vy=0;
-  TM.drv.g[TM.team]=mp.id; mpSend({t:'vc',k:'g',vt:TM.team,d:mp.id});
+  if(mpT){ TM.drv.g[TM.team]=mp.id; mpSend({t:'vc',k:'g',vt:TM.team,d:mp.id}); }
   showToast('GUNNER   LMB FIRE   E LEAVE');
 }
 function leaveGunner(){
@@ -5481,15 +5482,15 @@ function leaveGunner(){
 function gnReset(){ GN.on=false; }
 var GN_MAX=2.356;
 function gnUpdate(dt){
-  var dr=TM.on&&TM.drv.r?TM.drv.r[TM.team]:-1;
-  if(!TM.on||!mp.on||!veh.alive||dr<0||dr===mp.id){ leaveGunner(); return; }
+  var dr=TM.on&&mp.on&&TM.drv.r?TM.drv.r[TM.team]:-1;
+  if(!veh.alive||(dr>=0&&dr===mp.id)){ leaveGunner(); return; }
   /* the turret cannot swing right round: 270 degrees of travel (135 each side of straight ahead), the aim stops with it */
   var ty=Math.max(-GN_MAX,Math.min(GN_MAX,angDiff(p.yaw-veh.h))); p.yaw=veh.h+ty;
   veh.turYaw=ty; veh.gunPitch=Math.max(-0.2,Math.min(0.9,p.pitch));
   /* the gunner stands on the bed behind the gun, where the other players can see him */
   rover.group.updateMatrixWorld(true); rover.turret.rotation.y=veh.turYaw; rover.turret.updateMatrixWorld(true); rover.turret.localToWorld(_gs.copy(SEAT)); p.x=_gs.x; p.z=_gs.z; p.y=_gs.y;
   rover.turret.rotation.y=veh.turYaw; rover.gun.rotation.x=veh.gunPitch;
-  GN.t-=dt; if(GN.t<=0){ GN.t=0.07; mpSend({t:'vg',vt:TM.team,tur:r2(veh.turYaw),gp:r2(veh.gunPitch)}); }
+  GN.t-=dt; if(GN.t<=0&&mp.on&&TM.on){ GN.t=0.07; mpSend({t:'vg',vt:TM.team,tur:r2(veh.turYaw),gp:r2(veh.gunPitch)}); }
 }
 function enterRover(){
   if(p.inVeh||!veh.alive||state!=='play'||tmBlocked('r')) return;
@@ -5507,6 +5508,8 @@ function exitRover(){
   p.vx=-Math.sin(veh.h)*veh.v*0.5; p.vz=-Math.cos(veh.h)*veh.v*0.5; p.y=rvGAt(p.x,p.z,veh.y+1); p.vy=0; p.pitch=0;
   stopEngine(); tmClaim('r',0);
 }
+/* standing behind the Warthog's middle = the turret seat on the back; at the front/sides = the driver's seat */
+function whRear(){ return ((-Math.sin(veh.h))*(p.x-veh.x)+(-Math.cos(veh.h))*(p.z-veh.z))<-0.8*RK; }
 function useAction(){
   if(state!=='play') return;
   if(p.air){ exitJet(); return; }
@@ -5516,7 +5519,7 @@ function useAction(){
   if(wpNear>=0){ takeWeapon(wpNear); return; }
   var mgn=mgNear(); if(mgn){ mgEnter(mgn); return; }
   if(nearJet()&&!(veh.alive&&Math.hypot(p.x-veh.x,p.z-veh.z)<Math.hypot(p.x-jet.x,p.z-jet.z))){ enterJet(); return; }
-  if(veh.alive && Math.hypot(p.x-veh.x,p.z-veh.z)<4.4*RK){ if(TM.on&&tmBlocked('r')) enterGunner(); else enterRover(); }
+  if(veh.alive && Math.hypot(p.x-veh.x,p.z-veh.z)<4.4*RK){ if((TM.on&&tmBlocked('r'))||whRear()) enterGunner(); else enterRover(); }
 }
 function damageVehicle(n){
   if(!veh.alive) return;
@@ -5622,6 +5625,17 @@ function updateRover(dt){
       }
     }
   }
+  if(drive&&spd>6&&TM.on&&mp.on){   /* run over enemy players */
+    for(var rid in mp.peers){
+      var rp=mp.peers[rid]; if(rp.team===mp.team) continue;
+      var Q=rp.rem; if(!Q||!Q.al||!rp.avatar||!rp.avatar.visible) continue;
+      rp.ramT=(rp.ramT||0)-dt; if(rp.ramT>0) continue;
+      var qx=Q.x-veh.x, qz=Q.z-veh.z, qd=Math.hypot(qx,qz);
+      if(qd<2.0*RK&&Math.abs(Q.y-veh.y)<2.4){
+        rp.ramT=0.6; mpSend({t:'hit',n:Math.min(150,Math.round(spd*9)),dx:qx,dz:qz,w:'WARTHOG ROADKILL'},rp.id); marker('hit'); sfx.hit(); veh.wx*=0.93; veh.wz*=0.93;
+      }
+    }
+  }
   /* visuals */
   syncRoverPose();
   for(var wi=0;wi<rover.wheels.length;wi++) rover.wheels[wi].rotation.x=-veh.spin;
@@ -5635,7 +5649,7 @@ function updateRover(dt){
   rover.body.position.y=veh.bs+Math.sin(veh.dist*2.6)*0.02*Math.min(1,spd/10);
   /* the turret belongs to the marine gunner; with nobody on it, it rests pointing ahead */
   if(TM.on&&mp.on&&TM.gun&&tAcc-TM.gun.t<0.6&&TM.drv.g&&TM.drv.g[TM.team]>=0){ veh.turYaw+=angDiff(TM.gun.tur-veh.turYaw)*Math.min(1,dt*14); veh.gunPitch+=(TM.gun.gp-veh.gunPitch)*Math.min(1,dt*14); }
-  else if(!gunner||!gunner.mounted){ veh.turYaw+=(0-veh.turYaw)*Math.min(1,dt*2.5); veh.gunPitch+=(0.05-veh.gunPitch)*Math.min(1,dt*2.5); }
+  else if(!GN.on&&(!gunner||!gunner.mounted)){ veh.turYaw+=(0-veh.turYaw)*Math.min(1,dt*2.5); veh.gunPitch+=(0.05-veh.gunPitch)*Math.min(1,dt*2.5); }
   rover.turret.rotation.y=veh.turYaw; rover.gun.rotation.x=veh.gunPitch;
   if(drive){ stopT=(spd<1.5)?stopT+dt:0; if(!gunner&&stopT>0.4) gunnerCall(); }
   else stopT=0;
