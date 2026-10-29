@@ -615,6 +615,7 @@ body{letter-spacing:.02em}
       <div class="mpOptT">MATCH SETTINGS (THE HOST'S CHOICES APPLY)</div>
       <div class="mpOptT">WEAPONS ALLOWED</div><div class="mpChips" id="mpOptW"></div>
       <div id="mpOptTM">
+        <div class="mpOptT">YOUR TEAM</div><div class="mpChips" id="mpTeamPick"></div><div class="dim" id="mpTeamNow" style="font-size:12px;letter-spacing:.14em"></div>
         <div class="mpOptT">VEHICLES AND MAP</div><div class="mpChips" id="mpOptV"></div>
         <div class="mpOptT">MAP <select id="mpMap"><option value="0">SNOWBOUND</option><option value="1" selected>RECON</option><option value="2">COVENANT SHIP</option><option value="3">NEW MOMBASA</option><option value="4">SKYBREAK (AIR DUEL)</option></select></div>
         <div class="mpOptT">SCORE LIMIT <select id="mpLim"></select></div>
@@ -5797,7 +5798,7 @@ var CRAFT={
 var SKY_R=560;
 function craftMesh(k){
   var m=new THREE.Group();
-  if(k==='pelican'){ vehParts('pelican').parts.forEach(function(pt){ m.add(new THREE.Mesh(pt.geo,pt.mat)); }); m.rotation.y=Math.PI/2; m.scale.setScalar(0.6); var w=new THREE.Group(); w.add(m); m.position.set(0,0,0); w.position.y=3; return w; }
+  if(k==='pelican'){ vehParts('pelican').parts.forEach(function(pt){ m.add(new THREE.Mesh(pt.geo,pt.mat)); }); m.rotation.order='YXZ'; m.rotation.set(Math.PI,Math.PI/2,0); m.scale.setScalar(0.6); var w=new THREE.Group(); w.add(m); w.position.y=-3; return w; }   /* the baked Pelican is inverted (canopy leans forward at the top), so roll it over about its nose axis */
   if(k==='banshee'){ m.add(airParts(AIR.banshee,0x9fe0ff)); m.scale.setScalar(1.5); return m; }
   var h=airParts(AIR.hornet); h.rotation.y=Math.PI; m.add(h); return m;
 }
@@ -11156,7 +11157,7 @@ function mpHost(){
     mpClose(); var tries=0;
     function open(){
       var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', c=''; for(var i=0;i<5;i++) c+=chars[(Math.random()*chars.length)|0];
-      mp.code=c; mp.host=true; mp.id=0; mp.team=0; mp.conns=[];
+      mp.code=c; mp.host=true; mp.id=0; mp.team=mpWant===1?1:0; mp.conns=[];
       var pr=new Peer('halofps-'+c); mp.peer=pr;
       pr.on('open',function(){ mpStatus('ROOM CODE:  '+c+(mp.mode==='dm'?'   -  up to 3 friends can join, even after the match starts...':'   -  give it to your friend and wait...')); });
       pr.on('connection',function(cn){ mpHostAccept(cn); });
@@ -11172,8 +11173,9 @@ function mpHostAccept(cn){
   var max=mp.mode==='dm'?3:1;
   if(mp.conns.length>=max){ try{ cn.close(); }catch(e){} return; }
   var id=1; while(mp.conns.some(function(c){ return c.id===id; })) id++;
-  var cnt=[1,0]; mp.conns.forEach(function(c){ cnt[c.team]++; });
-  var ent={cn:cn,id:id,team:cnt[1]<cnt[0]?1:0};
+  var cnt=[0,0]; cnt[mp.team]++; mp.conns.forEach(function(c){ cnt[c.team]++; });
+  var want=cn.metadata?cn.metadata.team:-1, tm=(want===0||want===1)?(cnt[want]<2?want:1-want):(cnt[1]<cnt[0]?1:0);   /* the team you asked for, unless it is full */
+  var ent={cn:cn,id:id,team:tm};
   mp.conns.push(ent); cn.pid=id; if(!mp.conn) mp.conn=cn;
   cn.on('open',function(){
     try{ cn.send({t:'start',mode:mp.mode,ctf:mp.ctf?1:0,koth:mp.koth?1:0,opt:mp.opt||null,id:id,team:ent.team,ps:mpRosterMsg(),sc:mp.score,f:0}); }catch(e){}
@@ -11201,7 +11203,7 @@ function mpJoin(){
     mpClose(); mp.host=false; mp.conns=[];
     var pr=new Peer(), done=false; mp.peer=pr;
     pr.on('open',function(){
-      var cn=pr.connect('halofps-'+code,{reliable:true}); mpSetupConn(cn);
+      var cn=pr.connect('halofps-'+code,{reliable:true,metadata:{team:mpWant}}); mpSetupConn(cn);
       setTimeout(function(){ if(!done&&!(mp.conn&&mp.conn.open)){ mpStatus('No answer. Check the code and that the host is waiting.',true); mpClose(); } },14000);
     });
     pr.on('error',function(e){ mpStatus((e&&e.type==='peer-unavailable')?'No room with that code.':'Online error: '+((e&&e.type)||'unknown'),true); });
@@ -11234,6 +11236,7 @@ function mpSetup(){
   else{ mp.roster.forEach(function(r){ mpAddPeer(r[0],r[1]); }); }
   $('restart').hidden=true; $('mpHud').hidden=false; $('match').style.display=mp.mode==='dm'?'none':'';
   mpLoadout();
+  if(mp.mode==='dm') setTimeout(function(){ try{ showToast('YOU ARE ON THE '+TEAMS[mp.team].n+' TEAM'); }catch(e){} },900);
   showBanner(mp.mode==='dm'?(mp.ctf?'CAPTURE THE FLAG':mp.koth?'KING OF THE HILL':'TEAM BATTLE'):'CO-OP FIREFIGHT');
 }
 function buildChiefAvatar(){
@@ -11619,7 +11622,7 @@ function mpTick(dt){
   var txt, R=mp.rem;
   if(mp.mode==='dm'){
     var n=1; for(var q in mp.peers) n++;
-    txt=TEAMS[mp.team].n+' TEAM   '+mp.score[0]+'  RED  -  BLUE  '+mp.score[1]+'   ('+n+' PLAYERS)  FIRST TO '+mpTarget();
+    txt=TEAMS[mp.team].n+' TEAM'+(TM.sky?(mp.team===0?' (PELICAN)':' (BANSHEE)'):'')+'   '+mp.score[0]+'  RED  -  BLUE  '+mp.score[1]+'   ('+n+' PLAYERS)  FIRST TO '+mpTarget();
     if(mp.ctf&&CTF.on){ var fs=function(F){ return F.home?'HOME':(F.carrier>=0?(F.carrier===mp.id?'YOU HAVE IT':'TAKEN'):'DROPPED'); }; txt=TEAMS[mp.team].n+' TEAM  CTF  RED '+mp.score[0]+' - '+mp.score[1]+' BLUE  (FIRST TO '+mpTarget()+')    RED FLAG: '+fs(CTF.F[0])+'   BLUE FLAG: '+fs(CTF.F[1]); }
     if(mp.koth&&KH.on){ var kst=KH.own===2?'CONTESTED':(KH.own<0?'EMPTY':TEAMS[KH.own].n+' HOLD IT'), kd=Math.round(Math.hypot(p.x-KH.x,p.z-KH.z)); txt=TEAMS[mp.team].n+' TEAM  KOTH  RED '+mp.score[0]+' - '+mp.score[1]+' BLUE  (FIRST TO '+mpTarget()+')    HILL: '+kst+'   '+(kd<KH.r?'ON THE HILL':kd+' m'); }
     if($('mpHud').style.color!==TEAMS[mp.team].css) $('mpHud').style.color=TEAMS[mp.team].css;
@@ -11636,6 +11639,16 @@ function dropLoot(x,y,z){
 }
 /* ---- menu wiring ---- */
 var MPO={w:[1,1,1,1,1,1,1,1,1,1,1],vr:1,vj:1,lim:0,tr:1,map:1};
+var mpWant=-1;   /* the team you asked for: -1 = auto, 0 = red, 1 = blue */
+function mpTeamUI(){
+  var el=$('mpTeamPick'); if(!el) return; el.innerHTML=''; var sky=MPO.map===4;
+  [[-1,'AUTO','#ffffff'],[0,'RED'+(sky?'  -  PELICAN':''),TEAMS[0].css],[1,'BLUE'+(sky?'  -  BANSHEE':''),TEAMS[1].css]].forEach(function(o){
+    var b=document.createElement('button'); b.type='button'; b.className='chip'+(mpWant===o[0]?' on':''); b.textContent=o[1]; b.style.borderColor=o[2];
+    if(mpWant===o[0]){ b.style.background=o[2]; b.style.color='#06121c'; }
+    b.addEventListener('click',function(){ mpWant=o[0]; mpTeamUI(); }); el.appendChild(b);
+  });
+  var nw=$('mpTeamNow'); if(nw){ nw.textContent=mpWant<0?'TEAM: ASSIGNED AUTOMATICALLY (HOST IS RED)':'YOU WILL BE ON THE '+TEAMS[mpWant].n+' TEAM'+(sky?(mpWant===0?'  -  UNSC PELICAN':'  -  COVENANT BANSHEE'):'')+(mp.host===false?'':'  (IF THE TEAM IS FULL YOU SWITCH)'); nw.style.color=mpWant<0?'':TEAMS[mpWant].css; }
+}
 function mpOptRead(){
   var w=MPO.w.slice(); if(!w.some(function(v){ return v; })) w=w.map(function(){ return 1; });
   return {w:w,vr:MPO.vr,vj:MPO.vj,lim:MPO.lim,tr:MPO.tr,map:MPO.map};
@@ -11653,7 +11666,8 @@ function mpBuildOpts(){
   mpChip(V,'HORNET',function(){ return MPO.vj; },function(v){ MPO.vj=v; });
   mpChip(V,'TRENCHES',function(){ return MPO.tr; },function(v){ MPO.tr=v; });
   $('mpLim').addEventListener('change',function(){ MPO.lim=+$('mpLim').value||0; });
-  $('mpMap').addEventListener('change',function(){ MPO.map=+$('mpMap').value||0; });
+  $('mpMap').addEventListener('change',function(){ MPO.map=+$('mpMap').value||0; mpTeamUI(); });
+  mpTeamUI();
 }
 function mpOptRefresh(m,ctf,koth){
   $('mpOptTM').style.display=m==='ff'?'none':'';
@@ -11687,7 +11701,7 @@ $('mpKOTH').addEventListener('click',function(){ mpSetMode('dm',false,true); });
 $('mpHost').addEventListener('click',function(){ mp.mode=mpMode; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead(); if(mp.opt.map===4){ mp.ctf=false; mp.koth=false; } mpHost(); });
 $('mpSolo').addEventListener('click',function(){
   mpClose(); mp.mode='dm'; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead(); if(mp.opt.map===4){ mp.ctf=false; mp.koth=false; }
-  mp.host=true; mp.id=0; mp.team=0; mp.conns=[]; mp.conn=null; mp.peer=null; mp.roster=[]; mp.score=[0,0]; mp.code='SOLO';
+  mp.host=true; mp.id=0; mp.team=mpWant===1?1:0; mp.conns=[]; mp.conn=null; mp.peer=null; mp.roster=[]; mp.score=[0,0]; mp.code='SOLO';
   mpBegin();
 });
 $('mpJoin').addEventListener('click',mpJoin);
