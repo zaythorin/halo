@@ -1,0 +1,3 @@
+Warthog (drivable vehicle in Halo Warzone Alpha), Halo Reach chaingun variant.
+This work is based on "Vehicles>Human>Ground>Warthogs>Halo Reach" (https://sketchfab.com/3d-models/vehicleshumangroundwarthogshalo-reach-aed6bdf9701b4589b32530a64a11c1d4) by jameslucino117 (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+The model was split into body, turret, gun and wheels, rescaled and its textures downsized for the game.
