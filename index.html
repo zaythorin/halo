@@ -616,7 +616,7 @@ body{letter-spacing:.02em}
       <div class="mpOptT">WEAPONS ALLOWED</div><div class="mpChips" id="mpOptW"></div>
       <div id="mpOptTM">
         <div class="mpOptT">VEHICLES AND MAP</div><div class="mpChips" id="mpOptV"></div>
-        <div class="mpOptT">MAP <select id="mpMap"><option value="0">SNOWBOUND</option><option value="1" selected>RECON</option><option value="2">COVENANT SHIP</option><option value="3">NEW MOMBASA</option></select></div>
+        <div class="mpOptT">MAP <select id="mpMap"><option value="0">SNOWBOUND</option><option value="1" selected>RECON</option><option value="2">COVENANT SHIP</option><option value="3">NEW MOMBASA</option><option value="4">SKYBREAK (AIR DUEL)</option></select></div>
         <div class="mpOptT">SCORE LIMIT <select id="mpLim"></select></div>
       </div>
     </div>
@@ -5620,7 +5620,7 @@ var jetObj=(function(){
   var g=new THREE.Group(); g.rotation.order='YXZ';
   var hb=airParts(AIR.hornet); hb.rotation.y=Math.PI; g.add(hb);
   var mz=new THREE.Object3D(); mz.position.set(0,0.1,-4.2); g.add(mz);
-  scene.add(g); return {group:g,muzzle:mz};
+  scene.add(g); return {group:g,muzzle:mz,model:hb};
 })();
 var jbeacon=new THREE.Mesh(new THREE.OctahedronGeometry(0.5),new THREE.MeshBasicMaterial({color:0x6be4ff,fog:false})); scene.add(jbeacon);
 var lockEl=document.createElement('div');
@@ -5662,7 +5662,7 @@ function leaveJetState(){
   p.inVeh=false; p.air=false; vm.visible=true; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); lockEl.style.display='none'; jet.tgt=null; stopEngine(); tmClaim('j',0);
 }
 function exitJet(){
-  if(!p.air) return;
+  if(!p.air||TM.sky) return;
   if(jetAlt()>6){ showToast('LAND TO EXIT'); return; }
   leaveJetState();
   p.x=jet.x+Math.cos(jet.yaw)*5.2; p.z=jet.z-Math.sin(jet.yaw)*5.2; resolveCircle(p,0.45,0);
@@ -5675,6 +5675,7 @@ function damageJet(n){
 }
 function destroyJet(){
   var wasIn=p.air;
+  if(TM.sky){ jet.alive=false; jet.respawnT=1e9; jet.hp=0; jetObj.group.visible=false; boomAt(jet.x,jet.y,jet.z); boomAt(jet.x+2,jet.y-0.5,jet.z-2); boomAt(jet.x-2,jet.y+0.5,jet.z+2); p.health=0; p.shield=0; p.ov=0; EQ.camo=0; gameOver(); return; }
   jet.alive=false; jet.respawnT=45; jet.hp=0; jetObj.group.visible=false; jbeacon.visible=false;
   boomAt(jet.x,jet.y,jet.z); boomAt(jet.x+2,jet.y-0.5,jet.z-2);
   if(wasIn){
@@ -5685,13 +5686,13 @@ function destroyJet(){
 }
 /* lock-on: keep your view on an enemy and the reticle fills, then the missile follows it */
 function updateLock(dt){
-  var co=_air1, cd=_air2, i, best=null, bestA=0.2;
+  var co=_air1, cd=_air2, i, best=null, bestA=0.2, cand=TM.sky?skyTargets():enemies, maxD=TM.sky?420:190;
   camera.getWorldPosition(co); camera.getWorldDirection(cd);
-  for(i=0;i<enemies.length;i++){
-    var e=enemies[i]; if(e.dead) continue;
+  for(i=0;i<cand.length;i++){
+    var e=cand[i]; if(e.dead) continue;
     var ty=e.air?e.group.position.y:e.group.position.y+1.1*e.sc;
     _air3.set(e.x-co.x,ty-co.y,e.z-co.z);
-    var d=_air3.length(); if(d>190||d<14) continue;
+    var d=_air3.length(); if(d>maxD||d<14) continue;
     var ang=Math.acos(Math.max(-1,Math.min(1,_air3.dot(cd)/d)));
     if(ang<bestA){
       _air4.set(jet.x,jet.y,jet.z); _air5.set(e.x,ty,e.z);
@@ -5702,7 +5703,7 @@ function updateLock(dt){
   if(best&&best===jet.tgt){ var was=jet.lockT>=0.85; jet.lockT=Math.min(1.2,jet.lockT+dt); if(!was&&jet.lockT>=0.85){ tone(1500,1500,0.12,'square',0.12); } }
   else if(best){ jet.tgt=best; jet.lockT=0; }
   else{ jet.lockT=Math.max(0,jet.lockT-dt*2); if(jet.lockT<=0) jet.tgt=null; }
-  if(jet.tgt&&(jet.tgt.dead||enemies.indexOf(jet.tgt)<0)){ jet.tgt=null; jet.lockT=0; }
+  if(jet.tgt&&(jet.tgt.dead||cand.indexOf(jet.tgt)<0)){ jet.tgt=null; jet.lockT=0; }
   var t=jet.tgt;
   if(!t){ lockEl.style.display='none'; return; }
   _air5.set(t.x,t.air?t.group.position.y:t.group.position.y+1.1*t.sc,t.z).project(camera);
@@ -5757,6 +5758,7 @@ function updateMissiles(dt){
         var ey=e.air?e.group.position.y:e.group.position.y+1.0;
         if(Math.hypot(P.x-e.x,P.y-ey,P.z-e.z)<(e.air?4.0:1.7)){ boom=true; hitE=e; break; }
       }
+      if(!boom&&TM.sky){ var skl=skyTargets(); for(var sq=0;sq<skl.length;sq++){ var tt=skl[sq]; if(Math.hypot(P.x-tt.x,P.y-tt.group.position.y,P.z-tt.z)<tt.rad){ boom=true; break; } } }
     }
     r.m.position.copy(r.pos); r.m.lookAt(r.pos.x+r.dir.x,r.pos.y+r.dir.y,r.pos.z+r.dir.z);
     r.smokeT-=dt;
@@ -5773,7 +5775,7 @@ function updateJet(dt){
   }
   if(TM.on&&tmBlocked('j')){ tmNetJetStep(dt); return; }
   jet.mslCool=Math.max(0,jet.mslCool-dt); jet.hitT=Math.max(0,jet.hitT-dt);
-  if(jet.msl<8){ jet.mslT+=dt; if(jet.mslT>=7){ jet.mslT=0; jet.msl++; } }
+  if(jet.msl<(jet.cf?jet.cf.msl:8)){ jet.mslT+=dt; if(jet.mslT>=(TM.sky?5:7)){ jet.mslT=0; jet.msl++; } }
   if(!p.air){
     /* parked: settle to the ground */
     var gh=floorY(jet.x,jet.z,jet.y)+1.65;
@@ -5783,22 +5785,120 @@ function updateJet(dt){
     syncJet();
     var bd=Math.hypot(p.x-jet.x,p.z-jet.z);
     jbeacon.visible=true; jbeacon.position.set(jet.x,jet.y+5.6+Math.sin(tAcc*2)*0.25,jet.z); jbeacon.rotation.y+=dt*2; jbeacon.scale.setScalar(1+bd*0.03);
-  }else{ jbeacon.visible=false; if(TM.on) tmSendJet(dt); }
+  }else{ jbeacon.visible=false; if(TM.on&&!TM.sky) tmSendJet(dt); }
+}
+
+/* ================= SKYBREAK: an air duel above the clouds. UNSC fly Pelicans, Covenant fly Banshees ================= */
+var CRAFT={
+  hornet:{n:'HORNET',sp:24,rv:9,st:14,up:11,ac:1.8,tn:6,ceil:130,cam:17,hp:450,dmg:13,msl:8,rad:3.6},
+  pelican:{n:'PELICAN',sp:31,rv:12,st:12,up:10,ac:1.1,tn:3.2,ceil:330,cam:30,hp:1500,dmg:11,msl:10,rad:8.5},
+  banshee:{n:'BANSHEE',sp:50,rv:16,st:24,up:17,ac:2.6,tn:7,ceil:330,cam:19,hp:720,dmg:13,msl:6,rad:5}
+};
+var SKY_R=560;
+function craftMesh(k){
+  var m=new THREE.Group();
+  if(k==='pelican'){ vehParts('pelican').parts.forEach(function(pt){ m.add(new THREE.Mesh(pt.geo,pt.mat)); }); m.rotation.y=Math.PI/2; m.scale.setScalar(0.6); var w=new THREE.Group(); w.add(m); m.position.set(0,0,0); w.position.y=3; return w; }
+  if(k==='banshee'){ m.add(airParts(AIR.banshee,0x9fe0ff)); m.scale.setScalar(1.5); return m; }
+  var h=airParts(AIR.hornet); h.rotation.y=Math.PI; m.add(h); return m;
+}
+function jetModel(k){
+  var g=jetObj.group; if(jetObj.model) g.remove(jetObj.model);
+  var m=craftMesh(k); g.add(m); jetObj.model=m;
+  if(k==='pelican') jetObj.muzzle.position.set(0,-1.2,-10); else if(k==='banshee') jetObj.muzzle.position.set(0,-0.2,-5); else jetObj.muzzle.position.set(0,0.1,-4.2);
+}
+function skyBoard(){
+  if(!TM.sky) return;
+  var k=mp.team===0?'pelican':'banshee', cf=CRAFT[k];
+  jet.cf=cf; jet.maxHp=cf.hp; jetGun.dmg=cf.dmg; jetModel(k);
+  jet.x=p.x; jet.y=p.y+1.9; jet.z=p.z; jet.yaw=p.yaw; jet.pitch=0; jet.roll=0;
+  jet.vx=-Math.sin(jet.yaw)*cf.sp*0.6; jet.vy=0; jet.vz=-Math.cos(jet.yaw)*cf.sp*0.6;
+  jet.hp=cf.hp; jet.alive=true; jet.respawnT=0; jet.msl=cf.msl; jet.mslT=0; jet.mslCool=0; jet.tgt=null; jet.lockT=0; jet.hitT=0;
+  jetObj.group.visible=true; jbeacon.visible=false; syncJet();
+  p.inVeh=true; p.air=true; reloading=false; swapT=0; pendingW=null; fireEdgeT=0; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on');
+  vm.visible=false; ctrl.jump=false; p.pitch=-0.05; p.vx=p.vy=p.vz=0; try{ startEngine(); }catch(e){}
+  showToast(cf.n+'   LMB GUNS   RMB / F MISSILE   SPACE UP   C DOWN');
+}
+function skyTargets(){
+  var L=[], id; for(id in mp.peers){ var pe=mp.peers[id]; if(pe.team!==mp.team&&pe.tgtO&&pe.rem&&pe.rem.al&&pe.rem.has) L.push(pe.tgtO); }
+  return L;
+}
+/* an opponent's avatar becomes their aircraft: the suit is hidden, a craft and a big hit sphere take its place */
+function skyCraft(av,pe){
+  var au=av.userData, k=pe.team===0?'pelican':'banshee', cf=CRAFT[k];
+  av.children.forEach(function(c){ if(!c.isSprite) c.visible=false; });
+  var piv=new THREE.Group(); piv.rotation.order='YXZ'; piv.rotation.y=-Math.PI; piv.position.y=1.9; piv.add(craftMesh(k)); av.add(piv);
+  var hb=new THREE.Mesh(new THREE.SphereGeometry(cf.rad,10,8),new THREE.MeshBasicMaterial({visible:false})); hb.position.y=1.9; hb.userData={pid:pe.id,head:false}; av.add(hb);
+  au.skyP=piv; au.hit=[hb];
+  pe.tgtO={x:0,z:0,air:true,group:{position:{y:0}},sc:1,dead:false,rad:cf.rad};
+}
+function skyPeerTick(pe,R,au,dt){
+  var k=Math.min(1,dt*8);
+  au.skyP.rotation.x+=((R.tjp||0)-au.skyP.rotation.x)*k; au.skyP.rotation.z+=((R.tjr||0)-au.skyP.rotation.z)*k;
+  var t=pe.tgtO; if(t){ t.x=R.x; t.z=R.z; t.group.position.y=R.y+1.9; t.dead=!R.al; }
+}
+function skyTex(kind){
+  var c=document.createElement('canvas'); c.width=c.height=256; var g=c.getContext('2d'), i, ox, oy;
+  if(kind==='puff'){
+    var gr=g.createRadialGradient(128,128,8,128,128,126); gr.addColorStop(0,'rgba(255,255,255,0.95)'); gr.addColorStop(0.55,'rgba(246,251,255,0.5)'); gr.addColorStop(1,'rgba(235,245,255,0)'); g.fillStyle=gr; g.fillRect(0,0,256,256);
+    return new THREE.CanvasTexture(c);
+  }
+  g.fillStyle='#e6f1fb'; g.fillRect(0,0,256,256);
+  for(i=0;i<170;i++){
+    var x=Math.random()*256, y=Math.random()*256, r=12+Math.random()*44, sh=Math.random()<0.4;
+    for(ox=-256;ox<=256;ox+=256) for(oy=-256;oy<=256;oy+=256){
+      var gg=g.createRadialGradient(x+ox,y+oy,2,x+ox,y+oy,r); gg.addColorStop(0,sh?'rgba(170,196,226,0.30)':'rgba(255,255,255,0.55)'); gg.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gg; g.fillRect(x+ox-r,y+oy-r,r*2,r*2);
+    }
+  }
+  var t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+}
+function skyWorld(){
+  var G=TM.mesh, i;
+  var ct=skyTex('sea'); ct.repeat.set(26,26);
+  var sea=new THREE.Mesh(new THREE.PlaneGeometry(4400,4400),new THREE.MeshBasicMaterial({map:ct,color:0xffffff})); sea.rotation.x=-Math.PI/2; sea.position.y=0; G.add(sea);
+  var ct2=skyTex('sea'); ct2.repeat.set(14,14);
+  var low=new THREE.Mesh(new THREE.PlaneGeometry(4400,4400),new THREE.MeshBasicMaterial({map:ct2,color:0xa9c3de})); low.rotation.x=-Math.PI/2; low.position.y=-30; G.add(low);
+  var pm=new THREE.SpriteMaterial({map:skyTex('puff'),transparent:true,depthWrite:false,opacity:0.92});
+  function puff(x,y,z,sz){ var sp=new THREE.Sprite(pm); sp.position.set(x,y,z); sp.scale.set(sz,sz*0.62,1); G.add(sp); }
+  for(i=0;i<130;i++){ var a=Math.random()*6.283, r=40+Math.random()*1500; puff(Math.cos(a)*r,2+Math.random()*20,Math.sin(a)*r,130+Math.random()*230); }
+  [[-240,-120],[260,150],[-300,260],[330,-240],[-180,-330],[210,360],[-420,40],[430,60]].forEach(function(c){
+    for(var j=0;j<8;j++) puff(c[0]+(Math.random()-0.5)*90,6+j*13+Math.random()*8,c[1]+(Math.random()-0.5)*90,170-j*9+Math.random()*40);
+  });
+  /* rock spires standing out of the cloud sea: cover, and a hazard */
+  TM.spires=[];
+  var rockM=new THREE.MeshLambertMaterial({color:0x8a8f97,flatShading:true});
+  [[0,0,28,9,170],[-150,70,20,7,140],[170,-90,22,8,150],[-70,-190,18,6,130],[110,185,19,7,135],[-200,-60,16,6,115],[205,110,15,6,110]].forEach(function(q){
+    var geo=new THREE.CylinderGeometry(q[3],q[2],q[4]+25,10,6,false), pa=geo.attributes.position, n;
+    for(n=0;n<pa.count;n++){ var yy=pa.getY(n); if(yy>-q[4]/2-24) { pa.setX(n,pa.getX(n)*(1+(Math.random()-0.5)*0.25)); pa.setZ(n,pa.getZ(n)*(1+(Math.random()-0.5)*0.25)); } }
+    geo.computeVertexNormals();
+    var m=new THREE.Mesh(geo,rockM); m.position.set(q[0],(q[4]-25)/2,q[1]); G.add(m);
+    var cap=new THREE.Mesh(new THREE.ConeGeometry(q[3]*1.15,q[4]*0.16,10),new THREE.MeshLambertMaterial({color:0xf2f6fb,flatShading:true})); cap.position.set(q[0],q[4]-q[4]*0.07,q[1]); G.add(cap);
+    TM.spires.push({x:q[0],z:q[1],r0:q[2],r1:q[3],y0:-25,top:q[4]});
+  });
+  /* the Halo ring across the sky */
+  var ring=new THREE.Mesh(new THREE.TorusGeometry(1500,55,6,120),new THREE.MeshBasicMaterial({color:0xb8cde0,fog:false})); ring.rotation.set(1.18,0.3,0.4); ring.position.set(-200,700,-900); ring.frustumCulled=false; G.add(ring);
+  TM.oob={r:SKY_R,t:0};
 }
 function updateFlight(dt){
   updateLook(); ctrl.jump=false; updateFov(dt); regen(dt);
   var m=readMove(), up=(keys.Space?1:0)+(ctrl.brake?1:0)-((keys.KeyC||keys.ShiftLeft)?1:0);
-  var dy=angDiff(p.yaw-jet.yaw); jet.yaw+=dy*Math.min(1,dt*6);
+  var cf=jet.cf||CRAFT.hornet, dy=angDiff(p.yaw-jet.yaw); jet.yaw+=dy*Math.min(1,dt*cf.tn);
   var P=Math.max(-0.8,Math.min(0.8,p.pitch))*0.85, cp=Math.cos(P), sn=Math.sin(jet.yaw), cs=Math.cos(jet.yaw);
   var fx=-sn*cp, fy=Math.sin(P), fz=-cs*cp, rx=cs, rz=-sn;
-  var sp=m.mz>0?24:9, dvx=fx*m.mz*sp+rx*m.mx*14, dvy=fy*m.mz*sp+up*11, dvz=fz*m.mz*sp+rz*m.mx*14;
-  var k=Math.min(1,dt*1.8);
+  var sp=m.mz>0?cf.sp:cf.rv, dvx=fx*m.mz*sp+rx*m.mx*cf.st, dvy=fy*m.mz*sp+up*cf.up, dvz=fz*m.mz*sp+rz*m.mx*cf.st;
+  var k=Math.min(1,dt*cf.ac);
   jet.vx+=(dvx-jet.vx)*k; jet.vy+=(dvy-jet.vy)*k; jet.vz+=(dvz-jet.vz)*k;
   var ox=jet.x, oy=jet.y, oz=jet.z, nx=ox+jet.vx*dt, ny=oy+jet.vy*dt, nz=oz+jet.vz*dt, hs=Math.hypot(jet.vx,jet.vz);
   /* ground */
-  var gh=floorY(nx,nz,oy)+1.9;
-  if(ny<gh){ if(jet.vy<-13) damageJet(Math.min(70,(-jet.vy-11)*5)); ny=gh; jet.vy=Math.max(0,jet.vy); }
-  if(ny>130){ ny=130; jet.vy=Math.min(0,jet.vy); }
+  var gh=TM.sky?14:floorY(nx,nz,oy)+1.9;   /* Skybreak: the cloud tops are the floor */
+  if(ny<gh){ if(jet.vy<-13&&!TM.sky) damageJet(Math.min(70,(-jet.vy-11)*5)); ny=gh; jet.vy=Math.max(0,jet.vy); }
+  if(ny>cf.ceil){ ny=cf.ceil; jet.vy=Math.min(0,jet.vy); }
+  if(TM.sky&&TM.spires){   /* the rock spires standing out of the clouds are solid */
+    for(var si=0;si<TM.spires.length;si++){
+      var SP=TM.spires[si]; if(ny>SP.top+cf.rad*0.5) continue;
+      var rr0=SP.r0-(SP.r0-SP.r1)*Math.max(0,Math.min(1,(ny-SP.y0)/(SP.top-SP.y0)))+cf.rad*0.6, ddx=nx-SP.x, ddz=nz-SP.z, dd=Math.hypot(ddx,ddz)||0.01;
+      if(dd<rr0){ nx=SP.x+ddx/dd*rr0; nz=SP.z+ddz/dd*rr0; var spd2=Math.hypot(jet.vx,jet.vz); if(spd2>12) damageJet(Math.min(80,spd2*1.4)); jet.vx*=-0.2; jet.vz*=-0.2; }
+    }
+  }
   /* buildings and trees: anything tall enough to reach the Hornet stops it */
   var hit=false, ang;
   for(ang=0;ang<6.2;ang+=1.57){ if(pointInCover(nx+Math.cos(ang)*2.6,ny-0.4,nz+Math.sin(ang)*2.6)){ hit=true; break; } }
@@ -5818,7 +5918,7 @@ function updateFlight(dt){
   engineUpdate(Math.hypot(jet.vx,jet.vy,jet.vz)*0.5);
   /* chase camera */
   var cpt=Math.cos(p.pitch), cx0=-Math.sin(p.yaw)*cpt, cy0=Math.sin(p.pitch), cz0=-Math.cos(p.yaw)*cpt;
-  var dist=17, pv=new V3(jet.x,jet.y+1.5,jet.z), back=new V3(-cx0,-cy0,-cz0);
+  var dist=cf.cam, pv=new V3(jet.x,jet.y+1.5,jet.z), back=new V3(-cx0,-cy0,-cz0);
   ray.set(pv,back); ray.far=dist;
   var hs2=ray.intersectObjects(coverMeshes,false);
   if(hs2.length) dist=Math.max(3,hs2[0].distance-0.5);
@@ -8168,7 +8268,7 @@ function startGame(){
   $('menu').hidden=true; $('over').hidden=true; $('pause').hidden=true; $('controls').hidden=true; $('ui').hidden=false;
   fadeTheme(); if(ac&&ac.state==='suspended') ac.resume();
   lockMouse();
-  if(mp.on&&TM.on) flyStart(); else if(mp.on&&(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm'))) cutStart();
+  if(mp.on&&TM.on&&!TM.sky) flyStart(); else if(mp.on&&(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm'))) cutStart();
   devApplyNuke();
 }
 /* ---------- death: the player's Spartan model as a ragdoll, seen from a third-person camera ---------- */
@@ -8502,7 +8602,7 @@ function pauseRespawn(){
   try{ if(mp.on&&mp.mode==='dm'){ if(p.air) leaveJetState(); else if(p.inVeh){ if(GN.on) leaveGunner(); else exitRover(); } } else if(p.air||p.inVeh){ mgForce(); if(p.air) leaveJetState(); else if(GN.on) leaveGunner(); else exitRover(); } }catch(e){}
   p.air=false; p.inVeh=false; vm.visible=true;
   var sx=0, sz=0, sy=groundH(0,0);
-  if(mp.on&&mp.mode==='dm'){ try{ var sp=tmSpawnPoint(mp.team); sx=sp.x; sz=sp.z; sy=sp.y; }catch(e){} mpPlace(sx,sz,sy); mp.inv=tAcc+4; }
+  if(mp.on&&mp.mode==='dm'){ try{ var sp=tmSpawnPoint(mp.team); sx=sp.x; sz=sp.z; sy=sp.y; }catch(e){} mpPlace(sx,sz,sy); mp.inv=tAcc+4; if(TM.sky) skyBoard(); }
   else{ p.x=sx; p.z=sz; p.y=sy; p.yaw=0; p.pitch=0; }
   p.vx=0; p.vz=0; p.vy=0; p.onGround=true; p.health=100; p.shield=100; p.lastHit=-10; vigT=0;
   reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
@@ -8872,7 +8972,7 @@ function tmCuts(x,z){
   return h;
 }
 function tmH(x,z){
-  if(TM.ship||TM.mom||TM.isl||TM.snb) return TM.gy;
+  if(TM.ship||TM.mom||TM.isl||TM.snb||TM.sky) return TM.gy;
   var h=(0.45*Math.sin(x*0.07+1)*Math.cos(z*0.06)+0.3*Math.sin(z*0.11+x*0.04))*smooth(14,26,Math.hypot(x,z));
   h+=0.7*(vnoise(x*0.04+4,z*0.04)-0.5)*2+0.15*(vnoise(x*0.14,z*0.14+8)-0.5)*2;
   h+=tmBump(x,z,0,-50,14,1.8)+tmBump(x,z,0,50,14,1.8)+tmBump(x,z,18,-12,10,1.5)+tmBump(x,z,-18,12,10,1.5)+tmBump(x,z,28,-30,11,1.7)+tmBump(x,z,-28,30,11,1.7);
@@ -9995,6 +10095,7 @@ function tmWallRack(Z,dz,t){
 function tmLoose(){
   if(!rackTpl) buildRackTpl();
   TUR.list=[];
+  if(TM.sky) return;
   if(TM.ship){ tmShipLoose(); return; }
   if(TM.isl){ tmIslLoose(); return; }
   if(TM.snb){ tmSnowLoose(); return; }
@@ -10439,7 +10540,7 @@ function tmSnowLoose(){
 }
 function tmEnter(team){
   if(mp.opt){ mp.opt.vj=0; mp.opt.vr=0; } /* no vehicles on the island, inside the ship, in the city or on Snowbound */
-  TM.noTr=!!(mp.opt&&mp.opt.tr===0); TM.desert=false; TM.isl=false; TM.rcb=!!(mp.opt&&mp.opt.map===1); /* Recon replaces Silent Cartographer */ TM.ship=!!(mp.opt&&mp.opt.map===2); TM.mom=!!(mp.opt&&mp.opt.map===3); TM.snb=!(TM.ship||TM.mom); /* TM.snb = one of the new model maps (Snowbound, or Recon when TM.rcb) */ /* Snowbound replaces the old snow valley */
+  TM.noTr=!!(mp.opt&&mp.opt.tr===0); TM.desert=false; TM.isl=false; TM.rcb=!!(mp.opt&&mp.opt.map===1); /* Recon replaces Silent Cartographer */ TM.ship=!!(mp.opt&&mp.opt.map===2); TM.mom=!!(mp.opt&&mp.opt.map===3); TM.sky=!!(mp.opt&&mp.opt.map===4); if(TM.sky){ mp.ctf=false; mp.koth=false; } TM.snb=!(TM.ship||TM.mom||TM.sky); /* TM.snb = one of the new model maps (Snowbound, or Recon when TM.rcb) */ /* Snowbound replaces the old snow valley */
   if(TM.ship){ slots=[11,12]; sel=0; setWeapon(11); }
   teamPaint(fpMaterials(),team); TP.rigId=null;
   var prev=scene.children.length;
@@ -10455,7 +10556,7 @@ function tmEnter(team){
   nav.active=false; nav.src=-1;
   var n0=scene.children.length;
   TM.spawns=[[],[]];
-  TM_AX=TM.ship?200:(TM.isl?140*ISLK:125); TM_AZ=TM.ship?250:(TM.isl?135*ISLK:200); EM_STEP=(TM.ship||TM.mom||TM.isl||TM.snb)?1.5:4.4; TM.gy=TM.mom?-4:(TM.isl?-1:(TM.snb?-40:-5.5)); KH.x=0; KH.z=0; KH.r=TM.ship?9:13; TM.khy=-2.6*MID_S;
+  TM_AX=TM.ship?200:(TM.isl?140*ISLK:125); TM_AZ=TM.ship?250:(TM.isl?135*ISLK:200); EM_STEP=(TM.ship||TM.mom||TM.isl||TM.snb)?1.5:4.4; TM.gy=TM.sky?-2000:(TM.mom?-4:(TM.isl?-1:(TM.snb?-40:-5.5))); KH.x=0; KH.z=0; KH.r=TM.ship?9:13; TM.khy=-2.6*MID_S;
   if(TM.ship){
     TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null;
     TM.home=[{r:{x:0,z:-36,h:0},j:{x:0,z:-36,yaw:0}},{r:{x:0,z:36,h:Math.PI},j:{x:0,z:36,yaw:Math.PI}}];
@@ -10473,6 +10574,11 @@ function tmEnter(team){
     TM.home=[{r:{x:IP.flag[0][0],z:IP.flag[0][2],h:0},j:{x:IP.flag[0][0],z:IP.flag[0][2],yaw:0}},{r:{x:IP.flag[1][0],z:IP.flag[1][2],h:Math.PI},j:{x:IP.flag[1][0],z:IP.flag[1][2],yaw:Math.PI}}];
     [0,1].forEach(function(t){ IP.spawns[t].forEach(function(q){ TM.spawns[t].push({x:q[0],z:q[2],y:q[1]}); }); });
     IP.packs.forEach(function(q){ packSpots.push([q[0],q[1],q[2]]); });
+  }else if(TM.sky){
+    TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null;
+    TM.arO=ARENA_R; ARENA_R=6000;
+    TM.home=[{r:{x:0,z:300,h:0},j:{x:0,z:300,yaw:0}},{r:{x:0,z:-300,h:Math.PI},j:{x:0,z:-300,yaw:Math.PI}}];
+    [0,1].forEach(function(t){ var sg=t===0?1:-1; [-60,-20,20,60].forEach(function(dx,i){ TM.spawns[t].push({x:dx,z:sg*(300+(i&1)*30),y:150+(i%2)*25}); }); });
   }else if(TM.snb){
     TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.sn=EM_NAV; EM_NAV=null;
     var SP=MAPP(); KH.x=SP.hill[0]; KH.z=SP.hill[2]; KH.r=10; TM.khy=SP.hill[1]; TM_AX=115; TM_AZ=125;
@@ -10482,8 +10588,8 @@ function tmEnter(team){
     tmSnowbound();   /* built first so racks and pads can be placed on it */
   }else{ tmBase(0); tmBase(1); tmFinishBases(); TM.sn=EM_NAV; EM_NAV=null; packSpots.push([40,0,60],[-40,0,-60]); }
   spawnPacks(); tmLoose();
-  TM.mesh=(TM.ship||TM.mom||TM.isl||TM.snb)?new THREE.Group():tmBuildTerrain(); scene.add(TM.mesh);
-  if(TM.ship) tmShip(); else if(TM.mom) tmMombasa(); else if(TM.isl) tmIsland(); else if(TM.snb){ if(!TM.rcb) tmSnowInit(); } else{ tmScatter(); tmSnowInit(); }
+  TM.mesh=(TM.ship||TM.mom||TM.isl||TM.snb||TM.sky)?new THREE.Group():tmBuildTerrain(); scene.add(TM.mesh);
+  if(TM.ship) tmShip(); else if(TM.mom) tmMombasa(); else if(TM.isl) tmIsland(); else if(TM.sky) skyWorld(); else if(TM.snb){ if(!TM.rcb) tmSnowInit(); } else{ tmScatter(); tmSnowInit(); }
   TM.wx={bg:scene.background.clone(),fog:scene.fog.color.clone(),fn:scene.fog.near,ff:scene.fog.far,hi:hemi.intensity,hc:hemi.color.clone(),hg:hemi.groundColor.clone(),si:sun.intensity,sc:sun.color.clone(),sk:skyDome?skyDome.material.color.clone():null};
   scene.background.setHex(0xc6d0da); scene.fog.color.setHex(0xc6d0da); scene.fog.near=18; scene.fog.far=300;
   hemi.intensity=0.8; hemi.color.setHex(0xdfe8f2); hemi.groundColor.setHex(0xaab6c4); sun.intensity=0.55; if(skyDome) skyDome.material.color.setRGB(0.72,0.77,0.83);
@@ -10511,7 +10617,14 @@ function tmEnter(team){
     if(stars) stars.visible=false;
     bgScenery.forEach(function(m){ m.visible=false; }); momCutPrep();
   }else if(TM.snb){ bgScenery.forEach(function(m){ m.visible=false; }); momCutPrep(); }   /* Snowbound: night, stars, falling snow and the ring (below) */
-  if(!TM.desert&&!TM.ship&&!TM.mom&&!TM.isl&&!TM.rcb){ /* snow map at night */
+  if(TM.sky){ /* above the clouds in full sun */
+    scene.background.setHex(0x7db9ee); scene.fog.color.setHex(0xcfe5f8); scene.fog.near=200; scene.fog.far=1750;
+    hemi.intensity=0.95; hemi.color.setHex(0xeaf4ff); hemi.groundColor.setHex(0xcfe0f2); sun.intensity=1.6; sun.color.setHex(0xfff4d8);
+    if(skyDome){ skyDome.visible=true; skyDome.material.color.setRGB(0.5,0.75,1.0); }
+    if(stars) stars.visible=false;
+    bgScenery.forEach(function(m){ m.visible=false; }); momCutPrep();
+  }
+  if(!TM.desert&&!TM.ship&&!TM.mom&&!TM.isl&&!TM.rcb&&!TM.sky){ /* snow map at night */
     scene.background.setHex(0x050a1c); scene.fog.color.setHex(0x0a1230); scene.fog.near=26; scene.fog.far=330;
     hemi.intensity=0.6; hemi.color.setHex(0x7f9fe0); hemi.groundColor.setHex(0x1c2a48); sun.intensity=0.5; sun.color.setHex(0x9db4ff);
     if(skyDome) skyDome.material.color.setScalar(0.1);
@@ -10548,7 +10661,7 @@ function tmExit(){ TM.oob=null; var ow=document.getElementById('oobW'); if(ow) o
   covClear();
   if(FLY.on) flyEnd(true);
   if(CUT.on) cutEnd(true); CUT.prep=null;
-  CTF.on=false; KH.on=false; TM.wire=null; EM_STEP=4.4; TM.ship=false; TM.mom=false; TM.isl=false; TM.snb=false; TM.rcb=false; TM.storm=false; TM.clouds=null; TM.water=null; bgScenery.forEach(function(m){ m.visible=true; }); if(skyDome) skyDome.visible=true; trRainStop(); TM.rain=null; TM.lt=null;
+  CTF.on=false; KH.on=false; TM.wire=null; EM_STEP=4.4; if(TM.sky){ if(TM.arO) ARENA_R=TM.arO; jet.cf=null; jet.maxHp=450; jetGun.dmg=13; try{ jetModel('hornet'); }catch(e){} TM.spires=null; } TM.sky=false; TM.ship=false; TM.mom=false; TM.isl=false; TM.snb=false; TM.rcb=false; TM.storm=false; TM.clouds=null; TM.water=null; bgScenery.forEach(function(m){ m.visible=true; }); if(skyDome) skyDome.visible=true; trRainStop(); TM.rain=null; TM.lt=null;
   if(stars){ stars.visible=night>0.05; stars.material.opacity=Math.min(1,night*1.2); }
   teamPaint(fpMaterials(),-1); TP.rigId=null;
   TM.on=false;
@@ -10665,10 +10778,10 @@ function tmRecvVeh(m){
   }
 }
 function tmOob(dt){
-  var o=TM.oob; var el0=document.getElementById('oobW'); if(!o||(!TM.snb&&!TM.rcb)||state!=='play'){ if(el0) el0.style.display='none'; if(o) o.t=0; return; }
+  var o=TM.oob; var el0=document.getElementById('oobW'); if(!o||(!TM.snb&&!TM.rcb&&!TM.sky)||state!=='play'){ if(el0) el0.style.display='none'; if(o) o.t=0; return; }
   var el=el0;
   if(!el){ el=document.createElement('div'); el.id='oobW'; el.style.cssText='position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:95;pointer-events:none;color:#ffb347;font:700 20px var(--font-ui,sans-serif);letter-spacing:.16em;text-align:center;text-shadow:0 0 12px #000;display:none'; document.body.appendChild(el); }
-  var out=Math.abs(p.x)>o.x||Math.abs(p.z)>o.z;
+  var out=o.r?Math.hypot(p.x,p.z)>o.r:(Math.abs(p.x)>o.x||Math.abs(p.z)>o.z);
   if(out&&p.health>0){
     o.t+=dt; el.style.display='block'; el.textContent='RETURN TO THE BATTLEFIELD  '+Math.max(0,Math.ceil(6-o.t));
     if(o.t>=6){ o.t=0; el.style.display='none'; p.health=0; p.ov=0; EQ.camo=0; gameOver(); }
@@ -10737,7 +10850,7 @@ function tmBlastDamage(P,R,d){
     if(od<R){
       var om=falloff(od,d)*0.6, olos=!(od>0.6&&!hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(Q.x,Q.y+1.0,Q.z)));
       if(!olos&&!d.pierce) om*=tmModelOn()?0:0.3;
-      if((d===RKT||d===MSL)&&olos&&od<R*0.8) om=999;
+      if((d===RKT||d===MSL)&&olos&&od<R*0.8) om=TM.sky?Math.round(420*(1-od/R*0.6)):999;
       if(om>1) mpSend({t:'hit',n:Math.round(om),dx:Q.x-P.x,dz:Q.z-P.z,w:bw},pe.id);
     }
   }
@@ -11009,12 +11122,14 @@ function mpAddPeer(id,team){
   var pe={id:id,team:team,rem:{x:0,y:0,z:0,yaw:0,tx:0,ty:0,tz:0,tyaw:0,al:true,hp:200,has:false,iv:0},avatar:buildChiefAvatar()};
   pe.avatar.visible=false;
   if(mp.mode==='dm'){ tmTintAvatar(pe.avatar,team); }
+  if(TM.sky) skyCraft(pe.avatar,pe);
   pe.avatar.userData.hit.forEach(function(m){ m.userData.pid=id; });
   scene.add(pe.avatar); mp.peers[id]=pe;
   if(!mp.avatar){ mp.avatar=pe.avatar; mp.rem=pe.rem; }
   return pe;
 }
 function mpSetPeerChar(pe,k){
+  if(TM.sky) return;
   if(!k||pe.ch===k||!CHARS[k]&&!CHAR_FILE[k]) return;
   if(!CHARS[k]){ if(!pe.chL){ pe.chL=1; loadChar(k,function(ok){ pe.chL=0; if(ok) mpSetPeerChar(pe,k); else pe.ch=k; }); } return; }
   pe.ch=k; var old=CHIEF, oav=pe.avatar, nav;
@@ -11110,7 +11225,7 @@ function mpSetup(){
   mpClearPeers(); mp.rem={x:0,y:0,z:0,yaw:0,tx:0,ty:0,tz:0,tyaw:0,al:true,hp:200,has:false};
   if(mp.mode==='dm'){
     wave.delay=1e9; wave.active=false; tmEnter(mp.team);
-    var sp=TM.spawns[mp.team][mp.id%4]; mpPlace(sp.x,sp.z,sp.y);
+    var sp=TM.spawns[mp.team][mp.id%4]; mpPlace(sp.x,sp.z,sp.y); if(TM.sky) skyBoard();
   }else{
     veh.alive=false; veh.respawnT=1e9; rover.group.visible=false; beacon.visible=false;
     mpPlace(mp.host?0:3,mp.host?0:3); if(!mp.host){ wave.delay=1e9; wave.active=false; }
@@ -11202,7 +11317,7 @@ function mpTargets(){
   return L;
 }
 function mpWhat(){
-  if(p.air) return 'HORNET GUNS';
+  if(p.air) return TM.sky&&jet.cf?(jet.cf.n+' GUNS'):'HORNET GUNS';
   if(p.inVeh) return 'ROVER GUN';
   var w=weapons[cur]; if(!w) return 'WEAPON';
   return (cur===10&&TUR.pk&&!w.mounted)?'MOUNTED GUN':w.name;
@@ -11262,7 +11377,7 @@ function mpRevive(near){
   removeRagdoll(); state='play'; vm.visible=true; p.health=100; p.shield=100; p.lastHit=-10; vigT=0;
   var R=mp.rem;
   if(mp.mode==='dm'){
-    var s=tmSpawnPoint(mp.team); mpPlace(s.x,s.z,s.y);
+    var s=tmSpawnPoint(mp.team); mpPlace(s.x,s.z,s.y); if(TM.sky) skyBoard();
     weapons.forEach(function(w){ if(!w.inf){ w.mag=w.magSize; w.reserve=Math.max(w.reserve,w.maxRes>>1); } if(w._i){ w.heat=0; w.ohT=0; w.bat=100; } });
     gren.frag=3; gren.plasma=2;
   }else if(near&&R.has){ p.x=R.x+2; p.z=R.z+2; p.y=groundH(p.x,p.z); p.yaw=R.yaw; }
@@ -11303,7 +11418,7 @@ function mpRecv(m){
       if(!R) break;
       if(pe&&m.ch) mpSetPeerChar(pe,m.ch);
       if(pe&&m.nm&&pe.nm!==m.nm) mpSetName(pe,m.nm);
-      R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0; R.iv=m.iv|0; R.cr=m.cr||0; R.cm=m.cm|0;
+      R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0; R.iv=m.iv|0; R.cr=m.cr||0; R.cm=m.cm|0; R.tjp=m.jp||0; R.tjr=m.jr||0;
       var nowt=performance.now(); if(R.lt){ var dtm=Math.max(0.02,(nowt-R.lt)/1000), sv=Math.hypot(m.x-R.sx,m.z-R.sz)/dtm; R.sp=(R.sp||0)*0.6+Math.min(12,sv)*0.4; } R.lt=nowt; R.sx=m.x; R.sz=m.z;
       if(!R.has){ R.x=m.x; R.y=m.y; R.z=m.z; R.yaw=m.yaw; R.has=true; } break;
     case 'dome':
@@ -11481,6 +11596,7 @@ function mpUpdatePeer(pe,dt){
   au.cr=au.crk||0;   /* crouch is posed with bent legs now, not squashed */
   a.visible=!!R.al&&!R.iv; camoFx(a,au,a.visible&&R.cm&&au.tmTeam!==mp.team?(0.1+0.07*Math.sin(tAcc*9+R.x)+Math.min(0.45,au.kick*0.5)+(Math.hypot(R.x-p.x,R.z-p.z)<3.5?0.2:0)):1);   /* active camo: a faint shimmering ghost, clearer up close or when firing */
   a.position.set(R.x,R.y,R.z); a.rotation.y=R.yaw+Math.PI;
+  if(au.skyP) skyPeerTick(pe,R,au,dt);
   if(au.tmk) au.tmk.rotation.y+=dt*2;
 }
 function mpTick(dt){
@@ -11489,7 +11605,7 @@ function mpTick(dt){
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
-    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:(slots[sel]===17?8:slots[sel]),rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:((p.inVeh&&!GN.on)||p.air)?1:0,cr:r2(CR),cm:EQ.camo>0?1:0});
+    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:(slots[sel]===17?8:slots[sel]),rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:(!TM.sky&&((p.inVeh&&!GN.on)||p.air))?1:0,cr:r2(CR),cm:EQ.camo>0?1:0,jp:TM.sky?r2(jet.pitch):0,jr:TM.sky?r2(jet.roll):0});
   }
   if(mp.host&&mp.mode==='ff'){
     mp.enT-=dt; if(mp.enT<=0){ mp.enT=0.09; mpSend({t:'en',a:mpSnapshot()}); }
@@ -11568,9 +11684,9 @@ $('mpFF').addEventListener('click',function(){ mpSetMode('ff'); });
 $('mpDM').addEventListener('click',function(){ mpSetMode('dm'); });
 $('mpCTF').addEventListener('click',function(){ mpSetMode('dm',true); });
 $('mpKOTH').addEventListener('click',function(){ mpSetMode('dm',false,true); });
-$('mpHost').addEventListener('click',function(){ mp.mode=mpMode; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead(); mpHost(); });
+$('mpHost').addEventListener('click',function(){ mp.mode=mpMode; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead(); if(mp.opt.map===4){ mp.ctf=false; mp.koth=false; } mpHost(); });
 $('mpSolo').addEventListener('click',function(){
-  mpClose(); mp.mode='dm'; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead();
+  mpClose(); mp.mode='dm'; mp.ctf=mpCtf; mp.koth=mpKoth; mp.opt=mpOptRead(); if(mp.opt.map===4){ mp.ctf=false; mp.koth=false; }
   mp.host=true; mp.id=0; mp.team=0; mp.conns=[]; mp.conn=null; mp.peer=null; mp.roster=[]; mp.score=[0,0]; mp.code='SOLO';
   mpBegin();
 });
