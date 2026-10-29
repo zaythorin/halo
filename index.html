@@ -5573,7 +5573,7 @@ function updateRover(dt){
     return;
   }
   if(TM.on&&tmBlocked('r')){ tmNetRoverStep(dt); return; }
-  var drive=p.inVeh&&!p.air&&!MG.seat, thr=0, st=0;
+  var drive=p.inVeh&&!p.air&&!MG.seat&&!GN.on, thr=0, st=0;   /* the gunner only works the turret */
   if(drive){ var m=readMove(); thr=m.mz; st=m.mx; }
   var brake=drive&&(ctrl.brake||keys.Space);
   /* Warthog handling: heavy but loose. The velocity is kept in the world, so turning makes it slide (all-wheel crab steering, low grip), the springs bounce and rock the body, and it floats when it leaves the ground */
