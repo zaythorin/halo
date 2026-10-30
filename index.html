@@ -5127,7 +5127,7 @@ function updatePlayer(dt){
   CR+=((((keys.KeyC||ctrl.crouchTouch)&&!p.inVeh)?1:0)-CR)*Math.min(1,dt*12);
   MA.want=sprintHeld&&mz>0.3&&!zoomed&&!ctrl.fire&&p.onGround&&CR<0.3;
   if(ctrl.sprintTouch&&len<0.12){ MA.sprIdle=(MA.sprIdle||0)+dt; if(MA.sprIdle>0.2){ ctrl.sprintTouch=false; $('bSprint').classList.remove('on'); } } else MA.sprIdle=0;
-  var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1)*(TM.on&&TM.ship?1.5:1);
+  var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(WSPD[weapons[cur].id]||(/FUEL ROD/.test(weapons[cur].name||'')?0.84:1))*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1)*(TM.on&&TM.ship?1.5:1);
   try{ footTick(dt,len*sp); }catch(e){}
   sp*=1-0.45*CR;
   if(TM.on&&TM.wire&&!p.inVeh){
@@ -5658,6 +5658,8 @@ function destroyRover(){
   if(wasIn){ mp.cause='WARTHOG EXPLOSION'; mp.causeT=tAcc; p.shield=0; p.ov=0; hurt(9999); }   /* whoever was inside dies with it */
   else if(Math.hypot(p.x-veh.x,p.z-veh.z)<6) hurt(20);
 }
+/* heavy hardware drags on your stride; the sword makes you quick */
+var WSPD={rocket:0.85,laser:0.82,sniper:0.93,shotgun:0.97,sword:1.1};
 function updateRover(dt){
   if(!veh.alive){
     veh.respawnT-=dt; beacon.visible=false; wreckTick('me',dt);
