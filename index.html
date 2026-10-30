@@ -340,6 +340,14 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #toast{color:#9fe6ff}
 
 #sndHint{display:none!important}
+#campList{display:flex;flex-direction:column;gap:8px}
+.cm{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;background:rgba(255,255,255,.05);border:1.5px solid var(--line);color:var(--ink);font:700 14px var(--font-ui);letter-spacing:.12em;padding:12px 16px;border-radius:6px;cursor:pointer}
+.cm small{font-weight:400;letter-spacing:.08em;color:var(--dim);font-size:11px}
+.cm.sel{border-color:var(--amber)}.cm[disabled]{opacity:.38;cursor:default}
+#campBrief{font-size:13px;line-height:1.55;letter-spacing:.04em;color:var(--ink);min-height:3.2em}
+#cdText{font-size:13px;line-height:1.55;color:var(--ink)}
+#campObj{position:absolute;left:0;right:0;top:calc(84px + var(--st));text-align:center;pointer-events:none;font-weight:700;font-size:12px;letter-spacing:.22em;color:var(--amber);text-shadow:0 2px 8px #000}
+#campObj span{display:block;color:var(--ink);font-weight:400;letter-spacing:.1em;font-size:11px;margin-top:3px}
 #over{background:rgba(5,10,14,.5);-webkit-backdrop-filter:none;backdrop-filter:none}
 .menuFoot{pointer-events:none!important}
 .menuFoot .credits{pointer-events:auto;max-width:92ch}
@@ -533,7 +541,8 @@ body{letter-spacing:.02em}
   <div id="menuLogoBox"><img id="menuLogo" alt="HALO WARZONE ALPHA" hidden><h1 class="logo" id="menuLogoTxt">HALO</h1><div id="menuSub">WARZONE ALPHA</div></div>
   <div class="menuWrap">
     <div class="tag" id="tagLine">HOLD THE RING</div>
-    <button type="button" class="go mb" id="trainBtn">TRAINING GROUND</button>
+    <button type="button" class="go mb" id="campBtn">CAMPAIGN</button>
+    <button type="button" class="ghost mb" id="trainBtn">TRAINING GROUND</button>
     <button type="button" class="ghost mb" id="charBtn">CHARACTER: MASTER CHIEF</button>
     <button type="button" class="ghost mb" id="mpBtn">PLAY ONLINE</button>
     <button type="button" class="ghost mb" id="ctlBtn">CONTROLS</button>
@@ -629,6 +638,22 @@ body{letter-spacing:.02em}
   </div>
 </div>
 
+<div class="overlay" id="camp" hidden>
+  <div class="card">
+    <h2 id="campTitle">CAMPAIGN</h2>
+    <div id="campList"></div>
+    <div id="campBrief"></div>
+    <div class="pbtns"><button type="button" class="go" id="campGo" hidden>START MISSION</button><button type="button" class="go alt" id="campBack">BACK</button></div>
+  </div>
+</div>
+<div class="overlay" id="campDone" hidden>
+  <div class="card">
+    <h2 id="cdTitle">MISSION COMPLETE</h2>
+    <div id="cdText"></div>
+    <div class="stats"><div>KILLS<b id="cdKills">0</b></div><div>HEADSHOTS<b id="cdHeads">0</b></div><div>SCORE<b id="cdScore">0</b></div><div>TIME<b id="cdTime">0</b></div></div>
+    <div class="pbtns"><button type="button" class="go" id="cdNext">NEXT MISSION</button><button type="button" class="go alt" id="cdMenu">MAIN MENU</button></div>
+  </div>
+</div>
 <div class="overlay" id="over" hidden>
   <div class="card">
     <h2 id="oTitle">ELIMINATED</h2>
@@ -4749,7 +4774,7 @@ function updateWaves(dt){
       for(var wj=0;wj<weapons.length;wj++) weapons[wj].reserve=Math.min(weapons[wj].maxRes,weapons[wj].reserve+AMMO_WAVE[wj]); weapons[8].mag=Math.min(100,weapons[8].mag+AMMO_WAVE[8]);
       p.health=Math.min(100,p.health+25);
       gren.frag=Math.min(GMAX.frag,gren.frag+1); gren.plasma=Math.min(GMAX.plasma,gren.plasma+1);
-      showBanner('WAVE CLEARED'); showToast('+'+(200*wave.n)+'  AMMO, GRENADES AND HEALTH RESTOCKED');
+      campWaveCleared(); showBanner('WAVE CLEARED'); showToast('+'+(200*wave.n)+'  AMMO, GRENADES AND HEALTH RESTOCKED');
     }
   }else{
     wave.delay-=dt;
@@ -8470,7 +8495,7 @@ function trTick(dt){
   if(TRN.hudT>0&&TRN.hud){ TRN.hudT-=dt; if(TRN.hudT<0.6) TRN.hud.style.opacity=String(Math.max(0,TRN.hudT/0.6)); }
 }
 function startTraining(){
-  if(mp.on) return;
+  if(mp.on) return; CAMP.on=false; campClear();
   initAudio(); tmExit(); trExit(); resetGame(); $('oTitle').textContent='ELIMINATED';
   state='play';
   $('menu').hidden=true; $('over').hidden=true; $('pause').hidden=true; $('controls').hidden=true; $('ui').hidden=false;
@@ -8487,6 +8512,8 @@ function startGame(){
   lockMouse();
   if(mp.on&&TM.on&&!TM.sky) flyStart(); else if(mp.on&&(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm'))) cutStart();
   devApplyNuke();
+  if(mp.on) CAMP.on=false;
+  if(CAMP.on) campSetup(); else campClear();
 }
 /* ---------- death: the player's Spartan model as a ragdoll, seen from a third-person camera ---------- */
 var hitDir={x:0,z:0}, rag=null, deathT=0, deathCamA=0, deathCamD=4.2, chiefTexCache=null, chiefGeoCache={};
@@ -8804,7 +8831,7 @@ document.addEventListener('pointermove',function(ev){
 },true);
 function toMenu(){
   if(mp.on||mp.conn||mp.peer){ mpLeave(); $('oTitle').textContent='ELIMINATED'; }
-  state='menu'; clearWorld(); tmExit(); trExit();
+  state='menu'; CAMP.on=false; campClear(); clearWorld(); tmExit(); trExit();
   mgClear(); if(p.inVeh){ p.inVeh=false; stopEngine(); }
   p.air=false; lockEl.style.display='none'; clearMissiles();
   zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); vm.visible=true; reloading=false; meleeT=0; boltT=0;
@@ -8892,6 +8919,96 @@ $('charBtn').addEventListener('click',function(){
 });
 try{ var savedCh=localStorage.getItem('halo-char'); if(savedCh&&savedCh!=='chief'&&CHAR_FILE[savedCh]) loadChar(savedCh,function(ok){ if(ok){ setChar(savedCh); charLabel(); } }); }catch(e){}
 $('trainBtn').addEventListener('click',startTraining);
+/* ---------- CAMPAIGN: five missions, each a different objective on the same battlefield ---------- */
+var CAMP={on:false,m:0,clears:0,t:0,done:false,beacon:null,bx:0,bz:0,el:null,sel:-1};
+var CAMP_M=[
+  {n:'LANDFALL',sub:'Clear the landing zone',type:'waves',goal:2,startWave:0,story:'Your Pelican is down and Covenant dropships are already circling the ring. Dig in around the crash site and destroy two waves of attackers.'},
+  {n:'HUNTER HUNT',sub:'Break the Hunter escort',type:'waves',goal:2,startWave:2,story:'Recon reports Hunter pairs escorting the next landing. Their armour will shrug off your rounds: hit the orange flesh on their backs. Destroy two waves.'},
+  {n:'WARTHOG RUN',sub:'Reach the extraction beacon',type:'reach',startWave:1,story:'The extraction Pelican cannot land in the crossfire. A Warthog is parked near you. Follow the blue beam to the extraction point and get there alive. The Covenant will chase you the whole way.'},
+  {n:'HOLD THE LINE',sub:'Survive until reinforcements arrive',type:'hold',time:150,startWave:1,story:'Reinforcements are two and a half minutes out. There is no retreat. Stay alive until the timer runs out.'},
+  {n:'FINISH THE FIGHT',sub:'Burn out the Flood',type:'waves',goal:3,startWave:4,story:'The Flood have broken containment and they are everywhere. Destroy three waves of infected. End it here.'}
+];
+function campProg(){ try{ return Math.max(0,Math.min(CAMP_M.length-1,+localStorage.getItem('halo-camp')||0)); }catch(e){ return 0; } }
+function campSave(n){ try{ if(n>campProg()) localStorage.setItem('halo-camp',String(n)); }catch(e){} }
+function campOpen(){
+  $('menu').hidden=true; $('camp').hidden=false; campRender(campProg());
+}
+function campRender(sel){
+  var prog=campProg(), L=$('campList'); L.innerHTML=''; CAMP.sel=sel;
+  CAMP_M.forEach(function(m,i){
+    var b=document.createElement('button'); b.type='button'; b.className='cm'+(i===sel?' sel':''); b.disabled=i>prog;
+    b.innerHTML='<span>'+(i+1)+'  '+m.n+'<br><small>'+m.sub+'</small></span><small>'+(i>prog?'LOCKED':i<prog?'DONE':'READY')+'</small>';
+    b.addEventListener('click',function(){ campRender(i); });
+    L.appendChild(b);
+  });
+  var m=CAMP_M[sel]; $('campBrief').textContent=m?m.story:''; $('campGo').hidden=!m;
+}
+function campStart(i){
+  CAMP.on=true; CAMP.m=i; $('camp').hidden=true; $('campDone').hidden=true;
+  startGame();
+}
+function campClear(){ if(CAMP.beacon){ scene.remove(CAMP.beacon); CAMP.beacon=null; } if(CAMP.el) CAMP.el.style.display='none'; }
+function campSetup(){
+  var m=CAMP_M[CAMP.m]; CAMP.clears=0; CAMP.t=0; CAMP.done=false; campClear();
+  wave.n=m.startWave; wave.active=false; wave.delay=3; wave.toSpawn=0; wave.fl=false;
+  if(!CAMP.el){ CAMP.el=document.createElement('div'); CAMP.el.id='campObj'; $('ui').appendChild(CAMP.el); }
+  CAMP.el.style.display='block';
+  if(m.type==='reach'){
+    var x=60,z=60,k,tries=0;
+    for(tries=0;tries<120;tries++){
+      var a=Math.random()*Math.PI*2, r=90+Math.random()*(ARENA_R-140); x=Math.cos(a)*r; z=Math.sin(a)*r;
+      var ok=slopeAt(x,z,2)<0.3&&groundH(x,z)>WATER_Y+1&&Math.hypot(x-p.x,z-p.z)>90;
+      for(k=0;ok&&k<boxes.length;k++){ var b=boxes[k]; if(Math.hypot(Math.max(b.minx-x,0,x-b.maxx),Math.max(b.minz-z,0,z-b.maxz))<8) ok=false; }
+      if(ok) break;
+    }
+    CAMP.bx=x; CAMP.bz=z;
+    var g=new THREE.Group(), mt=new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.32,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide});
+    var beam=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,160,20,1,true),mt); beam.position.y=80; g.add(beam);
+    var ring=new THREE.Mesh(new THREE.RingGeometry(5,6,40),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.8,side:THREE.DoubleSide,fog:false})); ring.rotation.x=-Math.PI/2; ring.position.y=0.25; g.add(ring);
+    g.position.set(x,groundH(x,z),z); scene.add(g); CAMP.beacon=g;
+  }
+  showToast('MISSION '+(CAMP.m+1)+'  '+m.n);
+}
+function campWaveCleared(){
+  if(!CAMP.on||CAMP.done) return;
+  var m=CAMP_M[CAMP.m]; CAMP.clears++;
+  if(m.type==='waves'&&CAMP.clears>=m.goal) campComplete();
+}
+function campTick(dt){
+  if(!CAMP.on||CAMP.done||state!=='play') return;
+  var m=CAMP_M[CAMP.m], txt='', sub='';
+  CAMP.t+=dt;
+  if(m.type==='waves'){ txt=m.n; sub='WAVES CLEARED  '+CAMP.clears+' / '+m.goal; }
+  else if(m.type==='reach'){
+    var px=p.inVeh?veh.x:p.x, pz=p.inVeh?veh.z:p.z, d=Math.hypot(px-CAMP.bx,pz-CAMP.bz);
+    txt=m.n; sub='EXTRACTION  '+Math.round(d)+' m';
+    if(CAMP.beacon){ CAMP.beacon.children[1].rotation.z+=dt; }
+    if(d<7) campComplete();
+  }else{
+    var left=Math.max(0,m.time-CAMP.t); txt=m.n; sub='REINFORCEMENTS IN  '+Math.floor(left/60)+':'+('0'+Math.floor(left%60)).slice(-2);
+    if(left<=0) campComplete();
+  }
+  if(CAMP.el) CAMP.el.innerHTML=txt+'<span>'+sub+'</span>';
+}
+function campComplete(){
+  if(CAMP.done) return; CAMP.done=true;
+  var last=CAMP.m>=CAMP_M.length-1; campSave(Math.min(CAMP_M.length-1,CAMP.m+1));
+  state='paused'; ctrl.fire=false; ctrl.jump=false; ctrl.mx=0; ctrl.mz=0; keys={};
+  try{ resetStick(); aimEnd(); lookPtrs.clear(); }catch(e){}
+  try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
+  $('cdTitle').textContent=last?'CAMPAIGN COMPLETE':'MISSION COMPLETE';
+  $('cdText').textContent=last?'The Flood are gone and the ring is quiet. You finished the fight.':CAMP_M[CAMP.m].n+' complete. Next: '+CAMP_M[CAMP.m+1].n+'.';
+  $('cdKills').textContent=kills; $('cdHeads').textContent=heads; $('cdScore').textContent=score;
+  var tt=Math.floor(CAMP.t); $('cdTime').textContent=Math.floor(tt/60)+':'+('0'+tt%60).slice(-2);
+  $('cdNext').textContent=last?'PLAY AGAIN':'NEXT MISSION'; $('cdNext').dataset.last=last?'1':'';
+  campClear(); $('campDone').hidden=false;
+}
+$('campBtn').addEventListener('click',campOpen);
+$('campBack').addEventListener('click',function(){ $('camp').hidden=true; $('menu').hidden=false; });
+$('campGo').addEventListener('click',function(){ if(CAMP.sel>=0) campStart(CAMP.sel); });
+$('cdNext').addEventListener('click',function(){ campStart($('cdNext').dataset.last?0:Math.min(CAMP_M.length-1,CAMP.m+1)); });
+$('cdMenu').addEventListener('click',function(){ $('campDone').hidden=true; toMenu(); });
+
 $('redeploy').addEventListener('click',startGame);
 $('restart').addEventListener('click',startGame);
 $('resume').addEventListener('click',resumeGame);
@@ -9142,7 +9259,7 @@ function frame(now){
   if(state==='play'){
     aimFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
     updateWeapon(dt); updateThrow(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
-    if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ updateShips(dt); updateWaves(dt); } for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
+    if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ updateShips(dt); updateWaves(dt); if(CAMP.on) campTick(dt); } for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on&&!TRN.on) updateAllies(dt);
     updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
   }else if(state==='menu'){
