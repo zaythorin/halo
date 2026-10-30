@@ -712,8 +712,27 @@ scene.add(sun.target);
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.06;
 var ATMO={el:null,k:0,f:0,v:new V3(),sd:new V3(-0.419,0.745,0.519),a:new V3(),b:new V3()};
+/* bloom: each frame the picture is copied small into a second canvas, darkened and contrast-boosted so only the bright parts survive, blurred, and laid back over the game with a screen blend, so suns, plasma, muzzle flashes and explosions bleed light */
+var BLM={c:null,x:null,n:0,on:false,w:0,h:0};
+function bloomInit(){
+  var gl=document.getElementById('gl'); if(!gl||BLM.c) return;
+  var c=document.createElement('canvas'); c.style.cssText='position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:1;pointer-events:none;display:none;mix-blend-mode:screen;opacity:.62;filter:brightness(.5) contrast(4) blur(9px) saturate(1.25)';
+  document.body.appendChild(c); BLM.c=c; BLM.x=c.getContext('2d');
+  var orig=renderer.render.bind(renderer);
+  renderer.render=function(sc,cam){
+    orig(sc,cam);
+    if(BLM.on&&sc===scene&&((++BLM.n)&1)){
+      try{
+        var w=Math.max(16,Math.round(gl.width/5)), h=Math.max(16,Math.round(gl.height/5));
+        if(w!==BLM.w||h!==BLM.h){ BLM.w=c.width=w; BLM.h=c.height=h; }
+        BLM.x.drawImage(gl,0,0,w,h);
+      }catch(e){ BLM.on=false; }
+    }
+  };
+}
 function atmoTick(dt){
   if(!skyDome) return;
+  bloomInit(); var bon=state==='play'&&GFX.lvl>=2; if(bon!==BLM.on){ BLM.on=bon; BLM.c.style.display=bon?'block':'none'; }
   var u=skyDome.material.uniforms; u.t.value+=dt*0.004; if(scene.fog) u.fogc.value.copy(scene.fog.color);
   if(!ATMO.el){ var e=document.createElement('div'); e.style.cssText='position:fixed;left:0;top:0;width:90vmin;height:90vmin;margin:-45vmin 0 0 -45vmin;z-index:1;pointer-events:none;display:none;mix-blend-mode:screen;background:radial-gradient(circle,rgba(255,244,214,.9) 0,rgba(255,226,160,.42) 9%,rgba(255,200,120,.14) 28%,rgba(255,190,110,0) 62%)'; document.body.appendChild(e); ATMO.el=e; }
   var on=state==='play'&&skyDome.visible&&GFX.lvl>=1&&!FLY.on&&!CUT.on, g=0;
