@@ -668,6 +668,14 @@ catch(err){ $('fatal').hidden=false; return; }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
 
 var V3=THREE.Vector3, skyDome=null, TM={on:false};
+/* atmosphere: every fogged surface scatters light. Looking toward the sun the haze turns warm and bright (Mie forward scattering); everything else keeps the fog colour of its map */
+(function(){
+  var C=THREE.ShaderChunk;
+  C.fog_pars_vertex='#ifdef USE_FOG\n varying float vFogDepth;\n varying vec3 vFogDirW;\n#endif';
+  C.fog_vertex='#ifdef USE_FOG\n vFogDepth = - mvPosition.z;\n vFogDirW = (vec4(mvPosition.xyz,0.0)*viewMatrix).xyz;\n#endif';
+  C.fog_pars_fragment='#ifdef USE_FOG\n uniform vec3 fogColor;\n varying float vFogDepth;\n varying vec3 vFogDirW;\n #ifdef FOG_EXP2\n  uniform float fogDensity;\n #else\n  uniform float fogNear;\n  uniform float fogFar;\n #endif\n#endif';
+  C.fog_fragment='#ifdef USE_FOG\n #ifdef FOG_EXP2\n  float fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth );\n #else\n  float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );\n #endif\n float sunD = max(dot(normalize(vFogDirW), vec3(-0.419,0.745,0.519)), 0.0);\n float mie = pow(sunD,5.0)*0.5 + pow(sunD,36.0)*0.7;\n vec3 fogC = fogColor + fogColor*vec3(0.55,0.26,-0.1)*mie;\n gl_FragColor.rgb = mix( gl_FragColor.rgb, fogC, fogFactor );\n#endif';
+})();
 var ARENA_R=250, EYE=2.0, GRAV=12, JUMP_V=7.4, PSPEED=6.4, SENS=0.0042;
 var TRN={on:false,hid:[],objs:[],dum:[],hit:[],arcs:[],lights:[],last:null,tot:0,t:0,hx:34,hz:46,wx:null,hud:null,hudT:0,sv:null,lt:0};
 
@@ -703,6 +711,25 @@ GFX.rt.crossVectors(new V3(0,1,0),GFX.dir).normalize(); GFX.up.crossVectors(GFX.
 scene.add(sun.target);
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.06;
+var ATMO={el:null,k:0,f:0,v:new V3(),sd:new V3(-0.419,0.745,0.519),a:new V3(),b:new V3()};
+function atmoTick(dt){
+  if(!skyDome) return;
+  var u=skyDome.material.uniforms; u.t.value+=dt*0.004; if(scene.fog) u.fogc.value.copy(scene.fog.color);
+  if(!ATMO.el){ var e=document.createElement('div'); e.style.cssText='position:fixed;left:0;top:0;width:90vmin;height:90vmin;margin:-45vmin 0 0 -45vmin;z-index:1;pointer-events:none;display:none;mix-blend-mode:screen;background:radial-gradient(circle,rgba(255,244,214,.9) 0,rgba(255,226,160,.42) 9%,rgba(255,200,120,.14) 28%,rgba(255,190,110,0) 62%)'; document.body.appendChild(e); ATMO.el=e; }
+  var on=state==='play'&&skyDome.visible&&GFX.lvl>=1&&!FLY.on&&!CUT.on, g=0;
+  if(on){
+    camera.getWorldDirection(ATMO.v); var dp=ATMO.v.dot(ATMO.sd);
+    if(dp>0.25){
+      ATMO.f++; if(ATMO.f%6===0){ ATMO.a.copy(camera.position); ATMO.b.copy(camera.position).addScaledVector(ATMO.sd,160); try{ ATMO.clear=hasLOS(ATMO.a,ATMO.b); }catch(e){ ATMO.clear=true; } }
+      if(ATMO.clear!==false){ g=Math.min(1,(dp-0.25)/0.7)*Math.min(1,skyDome.material.color.r*1.2); }
+      ATMO.v.copy(camera.position).addScaledVector(ATMO.sd,1000).project(camera);
+      if(ATMO.v.z<1){ ATMO.el.style.left=((ATMO.v.x*0.5+0.5)*100).toFixed(1)+'%'; ATMO.el.style.top=((-ATMO.v.y*0.5+0.5)*100).toFixed(1)+'%'; } else g=0;
+    }
+  }
+  ATMO.k+=(g-ATMO.k)*Math.min(1,dt*5);
+  ATMO.el.style.display=ATMO.k>0.01?'block':'none'; ATMO.el.style.opacity=(ATMO.k*0.85).toFixed(3);
+  if(GFX.tmOn){ var ex=1.18*(1-0.13*ATMO.k); renderer.toneMappingExposure+=(ex-renderer.toneMappingExposure)*Math.min(1,dt*3); }   /* the eye adjusts when you look at the sun */
+}
 function gfxApply(){
   var L=GFX.lvl, dpr=window.devicePixelRatio||1;
   renderer.setPixelRatio(L>=2?Math.min(dpr,2):L===1?Math.min(dpr,1.25):Math.min(dpr,1));
@@ -741,7 +768,7 @@ function gfxPre(){
   if(GFX.visor){ var vd=(state==='play'&&!(typeof CUT!=='undefined'&&CUT.on)&&GFX.lvl>=1)?'block':'none'; if(GFX.visor.style.display!==vd) GFX.visor.style.display=vd; }
   if(typeof fistG!=='undefined'&&fistG&&typeof state!=='undefined'&&state!=='play') fistG.visible=false;
   if(ISLCHK.n>0&&TM.isl){ ISLCHK.n--; if(ISLCHK.n===0){ ISLCHK.list.forEach(function(m){ try{ var pr=renderer.properties.get(m).currentProgram; if(pr&&pr.diagnostics&&pr.diagnostics.runnable===false){ console.error('island shader failed, using plain material',m); m.onBeforeCompile=function(){}; m.customProgramCacheKey=function(){ return 'islplain'; }; m.needsUpdate=true; } }catch(e){} }); } }
-  if(GFX.fill&&GFX.fill.visible) GFX.fill.intensity=0.3*Math.min(1,sun.intensity/0.95);
+  if(GFX.fill&&GFX.fill.visible) GFX.fill.intensity=0.36*Math.min(1,sun.intensity/0.95);
   if(GFX.lvl<1) return;
   if(GFX.lvl>=2&&GFX.aq.length){ var tq=GFX.aq.pop(); if(tq.anisotropy<GFX.aniso){ tq.anisotropy=GFX.aniso; tq.needsUpdate=true; } }
   GFX.sweepT-=dtm; if(GFX.sweepT<=0){ GFX.sweepT=700; gfxMark(scene); }
@@ -1500,15 +1527,42 @@ safe(function(){
 var bgScenery=[]; /* distant ranges and the rim plain, hidden on the island so the sea runs to the horizon */
 /* sky: sun, clouds, the ring overhead and distant peaks */
 safe(function(){
-  var dg=new THREE.SphereGeometry(1500,32,20), dp=dg.attributes.position, dc=new Float32Array(dp.count*3);
-  var top=[0.22,0.34,0.62], mid=[0.44,0.58,0.78], hor=[0.72,0.77,0.83];
-  for(var di=0;di<dp.count;di++){
-    var t=Math.max(0,dp.getY(di)/1500), a1=Math.pow(t,0.55), a2=Math.min(1,t*2.2);
-    var c0=hor.map(function(v,j){ return v+(mid[j]-v)*Math.min(1,a2); }), c1=c0.map(function(v,j){ return v+(top[j]-v)*Math.max(0,(a1-0.45)/0.55); });
-    dc[di*3]=c1[0]; dc[di*3+1]=c1[1]; dc[di*3+2]=c1[2];
-  }
-  dg.setAttribute('color',new THREE.BufferAttribute(dc,3));
-  var dome=new THREE.Mesh(dg,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false,depthWrite:false}));
+  var dg=new THREE.SphereGeometry(1500,48,32);
+  /* the sky is painted per pixel: a Rayleigh gradient that melts into each map's fog at the horizon, a warm Mie glow and bright disc round the sun, and soft lit clouds that drift */
+  var tint=new THREE.Color(1,1,1);
+  var dm=new THREE.ShaderMaterial({
+    uniforms:{tint:{value:tint},fogc:{value:new THREE.Color(SKY)},t:{value:0}},
+    side:THREE.BackSide, depthWrite:false, fog:false,
+    vertexShader:'varying vec3 vD; void main(){ vD=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:[
+      'uniform vec3 tint; uniform vec3 fogc; uniform float t; varying vec3 vD;',
+      'float hh(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }',
+      'float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y); }',
+      'float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<4;i++){ s+=a*vn(p); p=p*2.03+vec2(1.7,9.2); a*=0.5; } return s; }',
+      'void main(){',
+      ' vec3 d=normalize(vD); float h=max(d.y,0.0);',
+      ' vec3 SUN=vec3(-0.419,0.745,0.519);',
+      ' vec3 hor=vec3(0.72,0.77,0.83), mid=vec3(0.44,0.58,0.78), top=vec3(0.20,0.33,0.62);',
+      ' float a1=pow(h,0.55), a2=min(1.0,h*2.2);',
+      ' vec3 c=mix(hor,mid,a2); c=mix(c,top,max(0.0,(a1-0.45)/0.55));',
+      ' float sd=max(dot(d,SUN),0.0);',
+      ' c+=vec3(1.0,0.78,0.5)*(pow(sd,5.0)*0.16+pow(sd,48.0)*0.4);',
+      ' float lum=dot(tint,vec3(0.34,0.5,0.16));',
+      ' vec2 uv=d.xz/(h+0.16)*1.15+vec2(t,t*0.4);',
+      ' float cf=fbm(uv*1.4), cs=fbm(uv*1.4+SUN.xz*0.35);',
+      ' float dens=smoothstep(0.5,0.78,cf)*smoothstep(0.02,0.22,h);',
+      ' float lit=clamp(0.62+(cf-cs)*3.2,0.0,1.0);',
+      ' vec3 cc=mix(vec3(0.58,0.63,0.73),vec3(1.0,0.96,0.88),lit);',
+      ' c=mix(c,cc,dens*0.82);',
+      ' c*=tint;',
+      ' c+=vec3(1.0,0.93,0.78)*smoothstep(0.9992,0.9998,sd)*2.2*lum;',
+      ' float hz=1.0-smoothstep(0.0,0.3,h); if(d.y<0.0) hz=1.0;',
+      ' c=mix(c,fogc,hz*0.88);',
+      ' gl_FragColor=vec4(c,1.0);',
+      '}'].join('\n')
+  });
+  dm.color=tint;   /* the rest of the game tints the sky with skyDome.material.color */
+  var dome=new THREE.Mesh(dg,dm);
   dome.renderOrder=-10; dome.frustumCulled=false; scene.add(dome);
   skyDome=dome;
 });
@@ -9065,7 +9119,7 @@ function frame(now){
   updateFx(dt); if(TM.on){ tmSnow(dt); tmDoors(dt); }
   if(lzLoop&&(state!=='play'||!LZ.on)){ laserLoopStop(); LZ.on=false; }
   laserBeamStep(dt); nukeStep(dt);
-  tpUpdate(dt);
+  tpUpdate(dt); try{ atmoTick(dt); }catch(e){}
   renderer.render(scene,camera);
 }
 /* ================= TEAM BATTLE: a purpose-built two-base map, red against blue, with a Warthog and a Hornet on each side ================= */
