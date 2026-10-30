@@ -7378,7 +7378,7 @@ function updateWeapon(dt){
   laserTick(w,dt);
   if(dwOn(w)){ dwTick(w,dt); }
   else if(!reloading && swapT<=0 && meleeT<=0 && throwT<=0 && fireCool<=0){
-    var want=(w.burst&&burstLeft>0)?true:(w.auto?ctrl.fire:(fireEdgeT>0));
+    var want=(w.burst&&burstLeft>0)?true:((w.auto||(coarsePtr&&ctrl.fire&&!w.sword&&!w.laser&&!w.rocket&&!w.cov))?ctrl.fire:(fireEdgeT>0));   /* on a touchscreen, holding the fire button keeps a semi-auto gun firing at its own pace instead of needing a tap per shot */
     if(want){
       if(w.sword){ startMelee(); fireEdgeT=0; }
       else if(w.laser){ /* charge handled in laserTick */ }
@@ -7388,6 +7388,7 @@ function updateWeapon(dt){
         burstSnd=!(w.burst&&burstLeft>0); fireWeapon(w,w.group.userData.muzzle,false); fireEdgeT=0;
         if(w.burst){ if(burstLeft>0) burstLeft--; else burstLeft=w.burst-1; fireCool=burstLeft>0?0.07:w.rate; if(w.mag<=0) burstLeft=0; }
         burstSnd=true;
+        if(coarsePtr&&w.mag<=0&&w.reserve>0&&!w.laser&&!w.cov&&!w.sword) startReload();   /* touch: reload by itself when the magazine runs dry */
       }
       else if(w.reserve>0){ startReload(); }
       else{ sfx.click(); fireCool=0.35; fireEdgeT=0; showToast('NO AMMO'); }
@@ -11944,7 +11945,9 @@ function gpPad(){
 }
 var rumbleT=0;
 function rumble(ms,strong,weak){
-  var g=gpPad(); if(!g||tAcc<rumbleT) return;
+  var g=gpPad();
+  if(!g&&coarsePtr){ try{ if(navigator.vibrate&&tAcc>=rumbleT){ rumbleT=tAcc+ms/1000*0.7; navigator.vibrate(Math.min(60,Math.round(ms*0.35))); } }catch(e){} return; }   /* phones: a short buzz */
+  if(!g||tAcc<rumbleT) return;
   var a=g.vibrationActuator; if(!a||!a.playEffect) return;
   rumbleT=tAcc+ms/1000*0.7;
   try{ a.playEffect('dual-rumble',{startDelay:0,duration:ms,strongMagnitude:Math.min(1,strong),weakMagnitude:Math.min(1,weak)}); }catch(e){}
