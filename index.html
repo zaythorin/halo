@@ -8929,9 +8929,9 @@ $('charBtn').addEventListener('click',function(){
 try{ var savedCh=localStorage.getItem('halo-char'); if(savedCh&&savedCh!=='chief'&&CHAR_FILE[savedCh]) loadChar(savedCh,function(ok){ if(ok){ setChar(savedCh); charLabel(); } }); }catch(e){}
 $('trainBtn').addEventListener('click',startTraining);
 /* ---------- CAMPAIGN: a story told in scripted missions (no waves). Mission 1: CRASH SITE ---------- */
-var CAMP={on:false,m:0,t:0,done:false,step:-1,cp:0,beacon:null,tower:null,A:null,B:null,C:null,foes:[],hold:0,ev:0,subs:[],sub:null,subT:0,el:null,subEl:null,sel:-1};
+var CAMP={on:false,isl:false,m:0,t:0,done:false,step:-1,cp:0,beacon:null,tower:null,A:null,B:null,C:null,foes:[],hold:0,ev:0,subs:[],sub:null,subT:0,el:null,subEl:null,sel:-1};
 var CAMP_M=[
-  {n:'CRASH SITE',sub:'Find the survivors and get off the ring',intro:'2552. Installation 04. Pelican Echo 4-1-9 was hit by Covenant plasma on approach and came down hard in the ring\'s valleys. You are the only Spartan aboard. Cortana is in your suit. The surviving marines are scattered, a Covenant outpost sits on the only comm tower in range, and extraction will not wait.',story:'Pelican down in hostile territory. Regroup with the marines, take back the comm tower, call for extraction, and reach the pickup point alive.',outro:'Echo 4-2-6 flares in over the ridge and the ramp drops. The marines pile aboard, the valley burns behind you, and Cortana has already picked up the first scrap of a Covenant signal. This was only the beginning.'},
+  {n:'CRASH SITE',sub:'Find the survivors and get off the ring',isl:true,intro:'2552. Installation 04. Pelican Echo 4-1-9 was hit by Covenant plasma on approach and came down hard in the ring\'s valleys. You are the only Spartan aboard. Cortana is in your suit. The surviving marines are scattered, a Covenant outpost sits on the only comm tower in range, and extraction will not wait.',story:'Pelican down in hostile territory. Regroup with the marines, take the comm tower on the hill, call for extraction, and fight through to the pickup point on the east shore.',outro:'Echo 4-2-6 flares in over the ridge and the ramp drops. The marines pile aboard, the valley burns behind you, and Cortana has already picked up the first scrap of a Covenant signal. This was only the beginning.'},
   {n:'COMING SOON',sub:'The story continues',story:'',locked:true}
 ];
 function campProg(){ return 0; }
@@ -8951,11 +8951,11 @@ function campCard(title,text,btn,cb){
 }
 function campStart(i){
   CAMP.m=i; CAMP.cp=0; $('camp').hidden=true; $('campDone').hidden=true;
-  campCard('MISSION 1  -  '+CAMP_M[i].n,CAMP_M[i].intro,'BEGIN',function(){ CAMP.on=true; startGame(); });
+  campCard('MISSION 1  -  '+CAMP_M[i].n,CAMP_M[i].intro,'BEGIN',function(){ CAMP.on=true; CAMP.isl=!!CAMP_M[i].isl; startGame(); });
 }
 function campClear(){
   if(CAMP.beacon){ scene.remove(CAMP.beacon); CAMP.beacon=null; } if(CAMP.tower){ scene.remove(CAMP.tower); CAMP.tower=null; }
-  if(CAMP.el) CAMP.el.style.display='none'; if(CAMP.subEl) CAMP.subEl.style.display='none'; CAMP.subs=[]; CAMP.sub=null;
+  if(CAMP.el) CAMP.el.style.display='none'; if(CAMP.subEl) CAMP.subEl.style.display='none'; CAMP.subs=[]; CAMP.sub=null; if($('match')) $('match').style.display='';
 }
 function campSay(who,txt,dur){ CAMP.subs.push({who:who,txt:txt,d:dur||(3.2+txt.length*0.045)}); }
 function campBeacon(pt,col){
@@ -8965,49 +8965,59 @@ function campBeacon(pt,col){
   var ring=new THREE.Mesh(new THREE.RingGeometry(5,6,40),new THREE.MeshBasicMaterial({color:col||0x6be4ff,transparent:true,opacity:0.8,side:THREE.DoubleSide,fog:false})); ring.rotation.x=-Math.PI/2; ring.position.y=0.25; g.add(ring);
   g.position.set(pt.x,groundH(pt.x,pt.z),pt.z); scene.add(g); CAMP.beacon=g;
 }
-/* a valid spot near a bearing and distance from the landing site: walkable, dry, clear of buildings */
-function campSpot(ang,r){
-  var best=null;
-  for(var t=0;t<200;t++){
-    var a=ang+(Math.random()-0.5)*0.5*(1+t/60), rr=Math.min(ARENA_R-35,r+(Math.random()-0.5)*30), x=Math.cos(a)*rr, z=Math.sin(a)*rr;
-    if(!(slopeAt(x,z,2)<0.3&&groundH(x,z)>WATER_Y+1)) continue;
-    var ok=true; for(var k=0;k<boxes.length;k++){ var b=boxes[k]; if(Math.hypot(Math.max(b.minx-x,0,x-b.maxx),Math.max(b.minz-z,0,z-b.maxz))<9){ ok=false; break; } }
-    if(ok) return {x:x,z:z};
-    best=best||{x:x,z:z};
-  }
-  return best||{x:30,z:30};
+/* the Silent Cartographer island is the battlefield: the model's own floors give the ground height, so every spot is snapped onto them */
+function campFloor(x,z){ var f=structFloor(x,z,90); return f>-1e8?f:null; }
+function campSnap(x,z){   /* nearest point with real floor under it */
+  if(campFloor(x,z)!==null) return {x:x,z:z,y:campFloor(x,z)};
+  for(var r=2;r<40;r+=2) for(var a=0;a<6.28;a+=0.7){ var xx=x+Math.cos(a)*r, zz=z+Math.sin(a)*r, f=campFloor(xx,zz); if(f!==null&&f>TM.gy+0.5) return {x:xx,z:zz,y:f}; }
+  return {x:x,z:z,y:TM.gy+1};
 }
 function campSetup(){
-  var m=CAMP_M[CAMP.m]; CAMP.t=0; CAMP.done=false; CAMP.hold=0; CAMP.ev=0; campClear(); clearGarrison();
+  var m=CAMP_M[CAMP.m]; CAMP.t=0; CAMP.done=false; CAMP.hold=0; CAMP.ev=0; campClear();
+  clearGarrison(); while(allies.length) removeAlly(allies[0]);
   wave.n=0; wave.active=false; wave.toSpawn=0; wave.delay=1e9; wave.fl=false;
+  tmEnter(0); teamPaint(fpMaterials(),-1); TP.rigId=null;   /* the island, with the Chief back in green */
+  veh.alive=false; veh.respawnT=1e9; rover.group.visible=false; beacon.visible=false; jet.alive=false; jet.respawnT=1e9; jetObj.group.visible=false; jbeacon.visible=false;
+  if(TM.ev){ ['r','j'].forEach(function(k){ var q=TM.ev[k]; if(q){ q.alive=false; q.rt=1e9; q.g.visible=false; if(q.mk) q.mk.visible=false; } }); }
+  if($('match')) $('match').style.display='none';
   if(!CAMP.el){ CAMP.el=document.createElement('div'); CAMP.el.id='campObj'; $('ui').appendChild(CAMP.el); }
   if(!CAMP.subEl){ CAMP.subEl=document.createElement('div'); CAMP.subEl.id='campSub'; $('ui').appendChild(CAMP.subEl); }
   CAMP.el.style.display='block';
-  if(!CAMP.A){ CAMP.A=campSpot(0.9,55); CAMP.B=campSpot(2.0,125); CAMP.C=campSpot(-2.3,150); }   /* the same places every attempt */
-  CAMP.foes=[]; var s0=CAMP.cp;
-  if(s0>=1){ p.x=CAMP.A.x-5; p.z=CAMP.A.z; p.y=groundH(p.x,p.z); }
-  if(s0>=2){ p.x=CAMP.B.x-8; p.z=CAMP.B.z; p.y=groundH(p.x,p.z); }
+  CAMP.S=campSnap(ISLP.spawns[0][0][0],ISLP.spawns[0][0][2]);   /* the crash site: the west beach */
+  CAMP.A=campSnap(ISLP.packs[2][0],ISLP.packs[2][2]);            /* the marines, along the shore */
+  CAMP.B=campSnap(ISLP.hill[0],ISLP.hill[2]);                    /* the comm tower, on top of the hill */
+  CAMP.C=campSnap(ISLP.flag[1][0],ISLP.flag[1][2]);              /* the extraction point, on the east shore */
+  CAMP.foes=[];
+  var s0=CAMP.cp, at=s0>=2?{x:CAMP.B.x-10,z:CAMP.B.z}:s0>=1?{x:CAMP.A.x-4,z:CAMP.A.z}:CAMP.S, ps=campSnap(at.x,at.z);
+  var face=s0>=2?CAMP.B:(s0>=1?CAMP.B:CAMP.A);
+  p.x=ps.x; p.z=ps.z; p.y=ps.y+0.1; p.vx=p.vz=p.vy=0; p.onGround=true; p.yaw=Math.atan2(-(face.x-p.x),-(face.z-p.z)); p.pitch=0;
   campStep(s0);
 }
-function campFoe(kind,x,z,site){
-  var e=makeEnemy(kind,x,z), wps=[], i;
-  for(i=0;i<4;i++){ var a=i*1.5708+Math.random()*0.6, r=6+Math.random()*9, wx=site.x+Math.cos(a)*r, wz=site.z+Math.sin(a)*r; if(groundH(wx,wz)<WATER_Y+0.8||slopeAt(wx,wz,2)>0.8){ wx=site.x; wz=site.z; } wps.push([wx,wz]); }
+function campPlace(e,x,z){ var q=campSnap(x,z); e.x=q.x; e.z=q.z; e.fy=q.y; e.dy=q.y; e.group.position.set(q.x,q.y,q.z); }
+function campFoe(kind,x,z,site,hunt){
+  var e=makeEnemy(kind,x,z), wps=[], i; campPlace(e,x,z);
+  for(i=0;i<4;i++){ var a=i*1.5708+Math.random()*0.6, r=5+Math.random()*7, q=campSnap(site.x+Math.cos(a)*r,site.z+Math.sin(a)*r); wps.push([q.x,q.z]); }
   e.state='patrol'; e.pat={wps:wps,i:Math.floor(Math.random()*4)}; e.pwait=Math.random()*2.5; e.pmx=0; e.pmz=0; e.fireT=1; e.camp=true;
+  if(hunt){ try{ alertEnemy(e); }catch(err){} }
   CAMP.foes.push(e); return e;
 }
-function campAlive(){ var n=0; for(var i=0;i<enemies.length;i++){ var e=enemies[i]; if(!e.dead&&!e.air&&!e.refugee) n++; } return n+pendingDrop+ships.length; }
+function campAmbush(kinds,bearing){
+  for(var i=0;i<kinds.length;i++){ var a=bearing+(i-kinds.length/2)*0.35, r=34+Math.random()*6; campFoe(kinds[i],CAMP.B.x+Math.cos(a)*r,CAMP.B.z+Math.sin(a)*r,CAMP.B,true); }
+}
+function campAlive(){ var n=0; for(var i=0;i<enemies.length;i++){ var e=enemies[i]; if(!e.dead&&!e.air&&!e.refugee) n++; } return n; }
+function campMarine(x,z){ var a=makeAlly(x,z), q=campSnap(x,z); a.x=q.x; a.z=q.z; a.fy=q.y; a.dy=q.y; a.group.position.set(q.x,q.y,q.z); return a; }
 function campStep(n){
   CAMP.step=n;
   if(n===0){
-    campSay('CORTANA','Chief, wake up. Echo 4-1-9 took a plasma hit and we are down. Your shields held.');
-    campSay('CORTANA','I am picking up marine beacons nearby. Find the survivors. Follow the blue light.');
+    campSay('CORTANA','Chief, wake up. Echo 4-1-9 took a plasma hit and we are down on the island. Your shields held.');
+    campSay('CORTANA','I am picking up marine beacons along the shore to the south-west. Find the survivors. Follow the blue light.');
     campBeacon(CAMP.A);
   }else if(n===1){
     CAMP.cp=1; var i;
-    for(i=0;i<3;i++) makeAlly(CAMP.A.x+(i-1)*2,CAMP.A.z+2);
+    for(i=0;i<3;i++) campMarine(CAMP.A.x+(i-1)*2,CAMP.A.z+2);
     campSay('SERGEANT','Spartan! Good to see you in one piece. We are all that is left of the squad.');
-    campSay('SERGEANT','Covenant outpost to the north-west. They are sitting on our only comm tower. Clear them out and we can call for a ride.');
-    campSay('CORTANA','Marked. I count one Elite and a handful of Grunts. Take the high ground if you can.');
+    campSay('SERGEANT','The Covenant are holding the comm tower on top of that hill. Take it back and we can call for a ride.');
+    campSay('CORTANA','Marked. I count one Elite and a handful of Grunts up there. Use the slope for cover.');
     campBeacon(CAMP.B,0xff9a3a);
     campFoe('elite',CAMP.B.x,CAMP.B.z,CAMP.B);
     for(i=0;i<4;i++) campFoe('grunt',CAMP.B.x+(i-1.5)*2.2,CAMP.B.z+((i%2)?2.4:-2.4),CAMP.B);
@@ -9017,36 +9027,35 @@ function campStep(n){
     campBeacon(CAMP.B,0x6be4ff);
     var tw=new THREE.Group(), pole=new THREE.Mesh(new THREE.BoxGeometry(0.7,14,0.7),new THREE.MeshLambertMaterial({color:0x3a4248})); pole.position.y=7; tw.add(pole);
     var lamp=new THREE.Mesh(new THREE.SphereGeometry(0.7,12,8),new THREE.MeshBasicMaterial({color:0x6be4ff,fog:false})); lamp.position.y=14.3; tw.add(lamp);
-    tw.position.set(CAMP.B.x,groundH(CAMP.B.x,CAMP.B.z),CAMP.B.z); scene.add(tw); CAMP.tower=tw;
+    tw.position.set(CAMP.B.x,CAMP.B.y,CAMP.B.z); scene.add(tw); CAMP.tower=tw;
   }else if(n===3){
-    campSay('CORTANA','Signal is out. Echo 4-2-6 is on its way. But we are not alone down here.');
+    campSay('CORTANA','Signal is out. Echo 4-2-6 is on its way. But we are not alone up here.');
   }else if(n===4){
     CAMP.cp=3;
-    campSay('SERGEANT','Ninety seconds to pickup, past the ridge. Take the Warthog, Chief. We will cover you.');
-    campSay('CORTANA','Banshees inbound. Do not stop for them.');
-    var vx=CAMP.B.x+9, vz=CAMP.B.z; veh.x=vx; veh.z=vz; veh.y=groundH(vx,vz); veh.h=Math.atan2(CAMP.C.x-vx,CAMP.C.z-vz)+Math.PI; veh.v=0; veh.wx=veh.wz=0; veh.alive=true; rover.group.visible=true; syncRoverPose(); beacon.position.set(vx,veh.y+3.6,vz);
+    campSay('SERGEANT','Pickup is on the east shore. Move, Chief. We will cover you from behind.');
+    campSay('CORTANA','The Covenant have already claimed the landing zone. Expect a fight at the beach.');
     campBeacon(CAMP.C);
-    setTimeout(function(){ if(state==='play'&&CAMP.on&&CAMP.step===4) spawnBansheePair(); },4000);
+    campFoe('elite',CAMP.C.x,CAMP.C.z,CAMP.C); campFoe('elite',CAMP.C.x+3,CAMP.C.z-2,CAMP.C);
+    for(var j=0;j<3;j++) campFoe('grunt',CAMP.C.x+(j-1)*3,CAMP.C.z+4,CAMP.C);
   }
 }
 function campWaveCleared(){}
 function campTick(dt){
   if(!CAMP.on||CAMP.done||state!=='play') return;
   CAMP.t+=dt;
-  /* subtitles */
   if(CAMP.sub){ CAMP.subT-=dt; if(CAMP.subT<=0){ CAMP.sub=null; CAMP.subEl.style.display='none'; } }
   if(!CAMP.sub&&CAMP.subs.length){ CAMP.sub=CAMP.subs.shift(); CAMP.subT=CAMP.sub.d; CAMP.subEl.innerHTML='<b>'+CAMP.sub.who+'</b> '+CAMP.sub.txt; CAMP.subEl.style.display='block'; }
-  var px=p.inVeh?veh.x:p.x, pz=p.inVeh?veh.z:p.z, txt='', sub='', st=CAMP.step, i;
+  var px=p.x, pz=p.z, txt='', sub='', st=CAMP.step, i;
   if(CAMP.beacon) CAMP.beacon.children[1].rotation.z+=dt;
   if(st===0){ txt='FIND THE SURVIVORS'; var d0=Math.hypot(px-CAMP.A.x,pz-CAMP.A.z); sub='MARINE BEACON  '+Math.round(d0)+' m'; if(d0<8) campStep(1); }
   else if(st===1){
     var n1=0; for(i=0;i<CAMP.foes.length;i++) if(!CAMP.foes[i].dead) n1++;
-    txt='CLEAR THE OUTPOST'; sub='HOSTILES  '+n1; if(n1===0) campStep(2);
+    txt='TAKE THE HILL'; sub='HOSTILES  '+n1; if(n1===0) campStep(2);
   }else if(st===2){
-    var near=Math.hypot(px-CAMP.B.x,pz-CAMP.B.z)<14; if(near) CAMP.hold+=dt;
+    var near=Math.hypot(px-CAMP.B.x,pz-CAMP.B.z)<14&&Math.abs(p.y-CAMP.B.y)<8; if(near) CAMP.hold+=dt;
     txt='DEFEND THE COMM TOWER'; sub=near?'UPLINK  '+Math.min(100,Math.round(CAMP.hold/20*100))+'%':'RETURN TO THE TOWER';
-    if(CAMP.ev===0&&CAMP.hold>4){ CAMP.ev=1; launchDropship(['elite','grunt','grunt']); campSay('CORTANA','Covenant dropship, coming in fast!'); }
-    if(CAMP.ev===1&&CAMP.hold>12){ CAMP.ev=2; launchDropship(['elite','elite','grunt']); }
+    if(CAMP.ev===0&&CAMP.hold>4){ CAMP.ev=1; campAmbush(['elite','grunt','grunt'],0.6); campSay('CORTANA','Covenant reinforcements coming up the slope!'); }
+    if(CAMP.ev===1&&CAMP.hold>12){ CAMP.ev=2; campAmbush(['elite','elite','grunt'],3.6); }
     if(CAMP.hold>=20) campStep(3);
   }else if(st===3){
     var n3=campAlive(); txt='ELIMINATE REMAINING HOSTILES'; sub='HOSTILES  '+n3; if(n3===0) campStep(4);
@@ -10940,7 +10949,7 @@ function tmSnowLoose(){
 }
 function tmEnter(team){
   if(mp.opt){ mp.opt.vj=0; if(mp.opt.map!==1) mp.opt.vr=0; } /* the Warthog is on Recon only; no vehicles on the island, inside the ship, in the city or on Snowbound */
-  TM.noTr=!!(mp.opt&&mp.opt.tr===0); TM.desert=false; TM.isl=false; TM.rcb=!!(mp.opt&&mp.opt.map===1); /* Recon replaces Silent Cartographer */ TM.ship=!!(mp.opt&&mp.opt.map===2); TM.mom=!!(mp.opt&&mp.opt.map===3); TM.sky=!!(mp.opt&&mp.opt.map===4); if(TM.sky){ mp.ctf=false; mp.koth=false; } TM.snb=!(TM.ship||TM.mom||TM.sky); /* TM.snb = one of the new model maps (Snowbound, or Recon when TM.rcb) */ /* Snowbound replaces the old snow valley */
+  TM.noTr=!!(mp.opt&&mp.opt.tr===0); TM.desert=false; TM.isl=!!(CAMP.on&&CAMP.isl); TM.rcb=!!(mp.opt&&mp.opt.map===1); /* Recon replaces Silent Cartographer */ TM.ship=!!(mp.opt&&mp.opt.map===2); TM.mom=!!(mp.opt&&mp.opt.map===3); TM.sky=!!(mp.opt&&mp.opt.map===4); if(TM.sky){ mp.ctf=false; mp.koth=false; } TM.snb=!(TM.ship||TM.mom||TM.sky||TM.isl); /* TM.snb = one of the new model maps (Snowbound, or Recon when TM.rcb) */ /* Snowbound replaces the old snow valley */
   if(TM.ship){ slots=[11,12]; sel=0; setWeapon(11); }
   teamPaint(fpMaterials(),team); TP.rigId=null;
   var prev=scene.children.length;
