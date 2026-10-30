@@ -345,7 +345,9 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 .cm small{font-weight:400;letter-spacing:.08em;color:var(--dim);font-size:11px}
 .cm.sel{border-color:var(--amber)}.cm[disabled]{opacity:.38;cursor:default}
 #campBrief{font-size:13px;line-height:1.55;letter-spacing:.04em;color:var(--ink);min-height:3.2em}
-#cdText{font-size:13px;line-height:1.55;color:var(--ink)}
+#cdText,#ccText{font-size:14px;line-height:1.6;color:var(--ink)}
+#campSub{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(170px + var(--sb));width:min(680px,88vw);text-align:center;pointer-events:none;font-size:14px;line-height:1.4;color:var(--ink);text-shadow:0 2px 8px #000,0 0 14px #000;display:none}
+#campSub b{color:var(--amber);letter-spacing:.16em;margin-right:6px}
 #campObj{position:absolute;left:0;right:0;top:calc(84px + var(--st));text-align:center;pointer-events:none;font-weight:700;font-size:12px;letter-spacing:.22em;color:var(--amber);text-shadow:0 2px 8px #000}
 #campObj span{display:block;color:var(--ink);font-weight:400;letter-spacing:.1em;font-size:11px;margin-top:3px}
 #over{background:rgba(5,10,14,.5);-webkit-backdrop-filter:none;backdrop-filter:none}
@@ -644,6 +646,13 @@ body{letter-spacing:.02em}
     <div id="campList"></div>
     <div id="campBrief"></div>
     <div class="pbtns"><button type="button" class="go" id="campGo" hidden>START MISSION</button><button type="button" class="go alt" id="campBack">BACK</button></div>
+  </div>
+</div>
+<div class="overlay" id="campCard" hidden>
+  <div class="card">
+    <h2 id="ccTitle"></h2>
+    <div id="ccText"></div>
+    <div class="pbtns"><button type="button" class="go" id="ccBtn">BEGIN</button></div>
   </div>
 </div>
 <div class="overlay" id="campDone" hidden>
@@ -8919,94 +8928,151 @@ $('charBtn').addEventListener('click',function(){
 });
 try{ var savedCh=localStorage.getItem('halo-char'); if(savedCh&&savedCh!=='chief'&&CHAR_FILE[savedCh]) loadChar(savedCh,function(ok){ if(ok){ setChar(savedCh); charLabel(); } }); }catch(e){}
 $('trainBtn').addEventListener('click',startTraining);
-/* ---------- CAMPAIGN: five missions, each a different objective on the same battlefield ---------- */
-var CAMP={on:false,m:0,clears:0,t:0,done:false,beacon:null,bx:0,bz:0,el:null,sel:-1};
+/* ---------- CAMPAIGN: a story told in scripted missions (no waves). Mission 1: CRASH SITE ---------- */
+var CAMP={on:false,m:0,t:0,done:false,step:-1,cp:0,beacon:null,tower:null,A:null,B:null,C:null,foes:[],hold:0,ev:0,subs:[],sub:null,subT:0,el:null,subEl:null,sel:-1};
 var CAMP_M=[
-  {n:'LANDFALL',sub:'Clear the landing zone',type:'waves',goal:2,startWave:0,story:'Your Pelican is down and Covenant dropships are already circling the ring. Dig in around the crash site and destroy two waves of attackers.'},
-  {n:'HUNTER HUNT',sub:'Break the Hunter escort',type:'waves',goal:2,startWave:2,story:'Recon reports Hunter pairs escorting the next landing. Their armour will shrug off your rounds: hit the orange flesh on their backs. Destroy two waves.'},
-  {n:'WARTHOG RUN',sub:'Reach the extraction beacon',type:'reach',startWave:1,story:'The extraction Pelican cannot land in the crossfire. A Warthog is parked near you. Follow the blue beam to the extraction point and get there alive. The Covenant will chase you the whole way.'},
-  {n:'HOLD THE LINE',sub:'Survive until reinforcements arrive',type:'hold',time:150,startWave:1,story:'Reinforcements are two and a half minutes out. There is no retreat. Stay alive until the timer runs out.'},
-  {n:'FINISH THE FIGHT',sub:'Burn out the Flood',type:'waves',goal:3,startWave:4,story:'The Flood have broken containment and they are everywhere. Destroy three waves of infected. End it here.'}
+  {n:'CRASH SITE',sub:'Find the survivors and get off the ring',intro:'2552. Installation 04. Pelican Echo 4-1-9 was hit by Covenant plasma on approach and came down hard in the ring\'s valleys. You are the only Spartan aboard. Cortana is in your suit. The surviving marines are scattered, a Covenant outpost sits on the only comm tower in range, and extraction will not wait.',story:'Pelican down in hostile territory. Regroup with the marines, take back the comm tower, call for extraction, and reach the pickup point alive.',outro:'Echo 4-2-6 flares in over the ridge and the ramp drops. The marines pile aboard, the valley burns behind you, and Cortana has already picked up the first scrap of a Covenant signal. This was only the beginning.'},
+  {n:'COMING SOON',sub:'The story continues',story:'',locked:true}
 ];
-function campProg(){ try{ return Math.max(0,Math.min(CAMP_M.length-1,+localStorage.getItem('halo-camp')||0)); }catch(e){ return 0; } }
-function campSave(n){ try{ if(n>campProg()) localStorage.setItem('halo-camp',String(n)); }catch(e){} }
-function campOpen(){
-  $('menu').hidden=true; $('camp').hidden=false; campRender(campProg());
-}
+function campProg(){ return 0; }
+function campOpen(){ $('menu').hidden=true; $('camp').hidden=false; campRender(0); }
 function campRender(sel){
-  var prog=campProg(), L=$('campList'); L.innerHTML=''; CAMP.sel=sel;
+  var L=$('campList'); L.innerHTML=''; CAMP.sel=sel;
   CAMP_M.forEach(function(m,i){
-    var b=document.createElement('button'); b.type='button'; b.className='cm'+(i===sel?' sel':''); b.disabled=i>prog;
-    b.innerHTML='<span>'+(i+1)+'  '+m.n+'<br><small>'+m.sub+'</small></span><small>'+(i>prog?'LOCKED':i<prog?'DONE':'READY')+'</small>';
+    var b=document.createElement('button'); b.type='button'; b.className='cm'+(i===sel?' sel':''); b.disabled=!!m.locked;
+    b.innerHTML='<span>'+(i+1)+'  '+m.n+'<br><small>'+m.sub+'</small></span><small>'+(m.locked?'LOCKED':'READY')+'</small>';
     b.addEventListener('click',function(){ campRender(i); });
     L.appendChild(b);
   });
-  var m=CAMP_M[sel]; $('campBrief').textContent=m?m.story:''; $('campGo').hidden=!m;
+  var m=CAMP_M[sel]; $('campBrief').textContent=m?m.story:''; $('campGo').hidden=!m||!!m.locked;
+}
+function campCard(title,text,btn,cb){
+  $('ccTitle').textContent=title; $('ccText').textContent=text; $('ccBtn').textContent=btn; CAMP.ccCb=cb; $('campCard').hidden=false;
 }
 function campStart(i){
-  CAMP.on=true; CAMP.m=i; $('camp').hidden=true; $('campDone').hidden=true;
-  startGame();
+  CAMP.m=i; CAMP.cp=0; $('camp').hidden=true; $('campDone').hidden=true;
+  campCard('MISSION 1  -  '+CAMP_M[i].n,CAMP_M[i].intro,'BEGIN',function(){ CAMP.on=true; startGame(); });
 }
-function campClear(){ if(CAMP.beacon){ scene.remove(CAMP.beacon); CAMP.beacon=null; } if(CAMP.el) CAMP.el.style.display='none'; }
-function campSetup(){
-  var m=CAMP_M[CAMP.m]; CAMP.clears=0; CAMP.t=0; CAMP.done=false; campClear();
-  wave.n=m.startWave; wave.active=false; wave.delay=3; wave.toSpawn=0; wave.fl=false;
-  if(!CAMP.el){ CAMP.el=document.createElement('div'); CAMP.el.id='campObj'; $('ui').appendChild(CAMP.el); }
-  CAMP.el.style.display='block';
-  if(m.type==='reach'){
-    var x=60,z=60,k,tries=0;
-    for(tries=0;tries<120;tries++){
-      var a=Math.random()*Math.PI*2, r=90+Math.random()*(ARENA_R-140); x=Math.cos(a)*r; z=Math.sin(a)*r;
-      var ok=slopeAt(x,z,2)<0.3&&groundH(x,z)>WATER_Y+1&&Math.hypot(x-p.x,z-p.z)>90;
-      for(k=0;ok&&k<boxes.length;k++){ var b=boxes[k]; if(Math.hypot(Math.max(b.minx-x,0,x-b.maxx),Math.max(b.minz-z,0,z-b.maxz))<8) ok=false; }
-      if(ok) break;
-    }
-    CAMP.bx=x; CAMP.bz=z;
-    var g=new THREE.Group(), mt=new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.32,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide});
-    var beam=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,160,20,1,true),mt); beam.position.y=80; g.add(beam);
-    var ring=new THREE.Mesh(new THREE.RingGeometry(5,6,40),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.8,side:THREE.DoubleSide,fog:false})); ring.rotation.x=-Math.PI/2; ring.position.y=0.25; g.add(ring);
-    g.position.set(x,groundH(x,z),z); scene.add(g); CAMP.beacon=g;
+function campClear(){
+  if(CAMP.beacon){ scene.remove(CAMP.beacon); CAMP.beacon=null; } if(CAMP.tower){ scene.remove(CAMP.tower); CAMP.tower=null; }
+  if(CAMP.el) CAMP.el.style.display='none'; if(CAMP.subEl) CAMP.subEl.style.display='none'; CAMP.subs=[]; CAMP.sub=null;
+}
+function campSay(who,txt,dur){ CAMP.subs.push({who:who,txt:txt,d:dur||(3.2+txt.length*0.045)}); }
+function campBeacon(pt,col){
+  if(CAMP.beacon){ scene.remove(CAMP.beacon); CAMP.beacon=null; }
+  var g=new THREE.Group(), mt=new THREE.MeshBasicMaterial({color:col||0x6be4ff,transparent:true,opacity:0.32,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide});
+  var beam=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,160,20,1,true),mt); beam.position.y=80; g.add(beam);
+  var ring=new THREE.Mesh(new THREE.RingGeometry(5,6,40),new THREE.MeshBasicMaterial({color:col||0x6be4ff,transparent:true,opacity:0.8,side:THREE.DoubleSide,fog:false})); ring.rotation.x=-Math.PI/2; ring.position.y=0.25; g.add(ring);
+  g.position.set(pt.x,groundH(pt.x,pt.z),pt.z); scene.add(g); CAMP.beacon=g;
+}
+/* a valid spot near a bearing and distance from the landing site: walkable, dry, clear of buildings */
+function campSpot(ang,r){
+  var best=null;
+  for(var t=0;t<200;t++){
+    var a=ang+(Math.random()-0.5)*0.5*(1+t/60), rr=Math.min(ARENA_R-35,r+(Math.random()-0.5)*30), x=Math.cos(a)*rr, z=Math.sin(a)*rr;
+    if(!(slopeAt(x,z,2)<0.3&&groundH(x,z)>WATER_Y+1)) continue;
+    var ok=true; for(var k=0;k<boxes.length;k++){ var b=boxes[k]; if(Math.hypot(Math.max(b.minx-x,0,x-b.maxx),Math.max(b.minz-z,0,z-b.maxz))<9){ ok=false; break; } }
+    if(ok) return {x:x,z:z};
+    best=best||{x:x,z:z};
   }
-  showToast('MISSION '+(CAMP.m+1)+'  '+m.n);
+  return best||{x:30,z:30};
 }
-function campWaveCleared(){
-  if(!CAMP.on||CAMP.done) return;
-  var m=CAMP_M[CAMP.m]; CAMP.clears++;
-  if(m.type==='waves'&&CAMP.clears>=m.goal) campComplete();
+function campSetup(){
+  var m=CAMP_M[CAMP.m]; CAMP.t=0; CAMP.done=false; CAMP.hold=0; CAMP.ev=0; campClear(); clearGarrison();
+  wave.n=0; wave.active=false; wave.toSpawn=0; wave.delay=1e9; wave.fl=false;
+  if(!CAMP.el){ CAMP.el=document.createElement('div'); CAMP.el.id='campObj'; $('ui').appendChild(CAMP.el); }
+  if(!CAMP.subEl){ CAMP.subEl=document.createElement('div'); CAMP.subEl.id='campSub'; $('ui').appendChild(CAMP.subEl); }
+  CAMP.el.style.display='block';
+  if(!CAMP.A){ CAMP.A=campSpot(0.9,55); CAMP.B=campSpot(2.0,125); CAMP.C=campSpot(-2.3,150); }   /* the same places every attempt */
+  CAMP.foes=[]; var s0=CAMP.cp;
+  if(s0>=1){ p.x=CAMP.A.x-5; p.z=CAMP.A.z; p.y=groundH(p.x,p.z); }
+  if(s0>=2){ p.x=CAMP.B.x-8; p.z=CAMP.B.z; p.y=groundH(p.x,p.z); }
+  campStep(s0);
 }
+function campFoe(kind,x,z,site){
+  var e=makeEnemy(kind,x,z), wps=[], i;
+  for(i=0;i<4;i++){ var a=i*1.5708+Math.random()*0.6, r=6+Math.random()*9, wx=site.x+Math.cos(a)*r, wz=site.z+Math.sin(a)*r; if(groundH(wx,wz)<WATER_Y+0.8||slopeAt(wx,wz,2)>0.8){ wx=site.x; wz=site.z; } wps.push([wx,wz]); }
+  e.state='patrol'; e.pat={wps:wps,i:Math.floor(Math.random()*4)}; e.pwait=Math.random()*2.5; e.pmx=0; e.pmz=0; e.fireT=1; e.camp=true;
+  CAMP.foes.push(e); return e;
+}
+function campAlive(){ var n=0; for(var i=0;i<enemies.length;i++){ var e=enemies[i]; if(!e.dead&&!e.air&&!e.refugee) n++; } return n+pendingDrop+ships.length; }
+function campStep(n){
+  CAMP.step=n;
+  if(n===0){
+    campSay('CORTANA','Chief, wake up. Echo 4-1-9 took a plasma hit and we are down. Your shields held.');
+    campSay('CORTANA','I am picking up marine beacons nearby. Find the survivors. Follow the blue light.');
+    campBeacon(CAMP.A);
+  }else if(n===1){
+    CAMP.cp=1; var i;
+    for(i=0;i<3;i++) makeAlly(CAMP.A.x+(i-1)*2,CAMP.A.z+2);
+    campSay('SERGEANT','Spartan! Good to see you in one piece. We are all that is left of the squad.');
+    campSay('SERGEANT','Covenant outpost to the north-west. They are sitting on our only comm tower. Clear them out and we can call for a ride.');
+    campSay('CORTANA','Marked. I count one Elite and a handful of Grunts. Take the high ground if you can.');
+    campBeacon(CAMP.B,0xff9a3a);
+    campFoe('elite',CAMP.B.x,CAMP.B.z,CAMP.B);
+    for(i=0;i<4;i++) campFoe('grunt',CAMP.B.x+(i-1.5)*2.2,CAMP.B.z+((i%2)?2.4:-2.4),CAMP.B);
+  }else if(n===2){
+    CAMP.cp=2; CAMP.hold=0; CAMP.ev=0;
+    campSay('CORTANA','Tower is intact. Stay near it while I push a signal through. Twenty seconds. They will notice.');
+    campBeacon(CAMP.B,0x6be4ff);
+    var tw=new THREE.Group(), pole=new THREE.Mesh(new THREE.BoxGeometry(0.7,14,0.7),new THREE.MeshLambertMaterial({color:0x3a4248})); pole.position.y=7; tw.add(pole);
+    var lamp=new THREE.Mesh(new THREE.SphereGeometry(0.7,12,8),new THREE.MeshBasicMaterial({color:0x6be4ff,fog:false})); lamp.position.y=14.3; tw.add(lamp);
+    tw.position.set(CAMP.B.x,groundH(CAMP.B.x,CAMP.B.z),CAMP.B.z); scene.add(tw); CAMP.tower=tw;
+  }else if(n===3){
+    campSay('CORTANA','Signal is out. Echo 4-2-6 is on its way. But we are not alone down here.');
+  }else if(n===4){
+    CAMP.cp=3;
+    campSay('SERGEANT','Ninety seconds to pickup, past the ridge. Take the Warthog, Chief. We will cover you.');
+    campSay('CORTANA','Banshees inbound. Do not stop for them.');
+    var vx=CAMP.B.x+9, vz=CAMP.B.z; veh.x=vx; veh.z=vz; veh.y=groundH(vx,vz); veh.h=Math.atan2(CAMP.C.x-vx,CAMP.C.z-vz)+Math.PI; veh.v=0; veh.wx=veh.wz=0; veh.alive=true; rover.group.visible=true; syncRoverPose(); beacon.position.set(vx,veh.y+3.6,vz);
+    campBeacon(CAMP.C);
+    setTimeout(function(){ if(state==='play'&&CAMP.on&&CAMP.step===4) spawnBansheePair(); },4000);
+  }
+}
+function campWaveCleared(){}
 function campTick(dt){
   if(!CAMP.on||CAMP.done||state!=='play') return;
-  var m=CAMP_M[CAMP.m], txt='', sub='';
   CAMP.t+=dt;
-  if(m.type==='waves'){ txt=m.n; sub='WAVES CLEARED  '+CAMP.clears+' / '+m.goal; }
-  else if(m.type==='reach'){
-    var px=p.inVeh?veh.x:p.x, pz=p.inVeh?veh.z:p.z, d=Math.hypot(px-CAMP.bx,pz-CAMP.bz);
-    txt=m.n; sub='EXTRACTION  '+Math.round(d)+' m';
-    if(CAMP.beacon){ CAMP.beacon.children[1].rotation.z+=dt; }
-    if(d<7) campComplete();
-  }else{
-    var left=Math.max(0,m.time-CAMP.t); txt=m.n; sub='REINFORCEMENTS IN  '+Math.floor(left/60)+':'+('0'+Math.floor(left%60)).slice(-2);
-    if(left<=0) campComplete();
+  /* subtitles */
+  if(CAMP.sub){ CAMP.subT-=dt; if(CAMP.subT<=0){ CAMP.sub=null; CAMP.subEl.style.display='none'; } }
+  if(!CAMP.sub&&CAMP.subs.length){ CAMP.sub=CAMP.subs.shift(); CAMP.subT=CAMP.sub.d; CAMP.subEl.innerHTML='<b>'+CAMP.sub.who+'</b> '+CAMP.sub.txt; CAMP.subEl.style.display='block'; }
+  var px=p.inVeh?veh.x:p.x, pz=p.inVeh?veh.z:p.z, txt='', sub='', st=CAMP.step, i;
+  if(CAMP.beacon) CAMP.beacon.children[1].rotation.z+=dt;
+  if(st===0){ txt='FIND THE SURVIVORS'; var d0=Math.hypot(px-CAMP.A.x,pz-CAMP.A.z); sub='MARINE BEACON  '+Math.round(d0)+' m'; if(d0<8) campStep(1); }
+  else if(st===1){
+    var n1=0; for(i=0;i<CAMP.foes.length;i++) if(!CAMP.foes[i].dead) n1++;
+    txt='CLEAR THE OUTPOST'; sub='HOSTILES  '+n1; if(n1===0) campStep(2);
+  }else if(st===2){
+    var near=Math.hypot(px-CAMP.B.x,pz-CAMP.B.z)<14; if(near) CAMP.hold+=dt;
+    txt='DEFEND THE COMM TOWER'; sub=near?'UPLINK  '+Math.min(100,Math.round(CAMP.hold/20*100))+'%':'RETURN TO THE TOWER';
+    if(CAMP.ev===0&&CAMP.hold>4){ CAMP.ev=1; launchDropship(['elite','grunt','grunt']); campSay('CORTANA','Covenant dropship, coming in fast!'); }
+    if(CAMP.ev===1&&CAMP.hold>12){ CAMP.ev=2; launchDropship(['elite','elite','grunt']); }
+    if(CAMP.hold>=20) campStep(3);
+  }else if(st===3){
+    var n3=campAlive(); txt='ELIMINATE REMAINING HOSTILES'; sub='HOSTILES  '+n3; if(n3===0) campStep(4);
+  }else if(st===4){
+    var d4=Math.hypot(px-CAMP.C.x,pz-CAMP.C.z); txt='REACH EXTRACTION'; sub='PICKUP  '+Math.round(d4)+' m';
+    if(d4<8) campComplete();
   }
   if(CAMP.el) CAMP.el.innerHTML=txt+'<span>'+sub+'</span>';
 }
 function campComplete(){
   if(CAMP.done) return; CAMP.done=true;
-  var last=CAMP.m>=CAMP_M.length-1; campSave(Math.min(CAMP_M.length-1,CAMP.m+1));
   state='paused'; ctrl.fire=false; ctrl.jump=false; ctrl.mx=0; ctrl.mz=0; keys={};
   try{ resetStick(); aimEnd(); lookPtrs.clear(); }catch(e){}
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
-  $('cdTitle').textContent=last?'CAMPAIGN COMPLETE':'MISSION COMPLETE';
-  $('cdText').textContent=last?'The Flood are gone and the ring is quiet. You finished the fight.':CAMP_M[CAMP.m].n+' complete. Next: '+CAMP_M[CAMP.m+1].n+'.';
+  $('cdTitle').textContent='MISSION COMPLETE';
+  $('cdText').textContent=CAMP_M[CAMP.m].outro;
   $('cdKills').textContent=kills; $('cdHeads').textContent=heads; $('cdScore').textContent=score;
   var tt=Math.floor(CAMP.t); $('cdTime').textContent=Math.floor(tt/60)+':'+('0'+tt%60).slice(-2);
-  $('cdNext').textContent=last?'PLAY AGAIN':'NEXT MISSION'; $('cdNext').dataset.last=last?'1':'';
+  $('cdNext').textContent='REPLAY MISSION'; $('cdNext').dataset.last='1';
   campClear(); $('campDone').hidden=false;
 }
+$('ccBtn').addEventListener('click',function(){ $('campCard').hidden=true; if(CAMP.ccCb) CAMP.ccCb(); });
 $('campBtn').addEventListener('click',campOpen);
 $('campBack').addEventListener('click',function(){ $('camp').hidden=true; $('menu').hidden=false; });
 $('campGo').addEventListener('click',function(){ if(CAMP.sel>=0) campStart(CAMP.sel); });
-$('cdNext').addEventListener('click',function(){ campStart($('cdNext').dataset.last?0:Math.min(CAMP_M.length-1,CAMP.m+1)); });
+$('cdNext').addEventListener('click',function(){ CAMP.cp=0; CAMP.on=false; campStart(CAMP.m); });
 $('cdMenu').addEventListener('click',function(){ $('campDone').hidden=true; toMenu(); });
 
 $('redeploy').addEventListener('click',startGame);
