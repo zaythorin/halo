@@ -5152,7 +5152,11 @@ function updatePlayer(dt){
   if(ctrl.jump){ if(p.onGround){ p.vy=JUMP_V; p.onGround=false; } ctrl.jump=false; }
   var wasAir=!p.onGround, vyBefore=p.vy;
   if(LAD.on) p.vy=LAD.vy; else p.vy-=GRAV*dt; p.y+=p.vy*dt;
-  var gy=floorY(p.x,p.z,p.y);
+  var gy=floorY(p.x,p.z,p.vy<0?p.y-p.vy*dt:p.y);   /* look for the floor from where you were a moment ago, so a fast drop onto a slope cannot pass through it */
+  if(TM.on&&TM.snb&&state==='play'){   /* no floor anywhere under you: go back to the last solid ground */
+    if(gy>TM.gy+0.5){ if(p.onGround){ TM.safeP=TM.safeP||{x:0,y:0,z:0}; TM.safeP.x=p.x; TM.safeP.y=gy; TM.safeP.z=p.z; } }
+    else if(TM.safeP&&p.y<TM.safeP.y-5){ p.x=TM.safeP.x; p.z=TM.safeP.z; p.y=TM.safeP.y+0.05; p.vx=p.vz=p.vy=0; p.kbx=p.kbz=0; gy=p.y; }
+  }
   if(p.y<=gy+0.04){
     if(!p.onGround && vyBefore<-3){ MA.land=Math.min(1,-vyBefore/14); camLag-=Math.min(0.22,-vyBefore*0.014); }
     if(!p.onGround && vyBefore<-13 && !GR.safe){ mp.cause='FALL DAMAGE'; mp.causeT=tAcc; hurt((-vyBefore-13)*5); }
