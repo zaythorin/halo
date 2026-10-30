@@ -5738,7 +5738,7 @@ function updateRover(dt){
       if(d<2.1*RK){
         e.ramT=0.5; var killed=damageEnemy(e,spd*6);
         e.x+=(ex/(d||1))*1.5; e.z+=(ez/(d||1))*1.5; veh.wx*=0.92; veh.wz*=0.92; sfx.hit();
-        if(killed){ onKill(e,false); score+=50; showToast('ROADKILL  +'+((e.elite?250:100)+50)); }
+        if(killed){ onKill(e,false); score+=50; showToast('ROADKILL  +'+((e.elite?250:100)+50)); medalAward('SPLATTER','','#ff6a5a',3); }
       }
     }
   }
@@ -6659,9 +6659,11 @@ function startMelee(){
   if(ONEH[weapons[cur].id]) meleeStyle=(meleeCnt++)%2; MELEE_DUR=ONEH[weapons[cur].id]?0.55:(MELEE_LEN[weapons[cur].id]||0.5); meleeT=MELEE_DUR; meleeHit=false; reloading=false; fireEdgeT=0; boltT=0;
   if(zoomed) zoomOff();
   sfx.swing();
+  /* the lunge: a short burst forward toward whoever is in front of you */
+  var lf=-Math.sin(p.yaw), lz=-Math.cos(p.yaw), lb=weapons[cur].sword?9:6; p.kbx=(p.kbx||0)+lf*lb; p.kbz=(p.kbz||0)+lz*lb;
 }
 function meleeStrike(){
-  var fx=-Math.sin(p.yaw), fz=-Math.cos(p.yaw), any=false, kill=false, sw=!!weapons[cur].sword;
+  var fx=-Math.sin(p.yaw), fz=-Math.cos(p.yaw), any=false, kill=false, sw=!!weapons[cur].sword, ass0=false;
   for(var i=0;i<enemies.length;i++){
     var e=enemies[i]; if(e.dead||e.air) continue;
     var dx=e.x-p.x, dz=e.z-p.z, d=Math.hypot(dx,dz)||0.001;
@@ -6672,7 +6674,7 @@ function meleeStrike(){
     var ass=!e.hunter&&!e.flood&&!e.kami&&d<2.3&&behindE(e,p.x,p.z);
     var killed=damageEnemy(e,ass?9999:(sw?220:MELEE_DMG));
     if(!sw){ e.x+=dx/d*1.1; e.z+=dz/d*1.1; } resolveCircle(e,0.5,0);
-    if(killed){ kill=true; onKill(e,false); score+=50; if(ass){ score+=150; medalAward('ASSASSINATION','FROM BEHIND','#ff6a5a',4); } showToast((ass?'ASSASSINATION  +':sw?'SWORD KILL  +':'MELEE KILL  +')+((e.elite?250:100)+50+(ass?150:0))); }
+    if(killed){ kill=true; if(ass) ass0=true; onKill(e,false); score+=50; if(ass){ score+=150; medalAward('ASSASSINATION','FROM BEHIND','#ff6a5a',4); } showToast((ass?'ASSASSINATION  +':sw?'SWORD KILL  +':'MELEE KILL  +')+((e.elite?250:100)+50+(ass?150:0))); }
   }
   if(mp.on&&mp.mode==='dm'){
     for(var mid in mp.peers){
@@ -6681,7 +6683,7 @@ function meleeStrike(){
       if(mdd<(sw?3.6:2.7)&&(mdd<1.0||(mdx*fx+mdz*fz)/mdd>=0.5)&&Math.abs(mR.y-p.y)<2.2){ var bk=mdd<2.3&&((-Math.sin(mR.yaw))*(p.x-mR.x)+(-Math.cos(mR.yaw))*(p.z-mR.z))/mdd<-0.4; mpSend({t:'hit',n:bk?250:sw?220:80,dx:fx,dz:fz,w:bk?'ASSASSINATION':sw?'ENERGY SWORD':'MELEE'},mpe.id); any=true; if(bk) medalAward('ASSASSINATION','FROM BEHIND','#ff6a5a',4); }
     }
   }
-  if(any){ sfx.bash(); marker(kill?'kill':'hit'); p.pitch-=0.02; }
+  if(any){ sfx.bash(); marker(kill?'kill':'hit'); p.pitch-=0.02; shakeAmp=Math.max(shakeAmp,kill?0.05:0.03); shakeT=Math.max(shakeT,0.22); try{ rumble(120,0.8,0.5); }catch(e){} if(kill&&!sw&&!ass0) medalAward('BEATDOWN','','#ffb04a',3); }
 }
 
 var tracerMat=new THREE.LineBasicMaterial({color:0xffe2a0,transparent:true,opacity:0.8});
@@ -7120,7 +7122,10 @@ function fireWeapon(w,muzzleObj,inVeh){
     if(e.hunter&&!hit.object.userData.weak){ spawnSpark(end); gsfx.tink(dist); }
     else{
     enemyHitFx(e,end,head);
-    var killed=damageEnemy(e,w.dmg*(head?w.head:1));
+    var dmgT=w.dmg*(head?w.head:1);
+    /* the golden triangle: plasma tears shields down, ballistic rounds finish the body underneath */
+    if(!w.sword&&!w.rocket&&!w.laser){ var pl=/PLASMA|NEEDLER|BEAM|SPIKER|FUEL|CARBINE/.test(w.name||''); if(e.shield>0) dmgT*=pl?1.4:0.8; else dmgT*=pl?0.85:1.15; }
+    var killed=damageEnemy(e,dmgT);
     if(killed){ onKill(e,head); marker('kill'); }
     else if(head){ marker('head'); sfx.head(); }
     else{ marker('hit'); sfx.hit(); }
