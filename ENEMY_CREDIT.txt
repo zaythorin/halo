@@ -1,0 +1,23 @@
+Model Information:
+* title:	Enemies>Halo 3>Covenant>Elites>Minor
+* source:	https://sketchfab.com/3d-models/enemieshalo-3covenantelitesminor-7690307789604d10bfc6d9d45d9c7466
+* author:	jameslucino117 (https://sketchfab.com/jameslucino117)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Enemies>Halo 3>Covenant>Elites>Minor" (https://sketchfab.com/3d-models/enemieshalo-3covenantelitesminor-7690307789604d10bfc6d9d45d9c7466) by jameslucino117 (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+Model Information:
+* title:	Grunt
+* source:	https://sketchfab.com/3d-models/grunt-14962147399146168969f0915d93fc0a
+* author:	irons3th (https://sketchfab.com/irons3th)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Grunt" (https://sketchfab.com/3d-models/grunt-14962147399146168969f0915d93fc0a) by irons3th (https://sketchfab.com/irons3th) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
