@@ -3412,7 +3412,7 @@ function makeAlly(x,z){
     hp:100,hp0:100,dead:false,deadT:0,phase:Math.random()*6,moveK:0,avoid:1,fireT:0.6,burst:4,tgt:null,tgtT:0,state:'follow',cvPt:null,cvT:0,cvCool:0,hitT:-99,flash:0,aimK:0,recoil:0,flashT:0,sdir:1,strafeT:0,sc:1,rad:0.5,peek:false,peekT:0,cmx:0,cmz:0,fl:false,stuckT:0,sj:sj,idleT:0,idleYaw:0,crK:0,hv:0,spdK:0.9+Math.random()*0.2};
   allyN++; m.group.scale.setScalar(ALLY_SC); m.group.position.set(x,gy,z); scene.add(m.group); allies.push(a); return a;
 }
-function removeAlly(a){ if(a===gunner){ rover.turret.remove(a.group); gunner=null; } scene.remove(a.group); a.mats.forEach(function(m){ m.dispose(); }); var i=allies.indexOf(a); if(i>=0) allies.splice(i,1); }
+function removeAlly(a){ if(a===gunner){ rover.turret.remove(a.group); gunner=null; } if(a.group.parent) a.group.parent.remove(a.group); a.mats.forEach(function(m){ m.dispose(); }); var i=allies.indexOf(a); if(i>=0) allies.splice(i,1); }
 function removeAllies(){ for(var i=allies.length-1;i>=0;i--) removeAlly(allies[i]); }
 function allySpot(){
   for(var t=0;t<12;t++){
@@ -3429,7 +3429,7 @@ function ensureAllies(){
   while(n<2){ var s=allySpot(); makeAlly(s.x,s.z); n++; made=true; }
   if(made) showToast('ALLIES DEPLOYED');
 }
-function allyWarp(a){ var s=allySpot(); a.x=s.x; a.z=s.z; a.fy=groundH(s.x,s.z); a.dy=a.fy; a.state='follow'; a.tgt=null; a.group.position.set(a.x,a.fy,a.z); }
+function allyWarp(a){ if(CAMP.on&&CAMP.isl){ var q=campLevel({x:p.x,z:p.z,y:p.y},p.yaw+3.14+(Math.random()-0.5),6); a.x=q.x; a.z=q.z; a.fy=q.y; a.dy=q.y; a.state='follow'; a.tgt=null; a.group.position.set(q.x,q.y,q.z); return; } var s=allySpot(); a.x=s.x; a.z=s.z; a.fy=groundH(s.x,s.z); a.dy=a.fy; a.state='follow'; a.tgt=null; a.group.position.set(a.x,a.fy,a.z); }
 function damageAlly(a,n){
   if(a.dead) return; a.hp-=n; a.hitT=tAcc; a.flash=0.1;
   if(a.hp<=0){ a.dead=true; a.deadT=0; showToast('ALLY DOWN'); tone(320,80,0.35,'sawtooth',0.08); }
@@ -3463,7 +3463,32 @@ function allyShoot(a,T,td){
   if(damageEnemy(T,7*(head?1.8:1))) onKill(T,head);
 }
 sfx.allyShot=function(d){ var v=0.33*Math.max(0.08,Math.min(1,1-d/70)); if(!sample('ar',v,0.88+Math.random()*0.15)){ noise(0.06,v*0.5,'bandpass',3000,800); } };
+/* marines ride the Warthog too: front passenger seat and the two back corners of the bed */
+var RIDE=[[0.38,0.5,-0.05],[-0.42,0.5,0.62],[0.42,0.5,0.62]];
+function rideOn(a,k){
+  if(a.group.parent) a.group.parent.remove(a.group); rover.group.add(a.group);
+  a.group.position.set(RIDE[k][0],RIDE[k][1],RIDE[k][2]); a.group.rotation.set(0,Math.PI,0); a.group.scale.setScalar(ALLY_SC*1.15/RK);
+  a.ride=k; a.state='ride'; a.tgt=null; a.rg.visible=false; showToast('MARINE ABOARD');
+}
+function rideOff(a,n){
+  if(a.group.parent) a.group.parent.remove(a.group); scene.add(a.group); a.group.scale.setScalar(ALLY_SC); a.group.rotation.set(0,0,0); a.rg.visible=true;
+  var side=(n%2?-1:1), ox=veh.x+Math.cos(veh.h)*(3.4+0.9*n)*RK*side*0.9, oz=veh.z-Math.sin(veh.h)*(3.4+0.9*n)*RK*side*0.9; a.x=ox; a.z=oz; resolveCircle(a,0.5,0);
+  a.fy=RVS()?rvGAt(a.x,a.z,veh.y+1):groundH(a.x,a.z); a.dy=a.fy; a.group.position.set(a.x,a.fy,a.z);
+  a.ride=undefined; a.state='follow'; a.cvCool=tAcc+1.5; a.cvPt=null; a.torso.rotation.set(0,0,0);
+}
+function rideTick(){
+  var driving=p.inVeh&&!p.air&&veh.alive, i, k, n=0;
+  for(i=0;i<allies.length;i++){ var a=allies[i];
+    if(a.ride!==undefined){ if(!driving||a.dead) rideOff(a,n++); continue; }
+    if(!driving||!gunner||a.dead||a===gunner||a.mounted||a.state==='hop'||a.state==='mountrun') continue;   /* the gunner takes the turret first */
+    if(Math.hypot(a.x-veh.x,a.z-veh.z)>8) continue;
+    var used=[false,false,false]; for(k=0;k<allies.length;k++) if(allies[k].ride!==undefined) used[allies[k].ride]=true;
+    for(k=0;k<3;k++) if(!used[k]){ rideOn(a,k); break; }
+  }
+}
 function updateAlly(a,dt){
+  if(a.ride!==undefined&&!a.dead){ a.x=veh.x; a.z=veh.z; a.fy=veh.y; a.dy=veh.y; return; }
+  if(a.dead&&a.ride!==undefined) rideOff(a,0);
   if(a.dead&&(a.mounted||a===gunner)) gunnerDismount();
   if(!a.dead&&(a.mounted||a.state==='hop')){ updateGunner(a,dt); return; }
   if(a.dead){ a.deadT+=dt; a.group.rotation.x=-Math.min(1,a.deadT/0.35)*1.45; a.group.position.y=a.fy-Math.min(a.deadT,1)*0.1; if(a.deadT>7) removeAlly(a); return; }
@@ -3537,7 +3562,7 @@ function updateAlly(a,dt){
 var gunner=null, stopT=0, gnTgt=null, gnTgtT=0, gnBurst=8, gnFire=0, SEAT=new V3(0,-0.25,0.62)   /* standing on the new Warthog's bed behind the gun, so his body shows above the bodywork */, _gs=new V3();
 function gunnerCall(){
   var best=null, bd=14, i;
-  for(i=0;i<allies.length;i++){ var a=allies[i]; if(a.dead||a.mounted) continue; var d=Math.hypot(a.x-veh.x,a.z-veh.z); if(d<bd){ bd=d; best=a; } }
+  for(i=0;i<allies.length;i++){ var a=allies[i]; if(a.dead||a.mounted||a.ride!==undefined) continue; var d=Math.hypot(a.x-veh.x,a.z-veh.z); if(d<bd){ bd=d; best=a; } }
   if(!best) return; gunner=best; best.state='mountrun'; best.mountT=0; best.mounted=false; stopT=0;
   showToast('GUNNER ON THE WAY');
 }
@@ -3551,7 +3576,7 @@ function gunnerDismount(){
     if(a.mounted) rover.turret.remove(a.group); else scene.remove(a.group);
     scene.add(a.group); a.group.scale.setScalar(ALLY_SC); a.group.rotation.set(0,0,0); a.rg.visible=true;
     var ox=veh.x+Math.cos(veh.h)*3.4*RK, oz=veh.z-Math.sin(veh.h)*3.4*RK; a.x=ox; a.z=oz; resolveCircle(a,0.5,0);
-    a.fy=groundH(a.x,a.z); a.dy=a.fy; a.group.position.set(a.x,a.fy,a.z);
+    a.fy=RVS()?rvGAt(a.x,a.z,veh.y+1):groundH(a.x,a.z); a.dy=a.fy; a.group.position.set(a.x,a.fy,a.z);
   }
   a.mounted=false; a.state='follow'; a.cvCool=tAcc+2; a.cvPt=null; a.torso.rotation.set(0,0,0);
 }
@@ -4054,13 +4079,14 @@ function buildEnemyModel(kind,e){
 }
 function makeEnemy(kind,x,z){
   var kami=kind==='kami', hunter=kind==='hunter', fk=FK[kind]; if(kami||hunter) kind='grunt';
-  var elite=kind==='elite', sc=elite?1.25:0.75;
-  var g=new THREE.Group(); g.rotation.order='YXZ';
+  var elite=kind==='elite', sc=elite?1.5:0.75;
+  var g=new THREE.Group(); g.rotation.order='YXZ'; if(elite) g.scale.setScalar(1.2);   /* Elites are big */
   var e={id:++mp.eid,kind:kind,elite:elite,group:g,x:x,z:z,sc:sc,
-    hp:elite?90:55,shield:elite?70:0,speed:elite?4.8:3.4,range:elite?15:13,state:'chase',fleeT:0,calm:0,avoid:1,stuckN:0,
+    hp:elite?90:55,shield:elite?70:0,speed:elite?3.7:3.4,range:elite?15:13,state:'chase',fleeT:0,calm:0,avoid:1,stuckN:0,
     dmg:elite?11:8,boltSpeed:elite?27:23,burstMax:elite?5:4,burstLeft:elite?5:4,
     fireT:0.4+Math.random()*0.9,cool:elite?0.65:1.0,vT:2+Math.random()*4,alerted:false,strafeDir:Math.random()<0.5?-1:1,strafeT:Math.random()*2,
     flash:0,shellFlash:0,dead:false,deadT:0,phase:Math.random()*6,blocked:false,aimK:0,recoil:0,moveK:0,fl:false};
+  if(elite) e.rad=0.7;
   if(hunter){ e.hunter=true; e.sc=2.0; e.hp=650; e.speed=2.7; e.range=26; e.rad=1.6; e.hs='idle'; e.hT=0; e.fireT=2.5+Math.random()*1.5; }
   if(fk) initFlood(e,fk);
   if(kami){ e.kami=true; e.hp=40; e.speed=5.7; e.range=0; e.fireT=1e9; e.kT=Math.random()*1.2; }
@@ -4072,10 +4098,6 @@ function makeEnemy(kind,x,z){
   if(hunter){ e.group.scale.setScalar(1); }
   e.mats=m.mats; e.hit=m.hit;
   var shell=null, shellMat=null;
-  if(elite){
-    shellMat=new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.2,depthWrite:false});
-    shell=new THREE.Mesh(gShell,shellMat); shell.scale.set(0.75,1.5,0.75); shell.position.y=1.25; g.add(shell);
-  }
   e.shell=shell; e.shellMat=shellMat;
   g.position.set(x,0,z); scene.add(g);
   enemies.push(e); return e;
@@ -4417,16 +4439,14 @@ function speak(kind,e,force){
 
 /* panic: when a raider dies, nearby ones lose their nerve and run */
 function panicAround(v){
+  if(!v.elite||v.flood||v.hunter) return;   /* the group leader is down: the Grunts lose their nerve and run. Elites never run. */
   var n=0;
   for(var i=0;i<enemies.length;i++){
-    var e=enemies[i]; if(e===v||e.dead||e.kami||e.hunter||e.calm>0) continue;
-    var d=Math.hypot(e.x-v.x,e.z-v.z); if(d>36) continue;
-    var ch=(e.elite?0.45:0.9)*(1-d/48);
-    if(Math.random()<ch){
-      speak('flee',e); e.state='flee'; e.fleeT=e.elite?(2.4+Math.random()*2.2):(3.8+Math.random()*2.2); e.fleeFrom={x:v.x,z:v.z}; n++;
-    }
+    var e=enemies[i]; if(e===v||e.dead||e.kami||e.hunter||e.flood||e.elite||e.refugee) continue;
+    var d=Math.hypot(e.x-v.x,e.z-v.z); if(d>45) continue;
+    speak('flee',e); e.state='flee'; e.calm=0; e.fleeT=7+Math.random()*4; e.fleeFrom={x:v.x,z:v.z}; n++;
   }
-  if(n>=2) showToast('RAIDERS SCATTER');
+  if(n>=1) showToast('GRUNTS PANIC');
 }
 function relocateEnemy(e){
   var s=pickSpawn(); e.x=s.x; e.z=s.z; e.stuckN=0; e.fy=undefined; e.dy=undefined; e.group.position.set(e.x,groundH(e.x,e.z),e.z);
@@ -4515,7 +4535,7 @@ function updateEnemy(e,dt){
     if(e.rType==='throw'&&!e.thrDone&&e.react<=e.reactMax*0.45){ e.thrDone=true; enemyThrowRelease(e); }
   }
   else if(patrolling){ mvx=e.pmx; mvz=e.pmz; spd=e.speed*0.45; }
-  else if(covering){ coverThink(e,dt,d); mvx=e.cmx; mvz=e.cmz; spd=e.peek?e.speed*0.55:e.speed*1.5; }
+  else if(covering){ coverThink(e,dt,d); mvx=e.cmx; mvz=e.cmz; spd=e.peek?e.speed*0.55:e.speed; }   /* nobody sprints to cover: only panicked Grunts run */
   else if(fleeing){
     e.fleeT-=dt;
     var fx=e.x-p.x, fz=e.z-p.z, fl=Math.hypot(fx,fz)||1;
@@ -5323,7 +5343,8 @@ function findRoverSpot(){
   return {x:14,z:14};
 }
 /* the ground under the Warthog: the terrain on the old maps, the model's floors on Recon */
-function rvGAt(x,z,y){ if(TM.on&&TM.snb){ var f=structFloor(x,z,y+1.5); return f>-1e8?f:TM.gy; } return groundH(x,z); }
+function RVS(){ return !!(TM.on&&(TM.snb||(TM.isl&&CAMP.on))); }   /* maps where the Warthog drives on the model's own floors */
+function rvGAt(x,z,y){ if(RVS()){ var f=structFloor(x,z,y+1.5); return f>-1e8?f:TM.gy; } return groundH(x,z); }
 function rvG(x,z){ return rvGAt(x,z,veh.y); }
 function syncRoverPose(){
   var fx=-Math.sin(veh.h)*1.8, fz=-Math.cos(veh.h)*1.8, rx=Math.cos(veh.h)*1.1, rz=-Math.sin(veh.h)*1.1;
@@ -5338,7 +5359,7 @@ function placeRover(){
   veh.x=s.x; veh.z=s.z; veh.h=TM.on?TM.home[TM.team].r.h:Math.atan2(s.x,s.z); veh.v=0; veh.pv=0; veh.accel=0; veh.hp=veh.maxHp;
   veh.alive=true; veh.respawnT=0; veh.turYaw=0; veh.gunPitch=0; veh.steerVis=0;
   veh.wx=veh.wz=0; veh.y=s.y!==undefined?s.y:groundH(s.x,s.z); veh.vy=0; veh.air=false; veh.sv=0; veh.bs=veh.bv=veh.rs=veh.rv=veh.ps=veh.pq=0; veh.ap=veh.ar=0; veh.tip=0; veh.fs=0;
-  veh.safe=TM.snb?{x:veh.x,y:veh.y,z:veh.z,h:veh.h}:null;
+  veh.safe=RVS()?{x:veh.x,y:veh.y,z:veh.z,h:veh.h}:null;
   rover.group.visible=true; rover.turret.rotation.y=0; rover.gun.rotation.x=0; if(rover.chief) rover.chief.visible=false;
   syncRoverPose(); beacon.visible=true; beacon.position.set(veh.x,veh.y+3.6,veh.z);
 }
@@ -5619,7 +5640,7 @@ function enterGunner(){
 function leaveGunner(){
   if(!GN.on) return; GN.on=false; if(rover.gch) rover.gch.visible=false;
   p.inVeh=false; vm.visible=true; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on');
-  p.x=veh.x+(-Math.cos(veh.h))*2.6*RK; p.z=veh.z+Math.sin(veh.h)*2.6*RK; resolveCircle(p,0.45,TM.snb?veh.y:0);
+  p.x=veh.x+(-Math.cos(veh.h))*2.6*RK; p.z=veh.z+Math.sin(veh.h)*2.6*RK; resolveCircle(p,0.45,RVS()?veh.y:0);
   p.y=rvGAt(p.x,p.z,veh.y+1); p.vx=p.vz=p.vy=0; p.pitch=0; p.onGround=true;
   if(TM.on&&mp.on&&TM.drv.g){ TM.drv.g[TM.team]=-1; mpSend({t:'vc',k:'g',vt:TM.team,d:-1}); }
 }
@@ -5744,11 +5765,11 @@ function updateRover(dt){
   var ox0=veh.x, oz0=veh.z;
   veh.x+=veh.wx*dt; veh.z+=veh.wz*dt;
   if(!veh.air&&!climbOK(ox0,oz0,veh.x,veh.z,veh.y)){ veh.x=ox0; veh.z=oz0; veh.wx*=0.3; veh.wz*=0.3; }
-  if(TM.snb&&!veh.air&&rvGAt(veh.x,veh.z,veh.y)<=TM.gy+0.5){ veh.x=ox0; veh.z=oz0; veh.wx*=0.15; veh.wz*=0.15; }   /* the edge of the playable ground is a wall: it cannot be driven off */
-  if(veh.air&&TM.snb&&structBlock(veh.x,veh.z,veh.y)){ veh.x=ox0; veh.z=oz0; veh.wx*=0.2; veh.wz*=0.2; }   /* walls are solid in the air too */
-  if(!TM.snb&&groundH(veh.x,veh.z)<WATER_Y+0.2){ var wk=Math.max(0,1-dt*3); veh.wx*=wk; veh.wz*=wk; }
+  if(RVS()&&!veh.air&&rvGAt(veh.x,veh.z,veh.y)<=TM.gy+0.5){ veh.x=ox0; veh.z=oz0; veh.wx*=0.15; veh.wz*=0.15; }   /* the edge of the playable ground is a wall: it cannot be driven off */
+  if(veh.air&&RVS()&&structBlock(veh.x,veh.z,veh.y)){ veh.x=ox0; veh.z=oz0; veh.wx*=0.2; veh.wz*=0.2; }   /* walls are solid in the air too */
+  if(!RVS()&&groundH(veh.x,veh.z)<WATER_Y+0.2){ var wk=Math.max(0,1-dt*3); veh.wx*=wk; veh.wz*=wk; }
   var bx0=veh.x, bz0=veh.z;
-  resolveCircle(veh,1.55*RK,TM.snb?veh.y:0);
+  resolveCircle(veh,1.55*RK,RVS()?veh.y:0);
   var push=Math.hypot(veh.x-bx0,veh.z-bz0);
   if(push>0.005){ if(drive&&spd>9&&push>0.04&&tAcc-(veh.crT||0)>0.6){ veh.crT=tAcc; whCrash(spd/20); } if(veh.air){   /* in the air a wall only removes the speed going into it, so it slides down the face instead of dropping dead */
       var pnx=(veh.x-bx0)/push, pnz=(veh.z-bz0)/push, pdt=veh.wx*pnx+veh.wz*pnz; if(pdt<0){ veh.wx-=pdt*pnx; veh.wz-=pdt*pnz; }
@@ -5758,7 +5779,7 @@ function updateRover(dt){
   /* height: follow the ground, leave it off crests and edges, fall slowly (floaty) */
   /* while falling, look for the floor from where we were a moment ago, so a fast drop cannot pass straight through it */
   var gh=veh.air?rvGAt(veh.x,veh.z,Math.max(veh.y,veh.y-veh.vy*dt)):rvG(veh.x,veh.z);
-  if(TM.snb){
+  if(RVS()){
     if(gh>TM.gy+0.5){ if(!veh.air) veh.safe={x:veh.x,y:gh,z:veh.z,h:veh.h}; }
     else if(veh.safe&&veh.y<veh.safe.y-4){   /* no floor under it at all: put it back on the last solid ground */
       veh.x=veh.safe.x; veh.z=veh.safe.z; veh.y=veh.safe.y; veh.wx=veh.wz=0; veh.vy=0; veh.air=false; veh.sv=0; gh=veh.safe.y;
@@ -9007,7 +9028,17 @@ function campSetup(){
   var s0=CAMP.cp, at=s0>=2?{x:CAMP.B.x-10,z:CAMP.B.z}:s0>=1?{x:CAMP.A.x-4,z:CAMP.A.z}:CAMP.S, ps=campSnap(at.x,at.z);
   var face=s0>=2?CAMP.B:(s0>=1?CAMP.B:CAMP.A);
   p.x=ps.x; p.z=ps.z; p.y=ps.y+0.1; p.vx=p.vz=p.vy=0; p.onGround=true; p.yaw=Math.atan2(-(face.x-p.x),-(face.z-p.z)); p.pitch=0;
+  var wd=Math.hypot(face.x-p.x,face.z-p.z)||1;
+  campWarthog({x:p.x+(face.x-p.x)/wd*9,z:p.z+(face.z-p.z)/wd*9},face);
   campStep(s0);
+}
+/* a Warthog waits for the player; marines climb aboard when he pulls up beside them */
+function campWarthog(near,toward){
+  var q=campSnap(near.x,near.z), ang=Math.atan2(-(toward.x-q.x),-(toward.z-q.z));
+  veh.x=q.x; veh.z=q.z; veh.h=ang; veh.v=0; veh.pv=0; veh.accel=0; veh.hp=veh.maxHp; veh.alive=true; veh.respawnT=1e9; veh.turYaw=0; veh.gunPitch=0; veh.steerVis=0;
+  veh.wx=veh.wz=0; veh.y=q.y; veh.vy=0; veh.air=false; veh.sv=0; veh.bs=veh.bv=veh.rs=veh.rv=veh.ps=veh.pq=0; veh.ap=veh.ar=0; veh.tip=0; veh.fs=0; veh.safe={x:q.x,y:q.y,z:q.z,h:ang};
+  rover.group.visible=true; rover.turret.rotation.y=0; rover.gun.rotation.x=0; if(rover.chief) rover.chief.visible=false;
+  syncRoverPose(); beacon.visible=true; beacon.position.set(veh.x,veh.y+3.6,veh.z);
 }
 function campPlace(e,x,z){ var q=campSnap(x,z); e.x=q.x; e.z=q.z; e.fy=q.y; e.dy=q.y; e.group.position.set(q.x,q.y,q.z); }
 function campFoe(kind,x,z,site,hunt){
@@ -9047,7 +9078,7 @@ function campStep(n){
   CAMP.step=n;
   if(n===0){
     campSay('CORTANA','Chief, wake up. Echo 4-1-9 took a plasma hit and we are down on the island. Your shields held.');
-    campSay('CORTANA','I am picking up marine beacons along the shore, and weapons fire. Find the survivors. Follow the blue light.');
+    campSay('CORTANA','There is a Warthog on the beach behind you. Marines will climb aboard if you pull up beside them. I am picking up marine beacons and weapons fire along the shore. Follow the blue light.');
     campBeacon(CAMP.A);
     for(var m0=0;m0<3;m0++) campMarine(CAMP.A.x+(m0-1)*2,CAMP.A.z+2);
     CAMP.beach=[]; var bq=campLevel(CAMP.A,3.14,15), bi;   /* the marines are already in a firefight on the beach */
@@ -9088,6 +9119,7 @@ function campTick(dt){
   if(!CAMP.sub&&CAMP.subs.length){ CAMP.sub=CAMP.subs.shift(); CAMP.subT=CAMP.sub.d; CAMP.subEl.innerHTML='<b>'+CAMP.sub.who+'</b> '+CAMP.sub.txt; CAMP.subEl.style.display='block'; }
   var px=p.x, pz=p.z, txt='', sub='', st=CAMP.step, i;
   if(CAMP.beacon) CAMP.beacon.children[1].rotation.z+=dt;
+  rideTick();
   CAMP.wd=(CAMP.wd||0)-dt; if(CAMP.wd<=0){ CAMP.wd=1; try{ campWatch(); }catch(err){} }
   if(st===0){
     var d0=Math.hypot(px-CAMP.A.x,pz-CAMP.A.z), nb=0; if(CAMP.beach) for(i=0;i<CAMP.beach.length;i++) if(!CAMP.beach[i].dead) nb++;
