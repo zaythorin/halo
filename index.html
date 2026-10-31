@@ -9099,14 +9099,14 @@ function campStep(n){
     campSay('CORTANA','Chief, wake up. Echo 4-1-9 took a plasma hit and we are down on the island. Your shields held.');
     campSay('CORTANA','There is a Warthog on the beach behind you. Marines will climb aboard if you pull up beside them. I am picking up marine beacons and weapons fire along the shore. Follow the blue light.');
     campBeacon(CAMP.A);
-    for(var m0=0;m0<3;m0++) campMarine(CAMP.A.x+(m0-1)*2,CAMP.A.z+2).anchor=true;   /* already fighting when you arrive, not following you */
+    for(var m0=0;m0<2;m0++) campMarine(CAMP.A.x+(m0-0.5)*3,CAMP.A.z+2).anchor=true;   /* already fighting when you arrive, not following you */
     CAMP.beach=[]; var bq=campLevel(CAMP.A,3.14,15), bi;   /* the marines are already in a firefight on the beach */
     CAMP.beach.push(campFoe('elite',bq.x,bq.z,CAMP.A,true));
     for(bi=0;bi<3;bi++){ var gq=campLevel(CAMP.A,3.14+(bi-1)*0.5,17); CAMP.beach.push(campFoe('grunt',gq.x,gq.z,CAMP.A,true)); }
     CAMP.beach.forEach(function(b){ b.anchor=true; b.fireT=0.3; });
   }else if(n===1){
     CAMP.cp=1; var i;
-    if(!allies.length) for(i=0;i<3;i++) campMarine(CAMP.A.x+(i-1)*2,CAMP.A.z+2);
+    if(!allies.length) for(i=0;i<2;i++) campMarine(CAMP.A.x+(i-0.5)*3,CAMP.A.z+2);
     campSay('SERGEANT','Spartan! Good to see you in one piece. We are all that is left of the squad.');
     campSay('SERGEANT','The Covenant are holding the comm tower on top of that hill. Get up there and we can call for a ride.');
     campSay('CORTANA','Marked. I count one Elite and a handful of Grunts up there. Use the slope for cover.');
