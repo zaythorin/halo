@@ -3494,7 +3494,7 @@ function updateAlly(a,dt){
   if(a.dead){ a.deadT+=dt; a.group.rotation.x=-Math.min(1,a.deadT/0.35)*1.45; a.group.position.y=a.fy-Math.min(a.deadT,1)*0.1; if(a.deadT>7) removeAlly(a); return; }
   if(tAcc-a.hitT>7&&a.hp<a.hp0) a.hp=Math.min(a.hp0,a.hp+3*dt);
   var dxp=p.x-a.x, dzp=p.z-a.z, dp=Math.hypot(dxp,dzp);
-  if(dp>44){ allyWarp(a); return; }
+  if(dp>44&&!a.anchor){ allyWarp(a); return; }
   a.tgtT-=dt;
   if(a.tgtT<=0||(a.tgt&&(a.tgt.dead||enemies.indexOf(a.tgt)<0))){ a.tgtT=0.45; a.tgt=allyPickTarget(a); }
   var T=a.tgt, td=T?Math.hypot(T.x-a.x,T.z-a.z):0, see=false;
@@ -3514,7 +3514,7 @@ function updateAlly(a,dt){
     mx=a.cmx; mz=a.cmz; spd=a.peek?3.6:6.4;
     if(done){ a.state='follow'; a.peek=false; }
   }else if(T&&see){
-    if(dp>26){ mx=(sx-a.x)/sd; mz=(sz-a.z)/sd; spd=6.4; }
+    if(dp>26&&!a.anchor){ mx=(sx-a.x)/sd; mz=(sz-a.z)/sd; spd=6.4; }
     else if(tAcc>a.cvCool&&td>10&&Math.random()<dt*0.8) allySeekCover(a,T);
     else if(td>34){ mx=(T.x-a.x)/td; mz=(T.z-a.z)/td; spd=5*a.spdK; }
     else if(td<9){ mx=-(T.x-a.x)/td; mz=-(T.z-a.z)/td; spd=4.4; }
@@ -3523,7 +3523,7 @@ function updateAlly(a,dt){
   }else if(T&&td<45&&dp<24){
     var fpx=T.x-(T.z-a.z)/td*a.slot*9, fpz=T.z+(T.x-a.x)/td*a.slot*9, fl=Math.hypot(fpx-a.x,fpz-a.z)||1;
     mx=(fpx-a.x)/fl; mz=(fpz-a.z)/fl; spd=5.2*a.spdK;
-  }else if(sd>6.5||dp>16){ mx=(sx-a.x)/sd; mz=(sz-a.z)/sd; spd=(dp>16?7.4:5)*a.spdK; }
+  }else if(!a.anchor&&(sd>6.5||dp>16)){ mx=(sx-a.x)/sd; mz=(sz-a.z)/sd; spd=(dp>16?7.4:5)*a.spdK; }
   else idle=true;
   for(gi=0;gi<allies.length;gi++){ var o2=allies[gi]; if(o2===a||o2.dead) continue; var ox=a.x-o2.x, oz=a.z-o2.z, od=Math.hypot(ox,oz); if(od<2.2&&od>0.01){ mx+=ox/od*0.6; mz+=oz/od*0.6; } }
   if(idle&&Math.hypot(mx,mz)<0.2){ mx=0; mz=0; }
@@ -4570,6 +4570,7 @@ function updateEnemy(e,dt){
       if(tg&&nav.len*EMIT_FL.res>5){ var stepUp=Math.abs(tg.fy-(e.fy===undefined?0:e.fy))>0.3||Math.hypot(tg.x-e.x,tg.z-e.z)<0.5; mvx=(stepUp?tg.fx:tg.x)-e.x; mvz=(stepUp?tg.fz:tg.z)-e.z; var tl=Math.hypot(mvx,mvz)||1; mvx/=tl; mvz/=tl; e.blocked=false; e.navMode=tg; }
     }
   }
+  if(e.anchor){ if(d<48) e.anchor=false; else{ mvx=0; mvz=0; } }   /* a scripted firefight: hold the post until the player is close */
   var ml=Math.hypot(mvx,mvz);
   var moved=false;
   if(ml>0.01){
@@ -9098,10 +9099,11 @@ function campStep(n){
     campSay('CORTANA','Chief, wake up. Echo 4-1-9 took a plasma hit and we are down on the island. Your shields held.');
     campSay('CORTANA','There is a Warthog on the beach behind you. Marines will climb aboard if you pull up beside them. I am picking up marine beacons and weapons fire along the shore. Follow the blue light.');
     campBeacon(CAMP.A);
-    for(var m0=0;m0<3;m0++) campMarine(CAMP.A.x+(m0-1)*2,CAMP.A.z+2);
+    for(var m0=0;m0<3;m0++) campMarine(CAMP.A.x+(m0-1)*2,CAMP.A.z+2).anchor=true;   /* already fighting when you arrive, not following you */
     CAMP.beach=[]; var bq=campLevel(CAMP.A,3.14,15), bi;   /* the marines are already in a firefight on the beach */
     CAMP.beach.push(campFoe('elite',bq.x,bq.z,CAMP.A,true));
     for(bi=0;bi<3;bi++){ var gq=campLevel(CAMP.A,3.14+(bi-1)*0.5,17); CAMP.beach.push(campFoe('grunt',gq.x,gq.z,CAMP.A,true)); }
+    CAMP.beach.forEach(function(b){ b.anchor=true; b.fireT=0.3; });
   }else if(n===1){
     CAMP.cp=1; var i;
     if(!allies.length) for(i=0;i<3;i++) campMarine(CAMP.A.x+(i-1)*2,CAMP.A.z+2);
@@ -9144,6 +9146,7 @@ function campTick(dt){
     var d0=Math.hypot(px-CAMP.A.x,pz-CAMP.A.z), nb=0; if(CAMP.beach) for(i=0;i<CAMP.beach.length;i++) if(!CAMP.beach[i].dead) nb++;
     if(nb>0&&d0<45){ txt='HELP THE MARINES'; sub='HOSTILES  '+nb; }
     else{ txt='FIND THE SURVIVORS'; sub='MARINE BEACON  '+Math.round(d0)+' m'; }
+    if(d0<24) allies.forEach(function(a){ a.anchor=false; });
     if(d0<12) campStep(1);
   }
   else if(st===1){
