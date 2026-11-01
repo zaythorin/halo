@@ -5063,7 +5063,27 @@ function applyCamera(bob){
   camera.position.set(p.x,p.y+eyeC()+(bob||0)+camLag,p.z);
   camera.rotation.y=p.yaw; camera.rotation.x=p.pitch;
   MA.roll+=(-MA.mxs*0.014*(p.onGround?1:0.4)-MA.roll)*Math.min(1,frameDt*8); camera.rotation.z=MA.roll;
+  if(state==='play'&&!p.inVeh&&!p.air) camFeel();
   if(tpWanted()) tpCamera();
+}
+/* life in the view: footstep dip and sway, a stronger rolling bob when sprinting, heaving breath after a long run (with panting), a thump on landing, a heartbeat throb when hurt, a jolt when hit */
+var CF={step:0,pt:0,hb:0};
+function camFeel(){
+  var dt=frameDt, mf=Math.min(1,moveFrac)*(p.onGround?1:0), sp=MA.sprint, zs=zoomed?0.3:1, cr=1-0.45*CR;
+  CF.step+=dt*(7+3.2*sp)*mf;
+  var sw=Math.sin(CF.step*0.5), fs=Math.pow(Math.abs(Math.sin(CF.step*0.5)),3);
+  var lat=sw*0.016*mf*(1+1.3*sp)*zs*cr;
+  camera.position.x+=Math.cos(p.yaw)*lat; camera.position.z+=-Math.sin(p.yaw)*lat;
+  camera.position.y+=-fs*0.018*mf*(1+1.2*sp)*zs;
+  var rx=-fs*0.007*mf*(1+sp)*zs, rz=sw*0.007*mf*(1+1.6*sp)*zs;
+  var b=MA.breath, bw=Math.sin(tAcc*5.6);
+  camera.position.y+=bw*0.009*b; rx+=bw*0.004*b*zs; rz+=Math.sin(tAcc*2.8)*0.003*b;
+  if(b>0.3&&!zoomed){ CF.pt-=dt; if(CF.pt<=0){ CF.pt=1.2-0.55*b; noise(0.3,0.05*b,'bandpass',950,380); setTimeout(function(){ noise(0.22,0.035*b,'bandpass',700,300); },230); } }
+  rx-=0.05*MA.land;
+  var lh=p.health<35?(1-p.health/35):0;
+  if(lh>0){ CF.hb+=dt*(1.5+1.5*lh); var bt=Math.pow(Math.max(0,Math.sin(CF.hb*6.2832)),10)+0.5*Math.pow(Math.max(0,Math.sin(CF.hb*6.2832-1.1)),10); rx+=bt*0.007*lh; camera.position.y+=bt*0.006*lh; }
+  rx+=0.018*MA.flinch; rz+=0.022*MA.flinch*MA.flx;
+  camera.rotation.x+=rx; camera.rotation.z+=rz;
 }
 var CR=0;   /* crouch amount 0..1 (hold C) */
 function eyeC(){ return EYE*(1-0.3*CR); }
@@ -5083,7 +5103,7 @@ function updateLook(){
   p.pitch=Math.max(-1.45,Math.min(1.45,p.pitch));
 }
 function updateFov(dt){
-  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV;
+  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV+5*MA.sprint;   /* sprinting widens the view a little */
   if(Math.abs(camera.fov-ft)>0.05){ camera.fov+=(ft-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); }
 }
 var HINTS={seen:{},bT:0,hT:0}, _sfD=new THREE.Vector3(), _sfP=new THREE.Vector3();
