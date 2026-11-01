@@ -182,6 +182,21 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 /* sniper scope */
 #scope{position:absolute;inset:0;opacity:0;pointer-events:none;--c:#8fd8ff;--w:min(61vw,112vh);--h:calc(var(--w) * 0.466);--tk:rgba(235,240,255,.85)}
 #ui.scoped #scope{opacity:1}
+/* Battle Rifle: round lens with a mil-dot reticle and range scale. Carbine: green hex HUD */
+#scope[data-k=br]{--c:#6fe3ff}
+#scope[data-k=cb]{--c:#aaf7b8}
+#scBR,#scCB{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+#scope[data-k=br] #scBR,#scope[data-k=cb] #scCB{display:block}
+#scope[data-k] .bl,#scope[data-k] .win,#scope[data-k] .sc,#scope[data-k] .ar,#scope[data-k] .ln,#scope[data-k] .bar,#scope[data-k] .ring{display:none}
+#scBR{width:min(96vh,96vw);height:min(96vh,96vw)}
+#scBR .m{position:absolute;inset:3.0%;border-radius:50%;box-shadow:0 0 0 100vmax rgba(0,0,0,.94)}
+#scBR svg{position:absolute;inset:0;width:100%;height:100%}
+#scBR .rt{stroke:var(--c);fill:none;stroke-width:1.5;stroke-linecap:round}
+#scBR text{font:600 3.4px var(--font-ui);fill:rgba(0,0,0,.6)}
+#scCB{width:min(84vw,124vh)}
+#scCB svg{width:100%;height:auto;display:block;filter:drop-shadow(0 0 9px rgba(40,255,60,.75))}
+#scCB .rt{stroke:var(--c);fill:none;stroke-width:5;stroke-linecap:round}
+#scope[data-k] .z{left:calc(50% + min(96vh,96vw) * 0.30);top:calc(50% + min(96vh,96vw) * 0.34)}
 #ui.scoped .cross{display:none}
 #scope.head{--c:var(--amber)}
 #scope.kill{--c:var(--warn)}
@@ -494,7 +509,7 @@ body{letter-spacing:.02em}
 
 <div id="ui" hidden>
   <div id="vig"></div>
-  <div id="scope"><u class="bl bt"></u><u class="bl bb"></u><u class="bl bw"></u><u class="bl be"></u><i class="win"></i><i class="sc l"></i><i class="sc r"></i><i class="ar l"></i><i class="ar r"></i><i class="ln lh a"></i><i class="ln lh b"></i><i class="ln lv"></i><i class="bar a"></i><i class="bar b"></i><i class="ring"></i><b class="z" id="scopeZ">4x</b></div>
+  <div id="scope"><u class="bl bt"></u><u class="bl bb"></u><u class="bl bw"></u><u class="bl be"></u><i class="win"></i><i class="sc l"></i><i class="sc r"></i><i class="ar l"></i><i class="ar r"></i><i class="ln lh a"></i><i class="ln lh b"></i><i class="ln lv"></i><i class="bar a"></i><i class="bar b"></i><i class="ring"></i><b class="z" id="scopeZ">4x</b><div id="scBR"><div class="m"></div><svg viewBox="-106 -106 212 212"><circle r="100" fill="rgba(60,100,150,.10)"/><circle r="100" fill="none" stroke="#000" stroke-width="1.2"/><path d="M0-96V-52M0 52V96M-96 0H-52M52 0H96" stroke="#000" stroke-width="2.4" fill="none"/><path d="M-2.5-47.5h5M-2.5-35h5M-2.5-22.5h5M-2.5 22.5h5M-2.5 35h5M-2.5 47.5h5M-47.5-2.5v5M-35-2.5v5M-22.5-2.5v5M22.5-2.5v5M35-2.5v5M47.5-2.5v5" stroke="#000" stroke-width=".7" fill="none"/><path d="M0-47.5V-22.5M0 22.5V47.5M-47.5 0H-22.5M22.5 0H47.5" stroke="#000" stroke-width=".9" stroke-dasharray=".5 2" fill="none"/><text x="-47.5" y="11" text-anchor="middle">00</text><text x="47.5" y="11" text-anchor="middle">00</text><path class="rt" d="M2.66-12.52A12.8 12.8 0 0 1 12.52-2.66M12.52 2.66A12.8 12.8 0 0 1 2.66 12.52M-2.66 12.52A12.8 12.8 0 0 1 -12.52 2.66M-12.52-2.66A12.8 12.8 0 0 1 -2.66-12.52M0-17.2V-5.6M0 5.6V17.2M-17.2 0H-5.6M5.6 0H17.2"/><g fill="none" stroke="rgba(0,0,0,.5)" stroke-width=".6"><path d="M-73 54Q-40 53 -20 41M-73 58H-20M-72.5 54v-6M-59.5 53.4v-6M-46 51.5v-6M-33 48v-6M-20 41v-6M-66 54v-3M-53 52.5v-3M-39.5 50v-3M-26.5 45v-3"/></g><text x="-72.5" y="44">10</text><text x="-59.5" y="43.4">8</text><text x="-46" y="41.5">6</text><text x="-33" y="38">4</text><text x="-20" y="31">2</text><text x="-17" y="61" text-anchor="start">1,7</text></svg></div><div id="scCB"><svg viewBox="160 228 1364 910"><polygon points="744,247 940,247 1030,385 1180,392 1255,545 1425,545 1500,683 1425,825 1255,825 1180,965 1030,985 945,1110 739,1110 654,985 504,965 429,825 259,825 184,683 259,545 429,545 504,392 654,385" fill="rgba(0,30,6,.14)" stroke="#3dff45" stroke-width="6" stroke-linejoin="round"/><g fill="none" stroke="#2fdc3a" stroke-linejoin="round"><polygon points="215,683 265,572 415,572 462,683 415,795 265,795" stroke-width="4"/><polygon points="236,683 275,590 405,590 440,683 405,778 275,778" stroke-width="2" opacity=".55"/><polygon points="1469,683 1419,572 1269,572 1222,683 1269,795 1419,795" stroke-width="4"/><polygon points="1448,683 1409,590 1279,590 1244,683 1279,778 1409,778" stroke-width="2" opacity=".55"/><polygon points="795,555 890,555 945,610 945,757 890,812 795,812 740,757 740,610" stroke-width="4"/><path d="M462 683H740M945 683H1222" stroke-width="2" opacity=".4"/></g><g fill="none" stroke="#2f5a2f" stroke-width="6" opacity=".75"><path d="M790 640L505 500M895 640L1180 500M790 725L505 865M895 725L1180 865"/></g><g fill="none" stroke="#2fdc3a" stroke-width="3" opacity=".3"><rect x="225" y="433" width="200" height="68" rx="30"/><rect x="1259" y="433" width="200" height="68" rx="30"/><rect x="225" y="866" width="200" height="68" rx="30"/><rect x="1259" y="866" width="200" height="68" rx="30"/></g><circle class="rt" cx="842" cy="683" r="27" stroke-dasharray="30 12"/><path class="rt" d="M783 633L814 655M901 633L870 655M783 733L814 711M901 733L870 711" stroke-width="9"/></svg></div></div>
   <div class="cross" id="cross"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
 
   <svg id="visor" viewBox="0 0 728 406" preserveAspectRatio="none"><path d="M0 98L128 90L170 52H558L600 90L728 98"/><path d="M0 270L50 274L110 322L300 332H428L618 322L678 274L728 270"/></svg>
@@ -2501,7 +2516,7 @@ function covDef(i){
   if(i===6){ var a6=reloadAnim([-0.25,-0.35,-0.05],[0,-0.05,0],[0.03,0.03,0],AR_ROT,false); a6.events=[]; a6.mag={attach:0,drop:0,reappear:0,insert:0.48};
     return {fl:'smg',flv:[0xff6fd8,0.9,2.0,0.04],w:{name:'NEEDLER',auto:true,dmg:3,head:1,rate:0.1,mag:24,magSize:24,reserve:120,maxRes:192,reload:1.61,reloadDur:1.61,spread:0.012,bloomAdd:0.003,bloomMax:0.03,kick:0.006,vmKick:0.02,sfx:'cneedle',noEject:true,needle:true,rsnd:'covNeedReload'},anim:a6}; }
   if(i===7){ var a7=reloadAnim([-0.02,-0.13,-0.27],[COVM.carb.M[0],COVM.carb.M[1],COVM.carb.M[2]],[0.035,0.03,0],AR_ROT,false); a7.events=[];
-    return {fl:'br',flv:[0x7dff5a,1.0,2.0,0.05],w:{name:'CARBINE',burst:0,auto:false,dmg:30,head:2.2,rate:0.2,mag:18,magSize:18,reserve:90,maxRes:144,reload:2.64,reloadDur:2.64,spread:0.003,bloomAdd:0.005,bloomMax:0.025,kick:0.02,vmKick:0.05,sfx:'ccarb',noEject:true,cg:true,rsnd:'covCarbReload'},anim:a7}; }
+    return {fl:'br',flv:[0x7dff5a,1.0,2.0,0.05],w:{name:'CARBINE',lscope:true,burst:0,auto:false,dmg:30,head:2.2,rate:0.2,mag:18,magSize:18,reserve:90,maxRes:144,reload:2.64,reloadDur:2.64,spread:0.003,bloomAdd:0.005,bloomMax:0.025,kick:0.02,vmKick:0.05,sfx:'ccarb',noEject:true,cg:true,rsnd:'covCarbReload'},anim:a7}; }
   return null;
 }
 function covInit(){
@@ -3106,6 +3121,7 @@ function hud(){
   if(hudCache.nl!==needLock){ hudCache.nl=needLock; els.lockHint.hidden=!needLock; }
   var scoped=zoomed&&!p.inVeh&&!!(w.scope||w.lscope)&&camera.fov<45;
   if(hudCache.scoped!==scoped){ hudCache.scoped=scoped; els.ui.classList.toggle('scoped',scoped); }
+  var scK=scoped?(w.id==='br'?'br':(w.id==='carbine'?'cb':'')):''; if(hudCache.scK!==scK){ hudCache.scK=scK; if(scK) els.scope.setAttribute('data-k',scK); else els.scope.removeAttribute('data-k'); }
   if(scoped){ var zt=((w.id==='sniper'||w.beam)?(zoomLvl>1?8:4):(zoomLvl>1?5:2))+'x'; if(hudCache.zt!==zt){ hudCache.zt=zt; $('scopeZ').textContent=zt; } }
   var vo=Math.min(1,vigT);
   if(p.health<35) vo=Math.max(vo,0.25+0.15*Math.sin(tAcc*6));
