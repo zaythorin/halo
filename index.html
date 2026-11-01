@@ -5325,7 +5325,7 @@ function ensureChief(r,team){
   var sw=new THREE.Group(); tilt.add(sw);
   sw.add(new THREE.Mesh(new THREE.TorusGeometry(0.17,0.024,6,18),new THREE.MeshLambertMaterial({color:0x15191d})));
   var sp=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.03,0.03),new THREE.MeshLambertMaterial({color:0x15191d})); sw.add(sp);
-  root.rotation.y=Math.PI; root.position.set(0,1.25,-0.05); root.visible=false;
+  root.rotation.y=Math.PI; root.position.set(-0.38,1.25,-0.05); root.visible=false;   /* the driver sits on the left, not in the middle */
   if(team!==undefined) teamPaint(built.mats,team);
   r.body.add(root); r.chief=root; r.wheelSpin=sw;
 }
