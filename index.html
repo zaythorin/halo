@@ -11534,7 +11534,7 @@ function mpClose(){
   mp.conn=null; mp.peer=null; mp.conns=[];
 }
 function mpClearPeers(){
-  for(var id in mp.peers){ var pe=mp.peers[id]; if(pe.avatar) scene.remove(pe.avatar); }
+  for(var id in mp.peers){ var pe=mp.peers[id]; if(pe.avatar) scene.remove(pe.avatar); if(pe.skull) scene.remove(pe.skull); }
   mp.peers={}; mp.avatar=null;
 }
 function mpLeave(){
@@ -11746,7 +11746,7 @@ function mpSetPeerChar(pe,k){
 function mpRemovePeer(id){
   var pe=mp.peers[id]; if(!pe) return;
   if(mp.host&&CTF.on){ for(var fi=0;fi<2;fi++) if(CTF.F[fi].carrier===id) ctfResolve({a:'drop',ft:fi,f:id,x:pe.rem.x,y:pe.rem.y,z:pe.rem.z}); }
-  scene.remove(pe.avatar); delete mp.peers[id];
+  scene.remove(pe.avatar); if(pe.skull) scene.remove(pe.skull); delete mp.peers[id];
   if(mp.avatar===pe.avatar){ mp.avatar=null; for(var k in mp.peers){ mp.avatar=mp.peers[k].avatar; mp.rem=mp.peers[k].rem; break; } }
 }
 function mpRosterMsg(){
@@ -12177,6 +12177,19 @@ function updateEnemyMP(e,dt){
     var keep=p; p=pp; try{ updateEnemy(e,dt); }finally{ p=keep; }
   }else updateEnemy(e,dt);
 }
+var _skT=null;
+function skullTex(){
+  if(_skT) return _skT;
+  var c=document.createElement('canvas'); c.width=c.height=128; var x=c.getContext('2d'), i;
+  x.shadowColor='rgba(255,70,50,.9)'; x.shadowBlur=10; x.fillStyle='#f6f1e8';
+  x.beginPath(); x.ellipse(64,52,34,32,0,0,6.2832); x.fill(); x.fillRect(46,68,36,30);
+  x.shadowBlur=0; x.fillStyle='#15110f';
+  x.beginPath(); x.ellipse(50,54,9,11,0,0,6.2832); x.fill(); x.beginPath(); x.ellipse(78,54,9,11,0,0,6.2832); x.fill();
+  x.beginPath(); x.moveTo(64,64); x.lineTo(58,77); x.lineTo(70,77); x.closePath(); x.fill();
+  for(i=0;i<4;i++) x.fillRect(53+i*7,88,2,10);
+  x.fillRect(46,86,36,2);
+  _skT=new THREE.CanvasTexture(c); return _skT;
+}
 function mpUpdatePeer(pe,dt){
   var R=pe.rem, a=pe.avatar; if(!a||!R.has) return;
   var k=Math.min(1,dt*14), ox=R.x, oz=R.z;
@@ -12199,8 +12212,19 @@ function mpUpdatePeer(pe,dt){
   au.fl.visible=au.kick>0.75&&au.w!==5;
   if(a.visible) poseAvatar(a,au.ph,au.mk);
   au.cr=au.crk||0;   /* crouch is posed with bent legs now, not squashed */
-  a.visible=!!R.al&&!R.iv; camoFx(a,au,a.visible&&R.cm&&au.tmTeam!==mp.team?(0.1+0.07*Math.sin(tAcc*9+R.x)+Math.min(0.45,au.kick*0.5)+(Math.hypot(R.x-p.x,R.z-p.z)<3.5?0.2:0)):1);   /* active camo: a faint shimmering ghost, clearer up close or when firing */
-  a.position.set(R.x,R.y,R.z); a.rotation.y=R.yaw+Math.PI;
+  /* a killed player's body stays where he fell for a few seconds, with a skull hovering over it, then sinks away */
+  var dead=!R.al&&!!R.has&&!R.iv; pe.dT=dead?(pe.dT||0)+dt:0;
+  a.visible=(!!R.al&&!R.iv)||(dead&&pe.dT<8); camoFx(a,au,a.visible&&R.al&&R.cm&&au.tmTeam!==mp.team?(0.1+0.07*Math.sin(tAcc*9+R.x)+Math.min(0.45,au.kick*0.5)+(Math.hypot(R.x-p.x,R.z-p.z)<3.5?0.2:0)):1);   /* active camo: a faint shimmering ghost, clearer up close or when firing */
+  a.position.set(R.x,R.y,R.z); a.rotation.order='YXZ'; a.rotation.set(0,R.yaw+Math.PI,0);
+  if(dead&&pe.dT<8){
+    var fk=Math.min(1,pe.dT/0.5), fe=1-Math.pow(1-fk,2.2);
+    a.rotation.x=-1.5*fe-Math.exp(-Math.max(0,pe.dT-0.5)*8)*Math.sin(Math.max(0,pe.dT-0.5)*20)*0.06;
+    a.position.y=R.y+0.12*fe-(pe.dT>6.5?(pe.dT-6.5)*0.5:0);
+    if(!pe.skull){ pe.skull=new THREE.Sprite(new THREE.SpriteMaterial({map:skullTex(),transparent:true,depthWrite:false,fog:false})); pe.skull.scale.set(0.75,0.75,1); scene.add(pe.skull); }
+    var sk=pe.skull; sk.visible=true; sk.material.color.setHex((mp.mode==='dm'&&pe.team===mp.team)?0x9fd4ff:0xffc0b0);
+    sk.position.set(R.x,R.y+0.8+1.3*(1-Math.pow(1-Math.min(1,pe.dT/0.7),2))+Math.sin(pe.dT*2.4)*0.07,R.z);
+    sk.material.opacity=pe.dT>6.5?Math.max(0,1-(pe.dT-6.5)/1.5):Math.min(1,pe.dT/0.35);
+  }else if(pe.skull) pe.skull.visible=false;
   if(au.skyP) skyPeerTick(pe,R,au,dt);
   if(au.tmk) au.tmk.rotation.y+=dt*2;
 }
