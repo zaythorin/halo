@@ -7622,6 +7622,9 @@ function updateWeapon(dt){
   vm.position.y+=ma.sp*0.05; vm.rotation.x+=ma.sp*0.35;
   if(mov>0.15&&p.onGround&&!zoomed&&ma.sprint<0.5){ var wk=tAcc*9; vm.position.x+=Math.sin(wk*0.5)*0.016*mov; vm.rotation.z+=Math.sin(wk*0.5)*0.032*mov; vm.rotation.y+=Math.cos(wk)*0.016*mov; vm.rotation.x+=Math.abs(Math.sin(wk*0.5))*0.02*mov; }
   var lowHp=p.health<35?(1-p.health/35)*0.8:0;
+  if(ma.sprint>0.01){ var sw=tAcc*7.5, sk=ma.sprint*mov;   /* sprinting: the lowered gun swings heavily left and right with each stride */
+    vm.position.x+=Math.sin(sw)*0.075*sk; vm.position.y+=Math.abs(Math.cos(sw))*0.035*sk; vm.position.z+=Math.sin(sw*2)*0.02*sk;
+    vm.rotation.z+=Math.sin(sw)*0.2*sk; vm.rotation.y+=Math.sin(sw+0.8)*0.16*sk; vm.rotation.x+=Math.cos(sw*2)*0.05*sk; }
   vm.position.x+=0.05*ma.sprint+ma.mxs*0.012; vm.position.y+=-0.05*ma.sprint-Math.abs(Math.sin(tAcc*9))*0.012*ma.sprint+0.03*ma.air*(HLAND[w.id]?Math.min(1.6,HLAND[w.id]):1)-0.09*ma.land*(HLAND[w.id]||1)+Math.sin(tAcc*5.2)*0.006*(ma.breath+lowHp); vm.position.z+=-0.02*ma.sprint+0.03*ma.land+0.05*ma.flinch;
   vm.rotation.x+=-0.22*ma.sprint+0.1*ma.air-0.18*ma.land+0.2*ma.flinch; vm.rotation.y+=0.45*ma.sprint; vm.rotation.z+=0.12*ma.sprint-ma.mxs*0.07+0.25*ma.flinch*ma.flx;
   /* idle: each gun's wrist and hand drift a little differently; sustained automatic fire shakes the whole weapon */
