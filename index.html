@@ -2867,7 +2867,11 @@ function recoilKick(w){
   var t=RCT[w.id]; if(!t) return; var zk=zoomed?0.4:1;
   rc.vz+=t[0]*zk; rc.vr+=t[1]*zk; rc.vl+=(Math.random()-0.5)*2*t[2]*zk; rc.vx+=(Math.random()-0.5)*2*t[3]*zk;
   climb+=w.kick*zk; lastShot=tAcc;
+  var wf=WFLICK[w.id]; if(wf){ MA.jx+=wf[0]*zk; MA.jy+=(Math.random()-0.5)*wf[1]*zk; MA.jz+=(Math.random()-0.5)*wf[2]*zk; }   /* the wrist cocks up a little on every round, a different way each time */
 }
+var WFLICK={magnum:[0.05,0.03,0.05],ar:[0.007,0.01,0.012],smg:[0.006,0.012,0.014],br:[0.022,0.012,0.02],salt:[0.016,0.016,0.03]};
+var WRIST={magnum:[0.012,0.010,0.008,1.1],ar:[0.004,0.004,0.003,0.9],smg:[0.005,0.005,0.004,1.2],br:[0.003,0.004,0.003,0.8],salt:[0.006,0.006,0.004,0.6]};
+var VIB={ar:0.0035,smg:0.003,salt:0.0075}, vibK=0;
 function stepRecoil(dt){
   var t=RCT[weapons[cur].id]||RCT.ar, k=t[4], cc=2*Math.sqrt(k)*t[5], n=Math.max(1,Math.ceil(dt/0.008)), h=dt/n, i;
   for(i=0;i<n;i++){
@@ -3108,7 +3112,7 @@ covInit();
   /* battle rifle: slow and deliberate, muzzle lifted and the whole rifle brought in close */
   F(7,[[0,0,0,0],[0.2,0,-0.05,0.06],[0.7,0,-0.05,0.06],[1,0,0,0]],[[0,0,0,0],[0.3,0.22,0,0],[0.65,0.22,0,0],[1,0,0,0]]);
   /* salt rifle: a full barrel roll while the mag is swapped */
-  F(9,[[0,0,0,0],[0.25,0,-0.07,0.1],[0.78,0,-0.07,0.1],[1,0,0,0]],[[0,0,0,0],[0.3,0.2,0,0],[0.7,0.2,0,0],[1,0,0,0]]);
+  F(9,[[0,0,0,0],[0.25,0,-0.13,0.08],[0.76,0,-0.13,0.08],[0.82,0,-0.05,0.0],[1,0,0,0]],[[0,0,0,0],[0.25,-0.2,0,0.12],[0.76,-0.2,0,0.12],[0.8,-0.05,0,0.04],[0.9,0.1,0,0],[1,0,0,0]]);   /* the SAW is lowered, the drum swapped, then it is heaved back up */
   /* MMG: heavy, dropped low and slammed back up after the belt is seated */
   F(10,[[0,0,0,0],[0.3,0.05,-0.12,0.08],[0.62,0.05,-0.12,0.08],[0.84,0,0.05,-0.04],[1,0,0,0]],[[0,0,0,0],[0.8,0,0,0],[0.87,-0.2,0,0],[1,0,0,0]]);
   /* plasma pistol: flicked up to vent the heat */
@@ -6708,14 +6712,14 @@ var MELEE_KF={
   rocket:[[0,Z6],[0.34,[0.04,0.2,0.24,0.6,0,0]],[0.46,[-0.04,-0.12,-0.56,-0.55,0,0]],[1,Z6]],
   laser:[[0,Z6],[0.3,[0.28,0,0.1,0.05,-0.95,-0.45]],[0.46,[-0.38,-0.05,-0.46,-0.05,1.05,0.55]],[1,Z6]],
   nuke:[[0,Z6],[0.3,[0.28,0,0.1,0.05,-0.95,-0.45]],[0.46,[-0.38,-0.05,-0.46,-0.05,1.05,0.55]],[1,Z6]],
-  salt:[[0,Z6],[0.3,[0.02,0.2,0.12,0.8,0,0]],[0.42,[-0.02,-0.24,-0.4,-0.65,0,0]],[0.65,[0,-0.14,-0.25,-0.35,0,0]],[1,Z6]],
+  salt:[[0,Z6],[0.36,[0.04,0.24,0.2,0.95,0,0]],[0.46,[-0.04,-0.3,-0.52,-0.75,0,0]],[0.78,[0,-0.16,-0.32,-0.38,0,0]],[1,Z6]],
   mmg:[[0,Z6],[0.34,[-0.08,-0.04,0.2,0.1,0.5,-0.2]],[0.46,[0.06,-0.02,-0.5,-0.05,-0.35,0.15]],[1,Z6]],
   prifle:[[0,Z6],[0.3,[0.22,0,0.05,0,-0.45,-1.0]],[0.45,[-0.32,0,-0.22,0,0.55,1.0]],[1,Z6]],
   beam:[[0,Z6],[0.28,[0.04,0.1,0.18,0.35,0,0.1]],[0.43,[-0.02,-0.05,-0.65,-0.2,0,-0.1]],[0.7,[0,0,-0.3,-0.1,0,0]],[1,Z6]],
   carbine:[[0,Z6],[0.3,[0.1,0.06,0.1,0.1,-0.3,-3.4]],[0.42,[-0.12,-0.1,-0.45,-0.12,0.4,-6.28]],[0.7,[-0.04,-0.04,-0.2,-0.05,0.1,-6.28]],[1,[0,0,0,0,0,-6.28]]],
   fuel:[[0,Z6],[0.36,[0.02,0.26,0.26,0.75,0,0.05]],[0.48,[-0.02,-0.28,-0.6,-0.8,0,-0.05]],[1,Z6]]
 };
-var MELEE_LEN={rocket:0.72,mmg:0.7,fuel:0.72,beam:0.65,laser:0.65,nuke:0.65,sniper:0.6,br:0.55,smg:0.55,carbine:0.6};
+var MELEE_LEN={salt:0.85,rocket:0.72,mmg:0.7,fuel:0.72,beam:0.65,laser:0.65,nuke:0.65,sniper:0.6,br:0.55,smg:0.55,carbine:0.6};
 function meleeKF(list,t){
   for(var i=1;i<list.length;i++){
     if(t<=list[i][0]){ var a=list[i-1], b=list[i], u=ss((t-a[0])/(b[0]-a[0])), o=[], k; for(k=0;k<6;k++) o.push((a[1][k]+(b[1][k]-a[1][k])*u)*(k>=3?0.7:1)); return o; }   /* rotations toned down so bashes look weighty, not windmilling */
@@ -7399,7 +7403,11 @@ function fingerAnim(w,g,dt){
         if(pr>0.5&&pr<0.8) grip+=0.35*Math.sin((pr-0.5)/0.3*Math.PI);
       }
     }
-    if(melee>0){ open=Math.max(open,0.7*melee); grip*=1-melee; }
+    if(melee>0){
+      if(!w.sword&&!ONEH[w.id]){ open=0; grip=Math.min(1,grip+(left?0.5:0.45)*melee); }   /* both hands clamp down on the rifle as it is driven forward */
+      else if(!left&&!w.sword){ open=0; grip=Math.min(1,grip+0.4*melee); }              /* a pistol-whip: the gun hand tightens, the free hand is the fist */
+      else{ open=Math.max(open,0.7*melee); grip*=1-melee; }
+    }
     if(w.sword||w.shells){ if(!left||pr<0) grip=Math.max(grip,0.55); }
     fgApply(hs[i],open,grip);
   }
@@ -7497,7 +7505,8 @@ function updateWeapon(dt){
   var sg=weapons[0].group.userData.spin; if(sg){ sg.rotation.x=gunSpin; sg.position.y=gunAir; }
   var av=swayIn.x/Math.max(dt,0.004), avy=swayIn.y/Math.max(dt,0.004); swayIn.x=0; swayIn.y=0;
   var stx=Math.max(-0.05,Math.min(0.05,av*0.011)), sty=Math.max(-0.04,Math.min(0.04,-avy*0.009));
-  sway.x+=(stx-sway.x)*Math.min(1,dt*9); sway.y+=(sty-sway.y)*Math.min(1,dt*9); sway.l+=(stx*5-sway.l)*Math.min(1,dt*7);
+  var hvK=(w.id==='salt')?0.4:1;   /* the SAW lags behind the view and swings further: it is heavy */
+  sway.x+=(stx*(2-hvK)-sway.x)*Math.min(1,dt*9*hvK); sway.y+=(sty*(2-hvK)-sway.y)*Math.min(1,dt*9*hvK); sway.l+=(stx*5*(2-hvK)-sway.l)*Math.min(1,dt*7*hvK);
   var wb=Math.sin(tAcc*4.6)*moveFrac, bobx=wb*0.011, boby=Math.abs(Math.sin(tAcc*4.6))*0.013*moveFrac, brth=Math.sin(tAcc*1.4)*0.0025;
   var zs=zoomed?0.3:1;
   vm.position.x=vmBaseX+mp[0]+(rc.x+sway.x+bobx)*zs+dip*0.1;
@@ -7542,8 +7551,13 @@ function updateWeapon(dt){
   vm.position.y+=ma.sp*0.05; vm.rotation.x+=ma.sp*0.35;
   if(mov>0.15&&p.onGround&&!zoomed&&ma.sprint<0.5){ var wk=tAcc*9; vm.position.x+=Math.sin(wk*0.5)*0.006*mov; vm.rotation.z+=Math.sin(wk*0.5)*0.012*mov; vm.rotation.y+=Math.cos(wk)*0.006*mov; }
   var lowHp=p.health<35?(1-p.health/35)*0.8:0;
-  vm.position.x+=0.05*ma.sprint+ma.mxs*0.012; vm.position.y+=-0.05*ma.sprint-Math.abs(Math.sin(tAcc*9))*0.012*ma.sprint+0.03*ma.air-0.09*ma.land+Math.sin(tAcc*5.2)*0.006*(ma.breath+lowHp); vm.position.z+=-0.02*ma.sprint+0.03*ma.land+0.05*ma.flinch;
+  vm.position.x+=0.05*ma.sprint+ma.mxs*0.012; vm.position.y+=-0.05*ma.sprint-Math.abs(Math.sin(tAcc*9))*0.012*ma.sprint+0.03*ma.air*(w.id==='salt'?1.6:1)-0.09*ma.land*(w.id==='salt'?1.7:1)+Math.sin(tAcc*5.2)*0.006*(ma.breath+lowHp); vm.position.z+=-0.02*ma.sprint+0.03*ma.land+0.05*ma.flinch;
   vm.rotation.x+=-0.22*ma.sprint+0.1*ma.air-0.18*ma.land+0.2*ma.flinch; vm.rotation.y+=0.45*ma.sprint; vm.rotation.z+=0.12*ma.sprint-ma.mxs*0.07+0.25*ma.flinch*ma.flx;
+  /* idle: each gun's wrist and hand drift a little differently; sustained automatic fire shakes the whole weapon */
+  var wr=WRIST[w.id];
+  if(wr){ var ik=(1-Math.min(1,mov*3))*(busy?0:1)*(zoomed?0.3:1); vm.rotation.z+=Math.sin(tAcc*wr[3]+1)*wr[0]*ik; vm.rotation.x+=Math.sin(tAcc*wr[3]*0.7)*wr[1]*ik; vm.rotation.y+=Math.sin(tAcc*wr[3]*0.45+2)*wr[2]*ik; }
+  var vt=(ctrl.fire&&w.auto&&w.mag>0&&!reloading&&swapT<=0&&meleeT<=0)?1:0; vibK+=(vt-vibK)*Math.min(1,dt*(vt?14:7));
+  var va=VIB[w.id]; if(va&&vibK>0.01){ var vz=vibK*va*(zoomed?0.5:1); vm.rotation.z+=Math.sin(tAcc*97)*vz*2.2; vm.rotation.y+=Math.sin(tAcc*83+1.3)*vz*1.4; vm.position.x+=Math.sin(tAcc*71)*vz*0.5; vm.position.z+=Math.sin(tAcc*109)*vz*0.4; }
   /* smoothing: the final pose follows through a light frame-rate-independent filter, which removes jitter and softens sudden jumps */
   if(!vmSm.on||swapT>0.39||dt>0.25){ vmSm.on=true; vmSm.p.copy(vm.position); vmSm.r.set(vm.rotation.x,vm.rotation.y,vm.rotation.z); }
   else{ var sa=1-Math.exp(-dt*(zoomed?26:34)); vmSm.p.lerp(vm.position,sa); vmSm.r.x+=(vm.rotation.x-vmSm.r.x)*sa; vmSm.r.y+=(vm.rotation.y-vmSm.r.y)*sa; vmSm.r.z+=(vm.rotation.z-vmSm.r.z)*sa; vm.position.copy(vmSm.p); vm.rotation.set(vmSm.r.x,vmSm.r.y,vmSm.r.z); }
