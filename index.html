@@ -282,6 +282,16 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 .cross i{background:var(--c);opacity:.95;box-shadow:0 0 2px rgba(0,0,0,.85)}
 .cross{--c:#dfe6d2}
 .cross.hit{--c:#f0f0e8}.cross.head{--c:#e0bd6a}.cross.kill{--c:#d4694e}
+/* live reticle: red over a raider, green over a marine, loosens when you fire or change zoom, dims when reloading or sprinting, blinks on low ammo */
+.cross{transition:opacity .15s,transform .18s}
+.cross.foe:not(.hit):not(.head):not(.kill){--c:#ff3a2e}
+.cross.foe:not(.hit):not(.head):not(.kill) i{box-shadow:0 0 5px rgba(255,50,40,.9)}
+.cross.ally:not(.hit):not(.head):not(.kill){--c:#6dff8c}
+.cross.rl{opacity:.32;transform:rotate(45deg)}
+.cross.spr{opacity:.2}
+@keyframes xhb{50%{opacity:.3}}
+.cross.low i{animation:xhb .55s infinite}
+.cross.zin{--c:#cfe8ff}
 #vig{background:radial-gradient(ellipse at center,transparent 50%,rgba(140,34,24,.75) 100%)}
 .btn{background:rgba(18,24,20,.5);border-color:rgba(200,210,185,.35);color:#dfe2d2}
 #bFrag{border-color:#8d9b62;color:#b5c086}
@@ -2955,7 +2965,7 @@ var score=0, kills=0, heads=0, best=0;
 try{ best=+localStorage.getItem('halo-best')||+localStorage.getItem('ringfall-best')||0; }catch(e){}
 var enemies=[], bolts=[], pickups=[], tracers=[], sparks=[], props=[], allies=[];
 var wave={n:0,toSpawn:0,spawnT:0,delay:0,active:false};
-var ray=new THREE.Raycaster();
+var ray=new THREE.Raycaster(), _xhA=new THREE.Vector3(), _xhB=new THREE.Vector3(), _xhD=new THREE.Vector3();
 
 /* ---------- hud ---------- */
 var els={};
@@ -2968,7 +2978,7 @@ function replay(el,cls){ el.classList.remove(cls); void el.offsetWidth; el.class
 function showBanner(t){ /* announcements removed */ }
 var MUTE_TOAST=/^(HUNTER CHARGING|DROPSHIP INBOUND|BANSHEES? INBOUND|BANSHEE DOWN|RAIDERS SCATTER|KAMIKAZE|ROVER|HORNET)|READY$|RESTOCKED|CONTROLLER CONNECTED|RESPAWNED/;
 function showToast(t){ if(MUTE_TOAST.test(t)) return; els.toast.textContent=t; replay(els.toast,'show'); }
-var markT=0, markCls='', shHitT=0, shBeepT=0, dmgT=0, dmgAng=0, dmgSh=false;
+var XH={g:6,t:0,zw:false,zt:-9,tgt:0,tk:0}, markT=0, markCls='', shHitT=0, shBeepT=0, dmgT=0, dmgAng=0, dmgSh=false;
 function marker(cls){ markCls=cls; markT=0.14; els.cross.className='cross '+cls; els.scope.className=cls; }
 function aw(){ return p.air?jetGun:(p.inVeh?vehGun:weapons[cur]); }
 function currentSpread(){
@@ -3070,8 +3080,28 @@ function hud(){
   if(hudCache.gz1!==gz1){ hudCache.gz1=gz1; els.gPlasma.classList.toggle('gz',gz1); }
   var emp=!w.inf&&w.mag===0; if(hudCache.emp!==emp){ hudCache.emp=emp; els.info.classList.toggle('empty',emp); }
   var px=Math.tan(currentSpread())*window.innerHeight/(2*Math.tan(camera.fov*Math.PI/360));
-  var gap=Math.round((5+px)*2)/2;
+  var gap0=5+px;
+  /* the gap eases to its size instead of snapping: it kicks open on every shot and loosens for a moment when you zoom in or out, then settles */
+  if(zoomed!==XH.zw){ XH.zw=zoomed; XH.zt=tAcc; }
+  gap0+=7*Math.exp(-(tAcc-lastShot)*11)*(tAcc-lastShot<0.5?1:0)+9*Math.sin(Math.min(1,(tAcc-XH.zt)/0.35)*Math.PI)*((tAcc-XH.zt)<0.35?1:0);
+  XH.g+=(gap0-XH.g)*Math.min(1,frameDt*(gap0>XH.g?45:11));
+  var gap=Math.round(XH.g*2)/2;
   if(hudCache.gap!==gap){ hudCache.gap=gap; els.cross.style.setProperty('--g',gap+'px'); }
+  /* what is under the crosshair: a raider (red) or a marine (green) */
+  XH.t-=frameDt; if(XH.t<=0){
+    XH.t=0.07; XH.tgt=0;
+    if(state==='play'&&!p.inVeh){
+      var xt=[], xi; for(xi=0;xi<enemies.length;xi++){ var xe=enemies[xi]; if(!xe.dead&&!xe.air&&!xe.refugee&&xe.hit) xt.push.apply(xt,xe.hit); }
+      ray.setFromCamera({x:0,y:0},camera); ray.far=110; var xh=xt.length?ray.intersectObjects(xt,false):[];
+      if(xh.length){ camera.getWorldPosition(_xhA); if(hasLOS(_xhA,xh[0].point)) XH.tgt=1; }
+      if(!XH.tgt&&allies.length){
+        camera.getWorldPosition(_xhA); camera.getWorldDirection(_xhD);
+        for(xi=0;xi<allies.length;xi++){ var xa=allies[xi]; if(xa.dead||xa.ride!==undefined) continue; _xhB.set(xa.x-_xhA.x,xa.fy+1.2-_xhA.y,xa.z-_xhA.z); var xl=_xhB.length(); if(xl<60&&xl>0.5&&_xhB.dot(_xhD)/xl>0.9985){ XH.tgt=2; break; } }
+      }
+    }
+  }
+  var xr=reloading, xs=MA.sprint>0.5&&!zoomed;
+  els.cross.classList.toggle('foe',XH.tgt===1); els.cross.classList.toggle('ally',XH.tgt===2); els.cross.classList.toggle('rl',!!xr); els.cross.classList.toggle('spr',!!xs); els.cross.classList.toggle('low',!!hudCache.la&&!xr); els.cross.classList.toggle('zin',!!zoomed&&XH.tgt===0);
   var needLock=!coarsePtr&&gpActive<=0&&document.pointerLockElement!==lookEl;
   if(hudCache.nl!==needLock){ hudCache.nl=needLock; els.lockHint.hidden=!needLock; }
   var scoped=zoomed&&!p.inVeh&&!!(w.scope||w.lscope)&&camera.fov<45;
