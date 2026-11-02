@@ -46,6 +46,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);-
 #res{font-size:14px;color:var(--dim);font-variant-numeric:tabular-nums}
 .empty #mag{color:var(--warn)}
 
+#bcam{position:absolute;left:3vmin;top:3vmin;display:flex;gap:1.4vmin;align-items:center;font:700 clamp(10px,2vmin,18px)/1 'Courier New',monospace;color:#e8e8e8;text-shadow:0 0 4px #000,0 0 8px #000;letter-spacing:.08em;pointer-events:none;z-index:3}
+#bcam .dot{width:1.6vmin;height:1.6vmin;border-radius:50%;background:#ff2a2a;box-shadow:0 0 8px #f22;animation:bcb 1.1s steps(2) infinite}
+#bcam .rec{color:#ff4a4a}#bcam .bat,#bcam .lbl{opacity:.75}
+@keyframes bcb{50%{opacity:0}}
 #vig{position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(255,60,40,.8) 100%)}
 
 .cross{position:absolute;left:50%;top:50%;width:0;height:0;--g:6px;--c:#fff}
@@ -509,6 +513,7 @@ body{letter-spacing:.02em}
 
 <div id="ui" hidden>
   <div id="vig"></div>
+  <div id="bcam" hidden><b class="dot"></b><span class="rec">REC</span><span id="bcT" class="tm">00:00:00</span><span class="lbl">BODYCAM 01</span><span class="bat">BAT 87%</span></div>
   <div id="scope"><u class="bl bt"></u><u class="bl bb"></u><u class="bl bw"></u><u class="bl be"></u><i class="win"></i><i class="sc l"></i><i class="sc r"></i><i class="ar l"></i><i class="ar r"></i><i class="ln lh a"></i><i class="ln lh b"></i><i class="ln lv"></i><i class="bar a"></i><i class="bar b"></i><i class="ring"></i><b class="z" id="scopeZ">4x</b><div id="scBR"><div class="m"></div><svg viewBox="-106 -106 212 212"><circle r="100" fill="rgba(60,100,150,.10)"/><circle r="100" fill="none" stroke="#000" stroke-width="1.2"/><path d="M0-96V-52M0 52V96M-96 0H-52M52 0H96" stroke="#000" stroke-width="1.1" fill="none"/><path d="M-2.5-47.5h5M-2.5-35h5M-2.5-22.5h5M-2.5 22.5h5M-2.5 35h5M-2.5 47.5h5M-47.5-2.5v5M-35-2.5v5M-22.5-2.5v5M22.5-2.5v5M35-2.5v5M47.5-2.5v5" stroke="#000" stroke-width=".45" fill="none"/><path d="M0-47.5V-22.5M0 22.5V47.5M-47.5 0H-22.5M22.5 0H47.5" stroke="#000" stroke-width=".9" stroke-dasharray=".5 2" fill="none"/><text x="-47.5" y="11" text-anchor="middle">00</text><text x="47.5" y="11" text-anchor="middle">00</text><path class="rt" d="M2.66-12.52A12.8 12.8 0 0 1 12.52-2.66M12.52 2.66A12.8 12.8 0 0 1 2.66 12.52M-2.66 12.52A12.8 12.8 0 0 1 -12.52 2.66M-12.52-2.66A12.8 12.8 0 0 1 -2.66-12.52M0-17.2V-5.6M0 5.6V17.2M-17.2 0H-5.6M5.6 0H17.2"/><g fill="none" stroke="rgba(0,0,0,.5)" stroke-width=".6"><path d="M-73 54Q-40 53 -20 41M-73 58H-20M-72.5 54v-6M-59.5 53.4v-6M-46 51.5v-6M-33 48v-6M-20 41v-6M-66 54v-3M-53 52.5v-3M-39.5 50v-3M-26.5 45v-3"/></g><text x="-72.5" y="44">10</text><text x="-59.5" y="43.4">8</text><text x="-46" y="41.5">6</text><text x="-33" y="38">4</text><text x="-20" y="31">2</text><text x="-17" y="61" text-anchor="start">1,7</text></svg></div><div id="scCB"><svg viewBox="160 228 1364 910"><polygon points="744,247 940,247 1030,385 1180,392 1255,545 1425,545 1500,683 1425,825 1255,825 1180,965 1030,985 945,1110 739,1110 654,985 504,965 429,825 259,825 184,683 259,545 429,545 504,392 654,385" fill="rgba(0,30,6,.14)" stroke="#3dff45" stroke-width="3.5" stroke-linejoin="round"/><g fill="none" stroke="#2fdc3a" stroke-linejoin="round"><polygon points="215,683 265,572 415,572 462,683 415,795 265,795" stroke-width="4"/><polygon points="236,683 275,590 405,590 440,683 405,778 275,778" stroke-width="2" opacity=".55"/><polygon points="1469,683 1419,572 1269,572 1222,683 1269,795 1419,795" stroke-width="4"/><polygon points="1448,683 1409,590 1279,590 1244,683 1279,778 1409,778" stroke-width="2" opacity=".55"/><polygon points="795,555 890,555 945,610 945,757 890,812 795,812 740,757 740,610" stroke-width="4"/><path d="M462 683H740M945 683H1222" stroke-width="2" opacity=".4"/></g><g fill="none" stroke="#2f5a2f" stroke-width="6" opacity=".75"><path d="M790 640L505 500M895 640L1180 500M790 725L505 865M895 725L1180 865"/></g><g fill="none" stroke="#2fdc3a" stroke-width="3" opacity=".3"><rect x="225" y="433" width="200" height="68" rx="30"/><rect x="1259" y="433" width="200" height="68" rx="30"/><rect x="225" y="866" width="200" height="68" rx="30"/><rect x="1259" y="866" width="200" height="68" rx="30"/></g><circle class="rt" cx="842" cy="683" r="27" stroke-dasharray="30 12" stroke-width="2"/><path class="rt" d="M783 633L814 655M901 633L870 655M783 733L814 711M901 733L870 711" stroke-width="4"/></svg></div></div>
   <div class="cross" id="cross"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
 
@@ -601,6 +606,7 @@ body{letter-spacing:.02em}
       <button type="button" class="go alt" id="pAch">ACHIEVEMENTS</button>
       <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
       <button type="button" class="go alt" id="pGfx">GRAPHICS: HIGH</button>
+      <button type="button" class="go alt" id="pBody">BODYCAM VIEW: OFF</button>
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
       <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
       <button type="button" class="go alt" id="pAnn">ANNOUNCER: ON</button>
@@ -9407,6 +9413,7 @@ try{ var _a=localStorage.getItem('halo-assist'); if(_a!==null) AIMS.assist=_a===
 function aimLabels(){ $('pAssist').textContent='AIM ASSIST: '+(AIMS.assist?'ON':'OFF'); }
 aimLabels();
 $('pGfx').addEventListener('click',function(){ GFX.lvl=(GFX.lvl+1)%4; GFX.avg=16; GFX.slow=0; gfxApply(); gfxLabel(); try{ localStorage.setItem('halo-gfx2',String(GFX.lvl)); }catch(e){} });
+setTimeout(bcLabel,0); $('pBody').addEventListener('click',function(){ BC.on=!BC.on; bcLabel(); try{ localStorage.setItem('halo-bc',BC.on?'1':'0'); }catch(e){} });
 $('pAssist').addEventListener('click',function(){ AIMS.assist=!AIMS.assist; try{ localStorage.setItem('halo-assist',AIMS.assist?'1':'0'); }catch(e){} aimLabels(); });
 function aimStart(ev){
   if(AIMS.id!==null) aimEnd();
@@ -9625,7 +9632,51 @@ function frame(now){
   if(lzLoop&&(state!=='play'||!LZ.on)){ laserLoopStop(); LZ.on=false; }
   laserBeamStep(dt); nukeStep(dt);
   tpUpdate(dt); try{ atmoTick(dt); }catch(e){}
-  renderer.render(scene,camera);
+  if(BC.on){ try{ bcRender(); }catch(e){ BC.on=false; bcLabel(); renderer.setRenderTarget(null); renderer.render(scene,camera); } } else renderer.render(scene,camera);
+}
+/* ================= BODYCAM VIEW: the game seen through a chest camera. The scene is drawn to a texture and redrawn through a wide fisheye lens with colour fringing, film grain, a dark vignette, handheld jolts on every shot and step, and a blur when you are hit. Toggle it in the pause menu (it is off by default) ================= */
+var BC={on:false,rt:null,sc:null,cam:null,mat:null,w:0,h:0,sx:0,sy:0,tm:-1};
+try{ BC.on=localStorage.getItem('halo-bc')==='1'; }catch(e){}
+function bcLabel(){ var b=$('pBody'); if(b) b.textContent='BODYCAM VIEW: '+(BC.on?'ON':'OFF'); var u=$('bcam'); if(u) u.hidden=!BC.on; }
+function bcInit(w,h){
+  if(!BC.sc){
+    BC.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1); BC.sc=new THREE.Scene();
+    BC.mat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,
+      uniforms:{tD:{value:null},uT:{value:0},uH:{value:0},uS:{value:new THREE.Vector2()},uR:{value:new THREE.Vector2(w,h)}},
+      vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }',
+      fragmentShader:'uniform sampler2D tD; uniform float uT,uH; uniform vec2 uS,uR; varying vec2 vUv;\n'+
+      'float hs(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }\n'+
+      'void main(){\n'+
+      '  float as=uR.x/uR.y; vec2 c=vUv-0.5; c.x*=as; float r2=dot(c,c);\n'+
+      '  vec2 d=c*(1.0+0.22*r2)*0.9; d.x/=as; vec2 uv=d+0.5+uS;\n'+
+      '  vec2 dir=normalize(c+vec2(1e-5))*vec2(1.0/as,1.0)*(0.0016+0.005*r2+0.008*uH);\n'+
+      '  vec3 col=vec3(texture2D(tD,uv+dir).r,texture2D(tD,uv).g,texture2D(tD,uv-dir).b);\n'+
+      '  if(uH>0.02){ vec2 o=vec2(0.0045,0.0045)*uH; vec3 a=texture2D(tD,uv+vec2(o.x,0.0)).rgb+texture2D(tD,uv-vec2(o.x,0.0)).rgb+texture2D(tD,uv+vec2(0.0,o.y)).rgb+texture2D(tD,uv-vec2(0.0,o.y)).rgb; col=mix(col,a*0.25,min(0.65,uH)); }\n'+
+      '  float l=dot(col,vec3(0.299,0.587,0.114)); col=mix(vec3(l),col,0.9-0.45*uH); col=(col-0.5)*1.08+0.52;\n'+
+      '  float vg=smoothstep(1.08,0.3,length(c*vec2(1.0,1.12))*1.3); col*=mix(0.4,1.0,vg);\n'+
+      '  col+=(hs(vUv*uR+vec2(fract(uT)*91.7,fract(uT*1.7)*53.1))-0.5)*0.08;\n'+
+      '  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0) col=vec3(0.0);\n'+
+      '  gl_FragColor=vec4(col,1.0);\n}'});
+    BC.sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),BC.mat));
+  }
+  if(BC.rt) BC.rt.dispose();
+  BC.rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});
+  try{ BC.rt.samples=4; }catch(e){}
+  BC.mat.uniforms.tD.value=BC.rt.texture; BC.mat.uniforms.uR.value.set(w,h); BC.w=w; BC.h=h;
+}
+function bcRender(){
+  var cv=renderer.domElement, w=cv.width, h=cv.height;
+  if(!BC.rt||BC.w!==w||BC.h!==h) bcInit(w,h);
+  var u=BC.mat.uniforms, since=tAcc-lastShot, mv=Math.min(1,moveFrac||0);
+  u.uT.value=tAcc; u.uH.value=Math.min(1,vigT*1.5+(p.health<35?0.25:0));
+  /* the chest rig jolts with every shot, bobs with every stride, and drifts a little even standing still */
+  var jk=since<0.14?(1-since/0.14):0, tg=jk*0.006;
+  BC.sx+=((Math.random()-0.5)*tg*2+Math.sin(tAcc*9.2)*0.0014*mv+Math.sin(tAcc*0.9)*0.0006-BC.sx)*Math.min(1,frameDt*30);
+  BC.sy+=((Math.random()-0.5)*tg*2+Math.abs(Math.sin(tAcc*9.2))*0.0022*mv+Math.sin(tAcc*0.7+1)*0.0006-BC.sy)*Math.min(1,frameDt*30);
+  u.uS.value.set(BC.sx,BC.sy);
+  var sec=Math.floor(tAcc); if(sec!==BC.tm){ BC.tm=sec; var t=$('bcT'); if(t){ var d=new Date(), z=function(n){ return (n<10?'0':'')+n; }; t.textContent=z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()); } }
+  renderer.setRenderTarget(BC.rt); renderer.clear(); renderer.render(scene,camera); renderer.setRenderTarget(null);
+  renderer.render(BC.sc,BC.cam);
 }
 /* ================= TEAM BATTLE: a purpose-built two-base map, red against blue, with a Warthog and a Hornet on each side ================= */
 var TEAMS=[{n:'RED',c:0xff3b30,css:'#ff6a5a',hue:0.0},{n:'BLUE',c:0x2f7dff,css:'#6aa4ff',hue:0.61}];
