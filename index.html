@@ -7511,9 +7511,9 @@ function animateWeaponParts(w){
   /* each weapon's own reload flourish, on top of the hand work */
   if(pr>=0&&an.fxP){ var fp=sampleKeys(an.fxP,pr); g.position.x+=fp[0]; g.position.y+=fp[1]; g.position.z+=fp[2]; }
   if(pr>=0&&an.fxR){ var fr=sampleKeys(an.fxR,pr); g.rotation.x+=fr[0]; g.rotation.y+=fr[1]; g.rotation.z+=fr[2]; }
-  ud.leftHand.position.set(hand[0]+HKS.x*0.6,hand[1]+HKS.y*0.8,hand[2]+HKS.z*0.75);
+  ud.leftHand.position.set(hand[0]+HKS.x*0.6-0.07*BCK,hand[1]+HKS.y*0.8-0.035*BCK,hand[2]+HKS.z*0.75+0.03*BCK);
   if(!ud.rhB){ ud.rhB=ud.rightHand.position.clone(); ud.rhR=ud.rightHand.rotation.clone(); }
-  ud.rightHand.position.set(ud.rhB.x+HKS.x,ud.rhB.y+HKS.y,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
+  ud.rightHand.position.set(ud.rhB.x+HKS.x+0.07*BCK,ud.rhB.y+HKS.y-0.035*BCK,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
   ud.mag.position.set(magPos[0],magPos[1],magPos[2]); ud.mag.visible=w.rocket?false:magVis;
   if(w.rocket&&ud.drum){ rocketDrum(w,ud,curDt||0.016); }
   if(ud.mover) ud.mover.position.z=ud.moverBase+sv;
@@ -9716,7 +9716,10 @@ function bcInit(w,h){
       '  if(uH>0.02){ vec2 o=vec2(0.0045,0.0045)*uH; vec3 a=texture2D(tD,uv+vec2(o.x,0.0)).rgb+texture2D(tD,uv-vec2(o.x,0.0)).rgb+texture2D(tD,uv+vec2(0.0,o.y)).rgb+texture2D(tD,uv-vec2(0.0,o.y)).rgb; col=mix(col,a*0.25,min(0.65,uH)); }\n'+
       '  vec3 bl=(texture2D(tD,uv+vec2(0.012,0.0)).rgb+texture2D(tD,uv-vec2(0.012,0.0)).rgb+texture2D(tD,uv+vec2(0.0,0.02)).rgb+texture2D(tD,uv-vec2(0.0,0.02)).rgb)*0.25; col+=max(bl-0.65,0.0)*0.9;\n'+
       '  float l=dot(col,vec3(0.299,0.587,0.114)); col=mix(vec3(l),col,0.82-0.45*uH); col=(col-0.5)*1.06+0.52; col*=1.08;\n'+
-      '  float rr=length(c); col*=mix(0.82,1.0,smoothstep(1.0,0.35,rr));\n'+
+      '  float rr=length(c); col*=mix(0.8,1.0,smoothstep(1.0,0.35,rr));\n'+
+      '  vec2 q=abs(c)-(vec2(0.86,0.485)-0.16); float sd=length(max(q,0.0))+min(max(q.x,q.y),0.0)-0.16;\n'+
+      '  float ring=smoothstep(-0.09,-0.005,sd)*(1.0-smoothstep(-0.005,0.01,sd)); col+=vec3(0.42,0.2,0.04)*ring*(0.35+0.65*dot(col,vec3(0.33)));\n'+
+      '  col*=1.0-smoothstep(-0.004,0.008,sd);\n'+
       '  col+=(hs(vUv*uR+vec2(fract(uT)*91.7,fract(uT*1.7)*53.1))-0.5)*0.08;\n'+
       '  gl_FragColor=vec4(col,1.0);\n}'});
     BC.sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),BC.mat));
