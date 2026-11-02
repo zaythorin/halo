@@ -1,0 +1,11 @@
+Model Information:
+* title:	Weapons>Human>Assault Rifle
+* source:	https://sketchfab.com/3d-models/weaponshumanassault-rifle-f38170a1205e4f4782e95cde9a2a34fa
+* author:	jameslucino117 (https://sketchfab.com/jameslucino117)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Weapons>Human>Assault Rifle" (https://sketchfab.com/3d-models/weaponshumanassault-rifle-f38170a1205e4f4782e95cde9a2a34fa) by jameslucino117 (https://sketchfab.com/jameslucino117) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
