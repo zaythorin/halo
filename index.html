@@ -3325,7 +3325,7 @@ function buildDMR(){
   var an=reloadAnim([-0.02,-0.08,-0.34],[0,-0.1,0.0],[0.035,0.03,0],AR_ROT,false); an.events=[[0.4,'magOut'],[0.74,'magIn'],[0.9,'bolt']]; w.anim=an;
   w._i={mag:w.mag,reserve:w.reserve};
   weapons.push(w); vm.add(w.group); w.group.visible=false;
-  RCT.dmr=RCT.ar; NOISE.dmr=70; FL.dmr=FL.br; WFLICK.dmr=[0.04,0.02,0.04]; WRIST.dmr=WRIST.br; RL_SND.dmr='arReload'; MELEE_LEN.dmr=0.6; AMMO_PK.push(16); AMMO_WAVE.push(28);
+  RCT.dmr=RCT.ar; NOISE.dmr=70; FL.dmr=FL.br; WFLICK.dmr=[0.04,0.02,0.04]; WRIST.dmr=WRIST.br; AMMO_PK.push(16); AMMO_WAVE.push(28);
   sfx.dmr=function(){ if(sample('dmr',1,0.98+Math.random()*0.04)) return; sfx.magnum(); };
 })();
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
@@ -6859,7 +6859,7 @@ function updateTurret(dt){
   var ud=weapons[10].group.userData, gg=weapons[10].group; turVmShow(false);
   pk.muz.getWorldPosition(_tv); ud.muzzle.position.copy(gg.worldToLocal(_tv));
 }
-var RL_SND={magnum:'magReload',ar:'arReload',br:'arReload',smg:'arReload',sniper:'arReload',salt:'arReload',mmg:'arReload'}, rlSnd=false;   /* not the shotgun (shell by shell), rocket, or Covenant weapons */
+var RL_SND={magnum:'magReload',ar:'arReload',br:'arReload',smg:'arReload',sniper:'arReload',salt:'arReload',mmg:'arReload',dmr:'arReload'}, rlSnd=false;   /* not the shotgun (shell by shell), rocket, or Covenant weapons */
 function startReload(){
   var w=weapons[cur];
   if(w.cov){ if(state==='play'&&!p.inVeh) showToast(w.ohT>0?'COOLING DOWN':'NO RELOAD  HEAT '+Math.round(w.heat*100)+'%'); return; }
@@ -6931,7 +6931,7 @@ var MELEE_KF={
   carbine:[[0,Z6],[0.3,[0.1,0.06,0.1,0.1,-0.3,-3.4]],[0.42,[-0.12,-0.1,-0.45,-0.12,0.4,-6.28]],[0.7,[-0.04,-0.04,-0.2,-0.05,0.1,-6.28]],[1,[0,0,0,0,0,-6.28]]],
   fuel:[[0,Z6],[0.36,[0.02,0.26,0.26,0.75,0,0.05]],[0.48,[-0.02,-0.28,-0.6,-0.8,0,-0.05]],[1,Z6]]
 };
-var MELEE_LEN={salt:0.85,rocket:0.72,mmg:0.7,fuel:0.72,beam:0.65,laser:0.65,nuke:0.65,sniper:0.6,br:0.55,smg:0.55,carbine:0.6};
+var MELEE_LEN={salt:0.85,rocket:0.72,mmg:0.7,fuel:0.72,beam:0.65,laser:0.65,nuke:0.65,sniper:0.6,br:0.55,smg:0.55,carbine:0.6,dmr:0.6};
 function meleeKF(list,t){
   for(var i=1;i<list.length;i++){
     if(t<=list[i][0]){ var a=list[i-1], b=list[i], u=ss((t-a[0])/(b[0]-a[0])), o=[], k; for(k=0;k<6;k++) o.push((a[1][k]+(b[1][k]-a[1][k])*u)*(k>=3?0.7:1)); return o; }   /* rotations toned down so bashes look weighty, not windmilling */
