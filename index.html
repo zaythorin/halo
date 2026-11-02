@@ -9722,7 +9722,7 @@ function bcInit(w,h){
   }
   if(BC.rt) BC.rt.dispose();
   BC.rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});
-  try{ BC.rt.samples=4; }catch(e){}
+  try{ BC.rt.samples=coarsePtr?0:4; }catch(e){}   /* no multisampling on phones and tablets: it costs a lot of memory */
   BC.mat.uniforms.tD.value=BC.rt.texture; BC.mat.uniforms.uR.value.set(w,h); BC.w=w; BC.h=h;
 }
 function bcRender(){
