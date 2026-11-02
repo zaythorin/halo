@@ -1978,7 +1978,7 @@ function fillHand(grp,left,curl){
               var qx=nx*cc+(ax[1]*nz-ax[2]*ny)*sn+ax[0]*d2*(1-cc), qy=ny*cc+(ax[2]*nx-ax[0]*nz)*sn+ax[1]*d2*(1-cc), qz=nz*cc+(ax[0]*ny-ax[1]*nx)*sn+ax[2]*d2*(1-cc);
               if(dd>sp1){
                 /* fingertip section: a second bend, about the point where the first bend has carried the mid-finger joint */
-                var t2=Math.min(1,(dd-sp1)/(0.18*ln)); t2=t2*t2*(3-2*t2), th2=th*0.7*t2, c2=Math.cos(th2), s2=Math.sin(th2);
+                var t2=Math.min(1,(dd-sp1)/(0.18*ln)); t2=t2*t2*(3-2*t2); var th2=th*0.7*t2, c2=Math.cos(th2), s2=Math.sin(th2);
                 var jx=a[0]*(sp1-sp0), jy=a[1]*(sp1-sp0), jz=a[2]*(sp1-sp0), jd=ax[0]*jx+ax[1]*jy+ax[2]*jz;
                 var Jx=jx*cc+(ax[1]*jz-ax[2]*jy)*sn+ax[0]*jd*(1-cc), Jy=jy*cc+(ax[2]*jx-ax[0]*jz)*sn+ax[1]*jd*(1-cc), Jz=jz*cc+(ax[0]*jy-ax[1]*jx)*sn+ax[2]*jd*(1-cc);
                 var ux=px-Jx, uy=py-Jy, uz=pz-Jz, ud=ax[0]*ux+ax[1]*uy+ax[2]*uz;
