@@ -5198,6 +5198,7 @@ function tpBack(rg){
   rg.back.visible=!!tpl&&wi!==cur&&!dwOnF;
 }
 var BCLOW=0, BCK=0;
+var ARMS_OUT=[0.045,0.02,0.05];   /* arms reach further out: left hand sideways and forward along the gun, right hand a little sideways */
 function applyCamera(bob){
   camLag*=Math.max(0,1-frameDt*9); if(camLag>0.7) camLag=0.7; else if(camLag<-0.7) camLag=-0.7; if(Math.abs(camLag)<0.001) camLag=0;
   var bcl=(BC&&BC.on&&!p.inVeh&&!p.air)?0.3:0; BCLOW+=(bcl-BCLOW)*Math.min(1,frameDt*6);   /* bodycam: the camera is clipped to the chest, lower than the eyes */
@@ -7510,9 +7511,9 @@ function animateWeaponParts(w){
   /* each weapon's own reload flourish, on top of the hand work */
   if(pr>=0&&an.fxP){ var fp=sampleKeys(an.fxP,pr); g.position.x+=fp[0]; g.position.y+=fp[1]; g.position.z+=fp[2]; }
   if(pr>=0&&an.fxR){ var fr=sampleKeys(an.fxR,pr); g.rotation.x+=fr[0]; g.rotation.y+=fr[1]; g.rotation.z+=fr[2]; }
-  ud.leftHand.position.set(hand[0]+HKS.x*0.6-0.07*BCK,hand[1]+HKS.y*0.8-0.035*BCK,hand[2]+HKS.z*0.75+0.03*BCK);
+  ud.leftHand.position.set(hand[0]+HKS.x*0.6-0.07*BCK-ARMS_OUT[0],hand[1]+HKS.y*0.8-0.035*BCK,hand[2]+HKS.z*0.75+0.03*BCK-ARMS_OUT[2]);
   if(!ud.rhB){ ud.rhB=ud.rightHand.position.clone(); ud.rhR=ud.rightHand.rotation.clone(); }
-  ud.rightHand.position.set(ud.rhB.x+HKS.x+0.07*BCK,ud.rhB.y+HKS.y-0.035*BCK,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
+  ud.rightHand.position.set(ud.rhB.x+HKS.x+0.07*BCK+ARMS_OUT[1],ud.rhB.y+HKS.y-0.035*BCK,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
   ud.mag.position.set(magPos[0],magPos[1],magPos[2]); ud.mag.visible=w.rocket?false:magVis;
   if(w.rocket&&ud.drum){ rocketDrum(w,ud,curDt||0.016); }
   if(ud.mover) ud.mover.position.z=ud.moverBase+sv;
