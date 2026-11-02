@@ -2912,9 +2912,12 @@ function setFlash(w){
 /* spring recoil: [back, rise, roll, side impulses, stiffness, damping] per weapon, so every gun kicks and settles differently */
 var rc={z:0,vz:0,r:0,vr:0,x:0,vx:0,l:0,vl:0}, climb=0, lastShot=-9, swayIn={x:0,y:0}, sway={x:0,y:0,l:0};
 var RCT={laser:[0.9,1.7,0.3,0.08,24,0.5],magnum:[0.58,1.6,0.5,0.12,34,0.55],ar:[0.19,0.23,0.12,0.04,90,0.6],sniper:[0.82,2.06,0.4,0.1,22,0.5],rocket:[0.77,1.8,0.3,0.1,26,0.5],shotgun:[1.02,2.4,0.8,0.15,40,0.5]};
+var HKS={x:0,y:0,z:0,r:0,vx:0,vy:0,vz:0,vr:0}, BK=0;   /* HKS: the hands' own spring, softer than the gun's, so they are shoved back and then lag behind it as it settles; BK: how long the trigger has been held down */
 function recoilKick(w){
-  var t=RCT[w.id]; if(!t) return; var zk=zoomed?0.4:1;
-  rc.vz+=t[0]*zk; rc.vr+=t[1]*zk; rc.vl+=(Math.random()-0.5)*2*t[2]*zk; rc.vx+=(Math.random()-0.5)*2*t[3]*zk;
+  var t=RCT[w.id]; if(!t) return; var zk=zoomed?0.4:1, bf=1+0.4*BK;
+  rc.vz+=t[0]*zk*bf; rc.vr+=t[1]*zk*bf; rc.vl+=(Math.random()-0.5)*2*t[2]*zk*bf; rc.vx+=(Math.random()-0.5)*2*t[3]*zk*bf;
+  HKS.vz+=t[0]*0.3*zk*bf; HKS.vy+=t[1]*0.05*zk*bf*(0.6+Math.random()*0.8); HKS.vx+=(Math.random()-0.5)*t[3]*0.5*zk*bf; HKS.vr+=(t[1]*0.6+(Math.random()-0.5)*t[2])*zk*bf;
+  BK=Math.min(1,BK+0.15);
   climb+=w.kick*zk; lastShot=tAcc;
   var wf=WFLICK[w.id]; if(wf){ MA.jx+=wf[0]*zk; MA.jy+=(Math.random()-0.5)*wf[1]*zk; MA.jz+=(Math.random()-0.5)*wf[2]*zk; }   /* the wrist cocks up a little on every round, a different way each time */
 }
@@ -2929,6 +2932,12 @@ function stepRecoil(dt){
     rc.vz+=(-k*rc.z-cc*rc.vz)*h; rc.z+=rc.vz*h; rc.vr+=(-k*rc.r-cc*rc.vr)*h; rc.r+=rc.vr*h;
     rc.vl+=(-k*rc.l-cc*rc.vl)*h; rc.l+=rc.vl*h; rc.vx+=(-k*rc.x-cc*rc.vx)*h; rc.x+=rc.vx*h;
   }
+  { var hk=k*0.38, hc=2*Math.sqrt(hk)*0.3;
+    for(i=0;i<n;i++){
+      HKS.vz+=(-hk*HKS.z-hc*HKS.vz)*h; HKS.z+=HKS.vz*h; HKS.vy+=(-hk*HKS.y-hc*HKS.vy)*h; HKS.y+=HKS.vy*h;
+      HKS.vx+=(-hk*HKS.x-hc*HKS.vx)*h; HKS.x+=HKS.vx*h; HKS.vr+=(-hk*HKS.r-hc*HKS.vr)*h; HKS.r+=HKS.vr*h;
+    }
+    BK=Math.max(0,BK-dt*1.1); }
   if(tAcc-lastShot>0.14&&climb>0){ var d=Math.min(climb,dt*0.35+climb*dt*3); climb-=d; p.pitch-=d*0.55; }
 }
 var SPN=96, spPos=new Float32Array(SPN*3), spCol=new Float32Array(SPN*3), spVel=new Float32Array(SPN*3), spBase=new Float32Array(SPN*3), spLife=new Float32Array(SPN), spMax=new Float32Array(SPN), spI=0, spAny=false;
@@ -7440,7 +7449,9 @@ function animateWeaponParts(w){
   /* each weapon's own reload flourish, on top of the hand work */
   if(pr>=0&&an.fxP){ var fp=sampleKeys(an.fxP,pr); g.position.x+=fp[0]; g.position.y+=fp[1]; g.position.z+=fp[2]; }
   if(pr>=0&&an.fxR){ var fr=sampleKeys(an.fxR,pr); g.rotation.x+=fr[0]; g.rotation.y+=fr[1]; g.rotation.z+=fr[2]; }
-  ud.leftHand.position.set(hand[0],hand[1],hand[2]);
+  ud.leftHand.position.set(hand[0]+HKS.x*0.6,hand[1]+HKS.y*0.8,hand[2]+HKS.z*0.75);
+  if(!ud.rhB){ ud.rhB=ud.rightHand.position.clone(); ud.rhR=ud.rightHand.rotation.clone(); }
+  ud.rightHand.position.set(ud.rhB.x+HKS.x,ud.rhB.y+HKS.y,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
   ud.mag.position.set(magPos[0],magPos[1],magPos[2]); ud.mag.visible=w.rocket?false:magVis;
   if(w.rocket&&ud.drum){ rocketDrum(w,ud,curDt||0.016); }
   if(ud.mover) ud.mover.position.z=ud.moverBase+sv;
