@@ -5201,7 +5201,7 @@ function tpBack(rg){
 var BCLOW=0, BCK=0;
 function applyCamera(bob){
   camLag*=Math.max(0,1-frameDt*9); if(camLag>0.7) camLag=0.7; else if(camLag<-0.7) camLag=-0.7; if(Math.abs(camLag)<0.001) camLag=0;
-  var bcl=(BC&&BC.on&&!p.inVeh&&!p.air)?0.55:0; BCLOW+=(bcl-BCLOW)*Math.min(1,frameDt*6);   /* bodycam: the camera is clipped to the chest, lower than the eyes */
+  var bcl=(BC&&BC.on&&!p.inVeh&&!p.air)?0.3:0; BCLOW+=(bcl-BCLOW)*Math.min(1,frameDt*6);   /* bodycam: the camera is clipped to the chest, lower than the eyes */
   camera.position.set(p.x,p.y+eyeC()+(bob||0)+camLag-BCLOW*(1-0.4*CR),p.z);
   camera.rotation.y=p.yaw; camera.rotation.x=p.pitch;
   MA.roll+=(-MA.mxs*0.014*(p.onGround?1:0.4)-MA.roll)*Math.min(1,frameDt*8); camera.rotation.z=MA.roll;
@@ -7732,7 +7732,7 @@ function updateWeapon(dt){
   var wb=Math.sin(tAcc*4.6)*moveFrac, bobx=wb*0.03, boby=0, brth=Math.sin(tAcc*1.4)*0.0065+Math.sin(tAcc*0.9+1)*0.002;
   var zs=zoomed?0.3:1;
   vm.position.x=vmBaseX+mp[0]+(rc.x+sway.x+bobx)*zs+dip*0.1;
-  vm.position.y=-0.3-0.05*vmHip+0.14*BCK*vmHip-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
+  vm.position.y=-0.3-0.05*vmHip+0.14*BCK*vmHip-0.26*Math.min(1,BCLOW/0.3)*vmHip-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
   vm.position.z=-0.6-0.2*vmHip+0.05*BCK*vmHip+vmKick*1.6+mp[2]+rc.z*zs*1.4;
   var sf=swU>0.5?swapFlourish(weapons[cur].id,1-ss((swU-0.5)*2)):[0,0,0];
   vm.rotation.set(vmKick*1.7+mp[3]+sf[0]+rc.r*zs-dip*0.9,mp[4]-0.05*zs+sf[1]+sway.x*2.5*zs,mp[5]+sf[2]+(rc.l+sway.l*0.4)*zs+dip*0.35);
