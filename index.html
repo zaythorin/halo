@@ -8753,8 +8753,8 @@ function trEnter(){
   bolt.geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3)); bolt.frustumCulled=false; bolt.visible=false; add(bolt);
   TRN.lt={t:3+Math.random()*4,f:0,th:0,bolt:bolt};
   /* weapon walls: every human gun on the left, the four Covenant guns on the right */
-  var H=[0,1,2,3,4,6,7,8,9].map(function(wi){ return {wi:wi,name:weapons[wi].name}; });
-  var C=[11,12,13,14,15,16,5].map(function(wi){ return {wi:wi,name:weapons[wi].name}; });
+  var H=[0,1,2,3,4,6,7,19,8,9].map(function(wi){ return {wi:wi,name:weapons[wi].name}; });
+  var C=[11,12,13,14,15,16,18,5].map(function(wi){ return {wi:wi,name:weapons[wi].name}; });
   trWallRack(-1,H); trWallRack(1,C);
   var cl=trLabel('COVENANT',4,0.7,'#8dff6a'); cl.position.set(hx-0.2,5.2,0); cl.rotation.y=-Math.PI/2; add(cl);
   var hl2=trLabel('UNSC',4,0.7,'#5fe9ff'); hl2.position.set(-hx+0.2,8.2,0); hl2.rotation.y=Math.PI/2; add(hl2);
