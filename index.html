@@ -5198,9 +5198,11 @@ function tpBack(rg){
   rg.back.position.set(0,R.neck[1]-th*0.35,R.neck[2]-0.2/rg.sf);
   rg.back.visible=!!tpl&&wi!==cur&&!dwOnF;
 }
+var BCLOW=0;
 function applyCamera(bob){
   camLag*=Math.max(0,1-frameDt*9); if(camLag>0.7) camLag=0.7; else if(camLag<-0.7) camLag=-0.7; if(Math.abs(camLag)<0.001) camLag=0;
-  camera.position.set(p.x,p.y+eyeC()+(bob||0)+camLag,p.z);
+  var bcl=(BC&&BC.on&&!p.inVeh&&!p.air)?0.55:0; BCLOW+=(bcl-BCLOW)*Math.min(1,frameDt*6);   /* bodycam: the camera is clipped to the chest, lower than the eyes */
+  camera.position.set(p.x,p.y+eyeC()+(bob||0)+camLag-BCLOW*(1-0.4*CR),p.z);
   camera.rotation.y=p.yaw; camera.rotation.x=p.pitch;
   MA.roll+=(-MA.mxs*0.014*(p.onGround?1:0.4)-MA.roll)*Math.min(1,frameDt*8); camera.rotation.z=MA.roll;
   if(state==='play'&&!p.inVeh&&!p.air){ camFeel(); camLean(); }
