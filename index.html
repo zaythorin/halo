@@ -46,6 +46,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);-
 #res{font-size:14px;color:var(--dim);font-variant-numeric:tabular-nums}
 .empty #mag{color:var(--warn)}
 
+#ui .bsplat{position:absolute;pointer-events:none;border-radius:46% 54% 50% 50%/55% 45% 55% 45%;background:radial-gradient(ellipse at 45% 45%,rgba(110,4,6,.92) 0,rgba(130,8,8,.78) 38%,rgba(90,0,0,.35) 62%,transparent 72%);filter:blur(.6px);animation:bsp 4.2s ease-in forwards;z-index:2}
+@keyframes bsp{0%{opacity:0;scale:.5}6%{opacity:1;scale:1}70%{opacity:.85}100%{opacity:0;scale:1.08;translate:0 4vmin}}
 #bcam{position:absolute;left:3vmin;top:3vmin;display:flex;gap:1.4vmin;align-items:center;font:700 clamp(10px,2vmin,18px)/1 'Courier New',monospace;color:#e8e8e8;text-shadow:0 0 4px #000,0 0 8px #000;letter-spacing:.08em;pointer-events:none;z-index:3}
 #bcam .dot{width:1.6vmin;height:1.6vmin;border-radius:50%;background:#ff2a2a;box-shadow:0 0 8px #f22;animation:bcb 1.1s steps(2) infinite}
 #bcam .rec{color:#ff4a4a}#bcam .bat,#bcam .lbl{opacity:.75}
@@ -5008,6 +5010,28 @@ function shFxTick(dt){
   var g=(play&&p.rch&&p.shield<100)?(0.35+0.25*Math.sin(tAcc*7)):0;
   if(Math.abs(g-SHFX.lastG)>0.03){ SHFX.lastG=g; SHFX.glow.style.opacity=g.toFixed(2); }
 }
+/* blood on the lens: dark splatters flung towards the side the hit came from, drying and fading over a few seconds */
+function bloodSplat(ang,n){
+  var ui=$('ui'); if(!ui) return;
+  var k=Math.min(3,1+Math.floor(n/25)), i;
+  for(i=0;i<k;i++){
+    var a=(ang+(Math.random()-0.5)*50)*Math.PI/180, r=30+Math.random()*16, el=document.createElement('div'), sz=14+Math.random()*16+n*0.12;
+    el.className='bsplat'; el.style.cssText='left:'+(50+Math.sin(a)*r).toFixed(1)+'%;top:'+(50-Math.cos(a)*r*0.8).toFixed(1)+'%;width:'+sz.toFixed(1)+'vmin;height:'+(sz*(0.7+Math.random()*0.5)).toFixed(1)+'vmin;transform:translate(-50%,-50%) rotate('+Math.floor(Math.random()*360)+'deg)';
+    ui.appendChild(el); setTimeout(function(e){ if(e.parentNode) e.parentNode.removeChild(e); }.bind(null,el),4200);
+  }
+  var all=ui.querySelectorAll('.bsplat'); while(all.length>9&&all[0]){ all[0].remove(); all=ui.querySelectorAll('.bsplat'); if(all.length<=9) break; }
+}
+/* tinnitus after a big hit or a nearby explosion: a thin high whine that fades, and the world goes dull for a moment */
+var EAR={t:0};
+function earRing(k){
+  if(!ac||!master||(tAcc-EAR.t<1.5&&k<0.5)) return; k=Math.max(0.2,Math.min(1,k)); EAR.t=tAcc;
+  try{
+    var o=ac.createOscillator(), g=ac.createGain(), t0=ac.currentTime, d=1.2+2.6*k; o.type='sine'; o.frequency.value=7400+Math.random()*900;
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.03*k,t0+0.05); g.gain.setValueAtTime(0.03*k,t0+0.3); g.gain.exponentialRampToValueAtTime(0.0008,t0+d);
+    o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+d+0.1);
+    var m0=master.gain.value; master.gain.cancelScheduledValues(t0); master.gain.setValueAtTime(m0,t0); master.gain.linearRampToValueAtTime(m0*(1-0.55*k),t0+0.05); master.gain.linearRampToValueAtTime(m0,t0+d);
+  }catch(e){}
+}
 function hurt(n){
   if(EQ.inD&&!p.isRemote){ return; }
   if(p.isRemote){ mpSend({t:'hurt',n:n,dx:hitDir.x,dz:hitDir.z}); return; }
@@ -5016,6 +5040,8 @@ function hurt(n){
   if(p.inVeh&&!GN.on&&!MG.seat){ damageVehicle(n*0.8); return; }
   MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7);
   if(hitDir.x||hitDir.z){ var ax=-hitDir.x, az=-hitDir.z, al=Math.hypot(ax,az)||1; ax/=al; az/=al; var sn0=Math.sin(p.yaw), cs0=Math.cos(p.yaw); dmgAng=Math.atan2(ax*cs0-az*sn0,-ax*sn0-az*cs0)*57.2958; dmgT=0.9; dmgSh=shAbs&&p.shield>=n; }
+  if(p.health-Math.max(0,n-p.shield-(p.ov||0))<85||n>=18){ try{ bloodSplat((hitDir.x||hitDir.z)?dmgAng:Math.random()*360,n); }catch(e){} }
+  if(n>=40) earRing(n/90);
   if(p.ov>0){ var oa=Math.min(p.ov,n); p.ov-=oa; n-=oa; shHitT=0.4; if(p.ov<=0){ sfx.shieldBreak(); SHFX.brk=0.7; showToast('OVERSHIELD DOWN'); } if(n<=0) return; }
   if(shAbs) shHitT=0.4;
   if(p.shield>0){ var a=Math.min(p.shield,n); p.shield-=a; n-=a; if(p.shield<=0){ sfx.shieldBreak(); SHFX.brk=0.7; } }
@@ -5169,8 +5195,28 @@ function applyCamera(bob){
   camera.position.set(p.x,p.y+eyeC()+(bob||0)+camLag,p.z);
   camera.rotation.y=p.yaw; camera.rotation.x=p.pitch;
   MA.roll+=(-MA.mxs*0.014*(p.onGround?1:0.4)-MA.roll)*Math.min(1,frameDt*8); camera.rotation.z=MA.roll;
-  if(state==='play'&&!p.inVeh&&!p.air) camFeel();
+  if(state==='play'&&!p.inVeh&&!p.air){ camFeel(); camLean(); }
   if(tpWanted()) tpCamera();
+}
+/* lean round a corner (J left, L right): the head and shoulders slide out and the view rolls, the gun goes with it, and shots leave from the leaned position. Breath hold (hold SHIFT while zoomed in): the scope's natural drift almost stops for about four seconds, then you have to exhale and it sways wildly for a moment */
+var LEAN={k:0}, BRH={t:0,hold:false,rec:0,k:1,sd:0};
+function camLean(){
+  var dt=frameDt, tg=((keys.KeyL?1:0)-(keys.KeyJ?1:0))*(MA.sprint>0.3?0:1);
+  LEAN.k+=(tg-LEAN.k)*Math.min(1,dt*9);
+  if(Math.abs(LEAN.k)>0.002){
+    var o=LEAN.k*0.34; camera.position.x+=Math.cos(p.yaw)*o; camera.position.z+=-Math.sin(p.yaw)*o; camera.position.y-=Math.abs(LEAN.k)*0.06; camera.rotation.z-=LEAN.k*0.2;
+  }
+  var want=zoomed&&!p.inVeh&&(keys.ShiftLeft||keys.ShiftRight)&&BRH.rec<=0;
+  if(want&&BRH.t<4){ if(!BRH.hold){ BRH.hold=true; noise(0.35,0.06,'bandpass',700,260); } BRH.t+=dt; }
+  else{ if(BRH.hold){ BRH.hold=false; if(BRH.t>=4){ BRH.rec=1.8; noise(0.5,0.09,'bandpass',900,300); } else noise(0.3,0.05,'bandpass',800,300); } BRH.t=Math.max(0,BRH.t-dt*(BRH.rec>0?0.2:0.8)); }
+  if(BRH.rec>0) BRH.rec=Math.max(0,BRH.rec-dt);
+  var tk=BRH.hold?0.1:(BRH.rec>0?2.2:1); BRH.k+=(tk-BRH.k)*Math.min(1,dt*(BRH.hold?5:3));
+  if(zoomed&&!p.inVeh){
+    /* slow figure-of-eight drift of the aim point, the more so the longer you have been aiming */
+    BRH.sd=Math.min(1,BRH.sd+dt*0.4);
+    var a=BRH.k*(0.7+0.3*BRH.sd), tt=tAcc;
+    camera.rotation.x+=(Math.sin(tt*1.1)*0.0026+Math.sin(tt*2.3+0.7)*0.0011)*a; camera.rotation.y+=(Math.cos(tt*0.9)*0.0026+Math.sin(tt*1.9+1.1)*0.0011)*a;
+  } else BRH.sd=0;
 }
 /* life in the view: footstep dip and sway, a stronger rolling bob when sprinting, heaving breath after a long run (with panting), a thump on landing, a heartbeat throb when hurt, a jolt when hit */
 var CF={step:0,pt:0,hb:0};
@@ -8004,6 +8050,7 @@ function blast(g){
   spawnBlastFx(P,g.kind,R,g.fuel);
   if(g.fuel) gsfx.fuelBoom(dp); else if(g.kind==='plasma') gsfx.plasmaBoom(dp); else gsfx.fragBoom(dp);
   if(dp<24){ shakeAmp=Math.max(shakeAmp,0.04*(1-dp/24)); shakeT=0.45; }
+  if(dp<14) earRing(1-dp/14);
   for(i=0;i<enemies.length;i++){
     var e=enemies[i]; if(e.dead||g.foe) continue;
     var cy=e.group.position.y+1.1*e.sc, dx=e.x-P.x, dy=cy-P.y, dz=e.z-P.z, dist=Math.sqrt(dx*dx+dy*dy+dz*dz), direct=(g.sTo===e);
@@ -9635,22 +9682,23 @@ function frame(now){
   if(BC.on){ try{ bcRender(); }catch(e){ BC.on=false; bcLabel(); renderer.setRenderTarget(null); renderer.render(scene,camera); } } else renderer.render(scene,camera);
 }
 /* ================= BODYCAM VIEW: the game seen through a chest camera. The scene is drawn to a texture and redrawn through a wide fisheye lens with colour fringing, film grain, a dark vignette, handheld jolts on every shot and step, and a blur when you are hit. Toggle it in the pause menu (it is off by default) ================= */
-var BC={on:false,rt:null,sc:null,cam:null,mat:null,w:0,h:0,sx:0,sy:0,tm:-1};
+var BC={on:false,rt:null,sc:null,cam:null,mat:null,w:0,h:0,sx:0,sy:0,tm:-1,bx:0,by:0};
 try{ BC.on=localStorage.getItem('halo-bc')==='1'; }catch(e){}
 function bcLabel(){ var b=$('pBody'); if(b) b.textContent='BODYCAM VIEW: '+(BC.on?'ON':'OFF'); var u=$('bcam'); if(u) u.hidden=!BC.on; }
 function bcInit(w,h){
   if(!BC.sc){
     BC.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1); BC.sc=new THREE.Scene();
     BC.mat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,
-      uniforms:{tD:{value:null},uT:{value:0},uH:{value:0},uS:{value:new THREE.Vector2()},uR:{value:new THREE.Vector2(w,h)}},
+      uniforms:{tD:{value:null},uT:{value:0},uH:{value:0},uB:{value:new THREE.Vector2()},uS:{value:new THREE.Vector2()},uR:{value:new THREE.Vector2(w,h)}},
       vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }',
-      fragmentShader:'uniform sampler2D tD; uniform float uT,uH; uniform vec2 uS,uR; varying vec2 vUv;\n'+
+      fragmentShader:'uniform sampler2D tD; uniform float uT,uH; uniform vec2 uS,uR,uB; varying vec2 vUv;\n'+
       'float hs(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }\n'+
       'void main(){\n'+
       '  float as=uR.x/uR.y; vec2 c=vUv-0.5; c.x*=as; float r2=dot(c,c);\n'+
       '  vec2 d=c*(1.0+0.22*r2)*0.9; d.x/=as; vec2 uv=d+0.5+uS;\n'+
       '  vec2 dir=normalize(c+vec2(1e-5))*vec2(1.0/as,1.0)*(0.0016+0.005*r2+0.008*uH);\n'+
       '  vec3 col=vec3(texture2D(tD,uv+dir).r,texture2D(tD,uv).g,texture2D(tD,uv-dir).b);\n'+
+      '  if(abs(uB.x)+abs(uB.y)>0.0006){ vec3 m=col; for(int i=1;i<=5;i++){ float f=float(i)/5.0-0.5; m+=texture2D(tD,uv+uB*f).rgb; } col=m/6.0; }\n'+
       '  if(uH>0.02){ vec2 o=vec2(0.0045,0.0045)*uH; vec3 a=texture2D(tD,uv+vec2(o.x,0.0)).rgb+texture2D(tD,uv-vec2(o.x,0.0)).rgb+texture2D(tD,uv+vec2(0.0,o.y)).rgb+texture2D(tD,uv-vec2(0.0,o.y)).rgb; col=mix(col,a*0.25,min(0.65,uH)); }\n'+
       '  float l=dot(col,vec3(0.299,0.587,0.114)); col=mix(vec3(l),col,0.9-0.45*uH); col=(col-0.5)*1.08+0.52;\n'+
       '  float vg=smoothstep(1.08,0.3,length(c*vec2(1.0,1.12))*1.3); col*=mix(0.4,1.0,vg);\n'+
@@ -9674,6 +9722,10 @@ function bcRender(){
   BC.sx+=((Math.random()-0.5)*tg*2+Math.sin(tAcc*9.2)*0.0014*mv+Math.sin(tAcc*0.9)*0.0006-BC.sx)*Math.min(1,frameDt*30);
   BC.sy+=((Math.random()-0.5)*tg*2+Math.abs(Math.sin(tAcc*9.2))*0.0022*mv+Math.sin(tAcc*0.7+1)*0.0006-BC.sy)*Math.min(1,frameDt*30);
   u.uS.value.set(BC.sx,BC.sy);
+  var dy=p.yaw-(BC.py===undefined?p.yaw:BC.py), dp2=p.pitch-(BC.pp===undefined?p.pitch:BC.pp); BC.py=p.yaw; BC.pp=p.pitch;
+  if(dy>Math.PI) dy-=2*Math.PI; else if(dy<-Math.PI) dy+=2*Math.PI;
+  var fx=camera.fov*Math.PI/180, bx=Math.max(-0.05,Math.min(0.05,dy/(fx*camera.aspect)*0.6)), by=Math.max(-0.05,Math.min(0.05,-dp2/fx*0.6));
+  BC.bx+=((bx)-(BC.bx||0))*Math.min(1,frameDt*25); BC.by+=((by)-(BC.by||0))*Math.min(1,frameDt*25); u.uB.value.set(BC.bx,BC.by);
   var sec=Math.floor(tAcc); if(sec!==BC.tm){ BC.tm=sec; var t=$('bcT'); if(t){ var d=new Date(), z=function(n){ return (n<10?'0':'')+n; }; t.textContent=z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()); } }
   renderer.setRenderTarget(BC.rt); renderer.clear(); renderer.render(scene,camera); renderer.setRenderTarget(null);
   renderer.render(BC.sc,BC.cam);
