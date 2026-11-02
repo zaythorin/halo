@@ -5263,7 +5263,7 @@ function updateLook(){
   p.pitch=Math.max(-1.45,Math.min(1.45,p.pitch));
 }
 function updateFov(dt){
-  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV+5*MA.sprint;   /* sprinting widens the view a little */
+  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV+(BC&&BC.on?22:0)+5*MA.sprint;   /* sprinting widens the view a little */
   if(Math.abs(camera.fov-ft)>0.05){ camera.fov+=(ft-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); }
 }
 var HINTS={seen:{},bT:0,hT:0}, _sfD=new THREE.Vector3(), _sfP=new THREE.Vector3();
@@ -9706,13 +9706,15 @@ function bcInit(w,h){
       'float hs(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }\n'+
       'void main(){\n'+
       '  float as=uR.x/uR.y; vec2 c=vUv-0.5; c.x*=as; float r2=dot(c,c);\n'+
-      '  vec2 d=c*(1.0+0.22*r2)*0.9; d.x/=as; vec2 uv=d+0.5+uS;\n'+
-      '  vec2 dir=normalize(c+vec2(1e-5))*vec2(1.0/as,1.0)*(0.0016+0.005*r2+0.008*uH);\n'+
+      '  vec2 d=c*(1.0+0.3*r2)*0.8; d.x/=as; vec2 uv=d+0.5+uS;\n'+
+      '  vec2 dir=normalize(c+vec2(1e-5))*vec2(1.0/as,1.0)*(0.0022+0.016*r2+0.008*uH);\n'+
       '  vec3 col=vec3(texture2D(tD,uv+dir).r,texture2D(tD,uv).g,texture2D(tD,uv-dir).b);\n'+
       '  if(abs(uB.x)+abs(uB.y)>0.0006){ vec3 m=col; for(int i=1;i<=5;i++){ float f=float(i)/5.0-0.5; m+=texture2D(tD,uv+uB*f).rgb; } col=m/6.0; }\n'+
       '  if(uH>0.02){ vec2 o=vec2(0.0045,0.0045)*uH; vec3 a=texture2D(tD,uv+vec2(o.x,0.0)).rgb+texture2D(tD,uv-vec2(o.x,0.0)).rgb+texture2D(tD,uv+vec2(0.0,o.y)).rgb+texture2D(tD,uv-vec2(0.0,o.y)).rgb; col=mix(col,a*0.25,min(0.65,uH)); }\n'+
-      '  float l=dot(col,vec3(0.299,0.587,0.114)); col=mix(vec3(l),col,0.9-0.45*uH); col=(col-0.5)*1.08+0.52;\n'+
-      '  float vg=smoothstep(1.08,0.3,length(c*vec2(1.0,1.12))*1.3); col*=mix(0.4,1.0,vg);\n'+
+      '  vec3 bl=(texture2D(tD,uv+vec2(0.012,0.0)).rgb+texture2D(tD,uv-vec2(0.012,0.0)).rgb+texture2D(tD,uv+vec2(0.0,0.02)).rgb+texture2D(tD,uv-vec2(0.0,0.02)).rgb)*0.25; col+=max(bl-0.65,0.0)*0.9;\n'+
+      '  float l=dot(col,vec3(0.299,0.587,0.114)); col=mix(vec3(l),col,0.82-0.45*uH); col=(col-0.5)*1.06+0.52; col*=1.08;\n'+
+      '  float rr=length(c); col*=mix(0.12,1.0,smoothstep(1.04,0.86,rr)); col*=mix(0.8,1.0,smoothstep(0.9,0.3,rr));\n'+
+      '  float ring=smoothstep(0.78,0.97,rr)*(1.0-smoothstep(0.99,1.06,rr)); col+=vec3(0.42,0.2,0.04)*ring*(0.35+0.65*l);\n'+
       '  col+=(hs(vUv*uR+vec2(fract(uT)*91.7,fract(uT*1.7)*53.1))-0.5)*0.08;\n'+
       '  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0) col=vec3(0.0);\n'+
       '  gl_FragColor=vec4(col,1.0);\n}'});
