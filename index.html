@@ -138,7 +138,12 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #bReload{right:calc(172px + var(--sr));bottom:calc(86px + var(--sb))}
 #bSwap{right:calc(14px + var(--sr));bottom:calc(166px + var(--sb))}
 #bInspect{right:calc(14px + var(--sr));bottom:calc(226px + var(--sb));width:76px;height:40px;font-size:10px}
-@media (pointer:fine){#bInspect{display:none}}
+@media (pointer:fine){#bInspect,#bLeanL,#bLeanR,#bBreath{display:none}}
+#bLeanL{left:calc(14px + var(--sl));bottom:calc(300px + var(--sb));width:70px;height:40px;font-size:10px}
+#bLeanR{left:calc(92px + var(--sl));bottom:calc(300px + var(--sb));width:70px;height:40px;font-size:10px}
+#bBreath{right:calc(98px + var(--sr));bottom:calc(226px + var(--sb));width:84px;height:40px;font-size:10px;display:none}
+#ui.scoped #bBreath{display:flex}
+#ui.driving #bLeanL,#ui.driving #bLeanR,#ui.driving #bBreath{display:none}
 #ui.driving #bInspect{display:none}
 #bZoom{right:calc(110px + var(--sr));bottom:calc(196px + var(--sb))}
 #bSprint{left:calc(22px + var(--sl));bottom:calc(214px + var(--sb))}
@@ -552,6 +557,9 @@ body{letter-spacing:.02em}
   <button type="button" class="btn" id="bReload">RELOAD</button>
   <button type="button" class="btn" id="bSwap">SWAP</button>
   <button type="button" class="btn" id="bInspect">INSPECT</button>
+  <button type="button" class="btn" id="bLeanL">LEAN L</button>
+  <button type="button" class="btn" id="bLeanR">LEAN R</button>
+  <button type="button" class="btn" id="bBreath">HOLD BREATH</button>
   <button type="button" class="btn" id="bZoom">ZOOM</button>
   <button type="button" class="btn" id="bSprint">SPRINT</button>
   <button type="button" class="btn" id="bCrouch">CROUCH</button>
@@ -9571,6 +9579,9 @@ $('bScore').addEventListener('pointerup',function(){ sbShow(false); });
 $('bScore').addEventListener('pointercancel',function(){ sbShow(false); });
 hold($('bReload'),startReload);
 hold($('bInspect'),weaponInspect);
+hold($('bLeanL'),function(){ keys.KeyJ=true; },function(){ keys.KeyJ=false; });
+hold($('bLeanR'),function(){ keys.KeyL=true; },function(){ keys.KeyL=false; });
+hold($('bBreath'),function(){ keys.ShiftLeft=true; },function(){ keys.ShiftLeft=false; });
 hold($('bSwap'),swapWeapon);
 hold($('bZoom'),toggleZoom);
 hold($('bDual'),dwToggle);
