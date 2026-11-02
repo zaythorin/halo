@@ -5198,7 +5198,7 @@ function tpBack(rg){
   rg.back.position.set(0,R.neck[1]-th*0.35,R.neck[2]-0.2/rg.sf);
   rg.back.visible=!!tpl&&wi!==cur&&!dwOnF;
 }
-var BCLOW=0;
+var BCLOW=0, BCK=0;
 function applyCamera(bob){
   camLag*=Math.max(0,1-frameDt*9); if(camLag>0.7) camLag=0.7; else if(camLag<-0.7) camLag=-0.7; if(Math.abs(camLag)<0.001) camLag=0;
   var bcl=(BC&&BC.on&&!p.inVeh&&!p.air)?0.55:0; BCLOW+=(bcl-BCLOW)*Math.min(1,frameDt*6);   /* bodycam: the camera is clipped to the chest, lower than the eyes */
@@ -7717,7 +7717,8 @@ function updateWeapon(dt){
   var swU=swapT>0?1-swapT/0.4:0, dip=swapT>0?Math.sin(swU*Math.PI)*0.5:0;
   if(throwT>0) dip=Math.max(dip,Math.sin(Math.PI*(1-throwT/THROW_DUR))*0.3);
   /* hip-fire: the gun is big and tucked into the bottom-right corner like Halo 3; aiming brings it in towards the middle and a little smaller */
-  var tx=zoomed?0.04:0.38;
+  BCK+=(((BC&&BC.on)?1:0)-BCK)*Math.min(1,dt*6);   /* bodycam: the rifle is held out straight in front of the chest, both hands on it, instead of tucked into the corner */
+  var tx=zoomed?0.04:0.38-0.33*BCK;
   vmBaseX+=(tx-vmBaseX)*Math.min(1,dt*14);
   AIMK+=((zoomed?1:0)-AIMK)*Math.min(1,dt*(zoomed?9:12)); if(Math.abs(AIMK-(zoomed?1:0))<0.004) AIMK=zoomed?1:0;
   vmHip+=((zoomed?0:1)-vmHip)*Math.min(1,dt*14); vm.scale.setScalar(1.38+1.32*vmHip);
@@ -7731,8 +7732,8 @@ function updateWeapon(dt){
   var wb=Math.sin(tAcc*4.6)*moveFrac, bobx=wb*0.03, boby=0, brth=Math.sin(tAcc*1.4)*0.0065+Math.sin(tAcc*0.9+1)*0.002;
   var zs=zoomed?0.3:1;
   vm.position.x=vmBaseX+mp[0]+(rc.x+sway.x+bobx)*zs+dip*0.1;
-  vm.position.y=-0.3-0.05*vmHip-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
-  vm.position.z=-0.6-0.2*vmHip+vmKick*1.6+mp[2]+rc.z*zs*1.4;
+  vm.position.y=-0.3-0.05*vmHip+0.14*BCK*vmHip-dip+Math.sin(tAcc*9)*0.004*moveFrac+mp[1]+(sway.y-boby+brth)*zs;
+  vm.position.z=-0.6-0.2*vmHip+0.05*BCK*vmHip+vmKick*1.6+mp[2]+rc.z*zs*1.4;
   var sf=swU>0.5?swapFlourish(weapons[cur].id,1-ss((swU-0.5)*2)):[0,0,0];
   vm.rotation.set(vmKick*1.7+mp[3]+sf[0]+rc.r*zs-dip*0.9,mp[4]-0.05*zs+sf[1]+sway.x*2.5*zs,mp[5]+sf[2]+(rc.l+sway.l*0.4)*zs+dip*0.35);
   { var atr=AIMK*(1-AIMK)*4;   /* the gun is hauled up and in toward the face as you raise it, then settles */
