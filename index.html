@@ -2665,7 +2665,12 @@ function buildAR(){
   var mz=new THREE.Object3D(); mz.position.set(COVM.ar.muzzle[0],COVM.ar.muzzle[1],COVM.ar.muzzle[2]); g.add(mz);
   var lh=makeHand(true), rh=makeHand(false); lh.rotation.set(0.55,-0.35,0);
   g.add(lh); rh.position.set(0.0,-0.13,0.03); rh.rotation.set(0.6,0.3,0); g.add(rh);
-  g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh};
+  /* the ammo counter on the rear of the top sight, facing the shooter; redrawn whenever the count changes */
+  var cv=document.createElement('canvas'); cv.width=128; cv.height=140; var tx=new THREE.CanvasTexture(cv); tx.anisotropy=4;
+  var sm=new THREE.Mesh(new THREE.PlaneGeometry(0.034,0.037),new THREE.MeshBasicMaterial({map:tx,transparent:true,fog:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  sm.position.set(0,0.109,-0.257); g.add(sm);
+  g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh,scC:cv,scT:tx,scN:-1,scR:false};
+  dmrDraw(g.userData,32,32,false);
   return g;
 }
 function buildLaser(){
@@ -7660,7 +7665,7 @@ function updateWeapon(dt){
   }
   rover.flash.visible=false;
   var w=weapons[cur];
-  if(w.id==='dmr'){ var du=w.group.userData; if(du.scN!==w.mag||du.scR!==reloading){ du.scN=w.mag; du.scR=reloading; dmrDraw(du,w.mag,w.magSize,reloading); } }
+  if(w.id==='dmr'||w.id==='ar'){ var du=w.group.userData; if(du.scN!==w.mag||du.scR!==reloading){ du.scN=w.mag; du.scR=reloading; dmrDraw(du,w.mag,w.magSize,reloading); } }
   w.slideKick=Math.max(0,w.slideKick-dt*(w.kickDecay||0.8));
   if(boltT>0){ boltT-=dt; if(boltT<=0&&!reloading&&swapT<=0) sfx.bolt(); }
   if(meleeT>0){
