@@ -9258,6 +9258,7 @@ function gameOver(){
   $('oWave').textContent=Math.max(1,wave.n); $('oKills').textContent=kills; $('oHeads').textContent=heads;
   $('oScore').textContent=score; $('oBest').textContent=best;
   $('ui').hidden=true; sfx.hurt();
+  try{ bcDeadSet(true); }catch(e){}
   try{ startRagdoll(); }catch(err){ rag=null; state='over'; $('over').hidden=false; }
 }
 /* title music: the theme plays on the main menu and fades out when you deploy */
@@ -9929,7 +9930,7 @@ function frame(now){
   if(bcDeadOn&&state!=='dying') bcDeadSet(false);
   tAcc+=dt; updateNight(dt); updateCruiser(tAcc);
   if(state==='dying'||state==='over'){
-    deathT+=dt; updateRagdoll(dt); bcDeadSet(BC.on&&state==='dying'&&deathT>0.7);
+    deathT+=dt; updateRagdoll(dt); bcDeadSet(state==='dying');
     if(state==='dying'){
       updateGrenades(dt); updateRockets(dt);
       if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ updateShips(dt); for(var di=enemies.length-1;di>=0;di--) updateEnemyMP(enemies[di],dt); }
@@ -9964,7 +9965,11 @@ function frame(now){
   if(BC.on){ try{ bcRender(); }catch(e){ BC.on=false; bcLabel(); renderer.setRenderTarget(null); renderer.render(scene,camera); } } else renderer.render(scene,camera);
 }
 /* ================= BODYCAM VIEW: the game seen through a chest camera. The scene is drawn to a texture and redrawn through a wide fisheye lens with colour fringing, film grain, a dark vignette, handheld jolts on every shot and step, and a blur when you are hit. Toggle it in the pause menu (it is off by default) ================= */
-var bcDeadOn=false; function bcDeadSet(on){ if(on===bcDeadOn) return; bcDeadOn=on; try{ var e=$('bcDead'); e.style.display=on?'flex':'none'; }catch(err){} }
+var bcDeadOn=false; function bcDeadSet(on){
+  if(on&&!(BC&&BC.on)) on=false;   /* only in the bodycam view */
+  if(on===bcDeadOn) return; bcDeadOn=on;
+  try{ var e=$('bcDead'); if(e.parentNode!==document.body) document.body.appendChild(e);   /* it used to sit inside #ui, which is hidden the moment you die */
+    e.style.display=on?'flex':'none'; }catch(err){} }
 var BC={on:false,rt:null,sc:null,cam:null,mat:null,w:0,h:0,sx:0,sy:0,tm:-1,bx:0,by:0};
 try{ BC.on=localStorage.getItem('halo-bc')==='1'; }catch(e){}
 function bcLabel(){ var b=$('pBody'); if(b) b.textContent='BODYCAM VIEW: '+(BC.on?'ON':'OFF'); var u=$('bcam'); if(u) u.hidden=!BC.on; }
@@ -12469,7 +12474,7 @@ function mpOppNear(P){
 /* ---- death and respawn ---- */
 function mpOnDeath(){
   kcClear();
-  state='dying'; MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
+  state='dying'; try{ bcDeadSet(true); }catch(e){} MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   vm.visible=false; heldG.frag.visible=false; heldG.plasma.visible=false; throwT=0; throwDone=true;
