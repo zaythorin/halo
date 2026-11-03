@@ -548,7 +548,73 @@ body{letter-spacing:.02em}
   <div id="mpHud" hidden></div>
   <div id="banner"></div>
   <div id="toast"></div>
-  <div id="bcDead" style="display:none;position:fixed;inset:0;z-index:60;background:#000;color:#e8e8e8;font-family:'Courier New',monospace;align-items:center;justify-content:center;flex-direction:column;text-align:center;pointer-events:none"><div style="font-size:clamp(20px,4.6vw,46px);letter-spacing:.18em;font-weight:bold;animation:bcDf 1.1s steps(2,end) infinite">CONNECTION TERMINATED</div><div style="margin-top:14px;font-size:clamp(11px,1.8vw,16px);letter-spacing:.3em;opacity:.6">NO SIGNAL</div></div><style>@keyframes bcDf{0%{opacity:1}45%{opacity:1}50%{opacity:.35}55%{opacity:1}100%{opacity:1}}</style>
+  <div id="bcDead" style="display:none;position:fixed;inset:0;z-index:60;background:#000;color:#e8e8e8;font-family:'Courier New',monospace;align-items:center;justify-content:center;flex-direction:column;text-align:center;pointer-events:none"><div style="font-size:clamp(20px,4.6vw,46px);letter-spacing:.18em;font-weight:bold;animation:bcDf 1.1s steps(2,end) infinite">CONNECTION TERMINATED</div><div style="margin-top:14px;font-size:clamp(11px,1.8vw,16px);letter-spacing:.3em;opacity:.6">NO SIGNAL</div></div><style>@keyframes bcDf{0%{opacity:1}45%{opacity:1}50%{opacity:.35}55%{opacity:1}100%{opacity:1}}
+/* ---- Halo Infinite style main menu: tab bar on top, a big list on the left with a line of text under it, a banner and the latest update on the right ---- */
+#menu .menuWrap{display:none}
+#menuShade{background:linear-gradient(90deg,rgba(2,8,20,.55) 0,rgba(2,8,20,.12) 45%,rgba(2,8,20,0) 70%),linear-gradient(0deg,rgba(2,8,20,.7) 0,rgba(2,8,20,0) 30%),linear-gradient(180deg,rgba(2,8,20,.5) 0,rgba(2,8,20,0) 22%)}
+#hmTabs{position:absolute;z-index:4;left:clamp(12px,3vw,58px);top:calc(clamp(12px,4.5vh,44px) + env(safe-area-inset-top,0px));display:flex;gap:clamp(6px,1vw,14px);align-items:center}
+.hmTab{position:relative;font-family:var(--font-ui);font-weight:700;font-size:clamp(13px,2.5vh,21px);letter-spacing:.24em;padding:clamp(8px,1.6vh,14px) clamp(14px,2vw,28px);padding-left:calc(clamp(14px,2vw,28px) + .24em);color:#dbe8f6;background:rgba(10,22,40,.32);border:2px solid rgba(215,230,246,.5);border-radius:0;cursor:pointer;text-transform:uppercase}
+.hmTab:hover,.hmTab:focus-visible{background:rgba(120,170,230,.25);color:#fff;outline:none}
+.hmTab.on{background:rgba(12,26,48,.15);color:#fff;border:3px solid #fff;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+.hmTab b{position:absolute;right:6px;top:5px;width:9px;height:9px;border-radius:50%;background:#ff5a46;box-shadow:0 0 6px #ff5a46}
+.hk{display:inline-block;font:700 11px/16px var(--font-ui);font-style:normal;width:17px;height:17px;text-align:center;background:#e8eef6;color:#10202f;border-radius:2px}
+#hmNet{position:absolute;z-index:4;right:clamp(12px,2.4vw,50px);top:calc(clamp(12px,4.5vh,44px) + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:8px;font:700 11px var(--font-ui);letter-spacing:.22em;color:#cfe3f5;background:rgba(10,20,34,.55);padding:7px 12px}
+#hmNetDot{width:9px;height:9px;border-radius:50%;background:#ff5a46}
+#hmNet.on #hmNetDot{background:#5ff0a0;box-shadow:0 0 6px #5ff0a0}
+.hmPane{position:absolute;inset:0;z-index:2;display:none}
+.hmPane.on{display:block}
+.hmList{position:absolute;z-index:3;left:clamp(14px,5vw,96px);bottom:clamp(60px,15vh,180px);width:min(420px,90vw);max-height:62vh;overflow:auto}
+.hmItem{display:block;width:100%;text-align:left;font-family:var(--font-ui);font-weight:700;font-size:clamp(14px,2.7vh,22px);letter-spacing:.24em;padding:clamp(10px,2vh,17px) 22px;color:#fff;background:rgba(6,14,28,.12);border:0;border-bottom:1px solid rgba(255,255,255,.28);border-radius:0;cursor:pointer;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.hmItem.sel,.hmItem:hover,.hmItem:focus-visible{background:#f4f7fb;color:#0b1724;text-shadow:none;outline:none;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.hmDesc{margin:16px 2px 0;font:italic 500 clamp(12px,2.1vh,17px)/1.45 var(--font-ui);letter-spacing:.05em;color:#dbe8f6;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#menu .hmList .devp{margin-top:12px;padding:0}
+.hmBanner{position:absolute;z-index:3;right:clamp(14px,3vw,70px);top:clamp(70px,15vh,150px);width:min(500px,46vw);height:clamp(90px,18vh,150px);border:2px solid rgba(255,255,255,.85);background:linear-gradient(110deg,rgba(18,40,74,.7),rgba(40,80,130,.35));display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.hmBanner #menuLogoBox{position:static;transform:none;left:auto;right:auto;top:auto}
+.hmBanner #menuLogoTxt{font-size:clamp(28px,6vh,60px);line-height:1;margin:0}
+.hmBanner #menuSub{font-size:clamp(10px,1.9vh,17px);margin-top:2px}
+.hmBanner .tag{display:block!important;margin-top:6px;font-size:clamp(9px,1.5vh,12px);letter-spacing:.4em;color:#bfd3ea}
+.hmH{font:700 clamp(12px,2.2vh,17px) var(--font-ui);letter-spacing:.24em;color:#e8f0fa;margin:0 0 8px;text-shadow:0 1px 5px rgba(0,0,0,.7)}
+.hmNewsWrap{position:absolute;z-index:3;right:clamp(14px,3vw,70px);bottom:clamp(60px,10vh,110px);width:min(500px,46vw);top:calc(clamp(70px,15vh,150px) + clamp(90px,18vh,150px) + 26px)}
+.hmNewsWrap .hmNews{height:calc(100% - 28px)}
+.hmNews{overflow:auto;border:2px solid rgba(255,255,255,.85);background:linear-gradient(180deg,rgba(20,44,78,.55),rgba(10,24,46,.6));padding:14px 18px;font:500 clamp(12px,1.9vh,15px)/1.5 var(--font-ui);color:#e2ecf8;-webkit-overflow-scrolling:touch}
+.hmNews h3{margin:0 0 2px;font:700 clamp(15px,2.6vh,21px) var(--font-ui);letter-spacing:.14em;color:#fff}
+.hmNews .dt{font:700 11px var(--font-ui);letter-spacing:.22em;color:#8fc4f0;margin-bottom:8px}
+.hmNews h4{margin:11px 0 3px;font:700 12px var(--font-ui);letter-spacing:.2em;color:#9fd2ff}
+.hmNews ul{margin:0;padding-left:18px}.hmNews li{margin:2px 0}
+/* friends */
+#hmFriends .frCol{position:absolute;top:clamp(76px,15vh,150px);bottom:clamp(60px,10vh,100px);overflow:auto}
+#hmFriends .frMe{left:clamp(14px,5vw,96px);width:min(420px,44vw)}
+#hmFriends .frList{right:clamp(14px,3vw,70px);width:min(520px,46vw)}
+.frCard{background:rgba(8,20,38,.62);border:1px solid rgba(255,255,255,.35);padding:14px;margin-bottom:18px}
+.frCard label{display:block;font:700 11px var(--font-ui);letter-spacing:.22em;color:#9fd2ff;margin:8px 0 4px}.frCard label:first-child{margin-top:0}
+.frCard label small{letter-spacing:.1em;color:#8da5bd;font-weight:500;margin-left:6px;text-transform:none}
+.frRow{display:flex;gap:8px}
+.frRow input{flex:1;min-width:0;font:600 15px var(--font-ui);letter-spacing:.06em;color:#fff;background:rgba(4,10,20,.7);border:1px solid rgba(255,255,255,.4);padding:9px 10px;border-radius:0}
+.frRow input:focus{outline:none;border-color:#fff}
+.frBtn{font:700 12px var(--font-ui);letter-spacing:.18em;color:#0b1724;background:#f4f7fb;border:0;padding:0 14px;cursor:pointer;border-radius:0}
+.frBtn:hover{background:#cfe6ff}.frBtn.dim{background:rgba(255,255,255,.14);color:#e2ecf8}
+.frMsg{min-height:1.2em;margin:8px 0 0;font:500 13px var(--font-ui);color:#ffd27a;letter-spacing:.04em}
+.frMsg.ok{color:#8ff0b4}
+.frBox{background:rgba(8,20,38,.62);border:1px solid rgba(255,255,255,.35);margin-bottom:18px;min-height:46px;max-height:30vh;overflow:auto}
+.frBox .e{padding:10px 14px;color:#a9bdd2;font:500 13px var(--font-ui)}
+.frItem{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.14);font:600 15px var(--font-ui);color:#fff}
+.frItem .dot{width:9px;height:9px;border-radius:50%;background:#6b7a8a;flex:none}.frItem.on .dot{background:#5ff0a0;box-shadow:0 0 6px #5ff0a0}
+.frItem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.frItem .nm small{display:block;color:#8da5bd;font-weight:500;font-size:11px;letter-spacing:.08em}
+.frItem button{font:700 11px var(--font-ui);letter-spacing:.14em;color:#0b1724;background:#f4f7fb;border:0;padding:7px 10px;cursor:pointer;border-radius:0}
+.frItem button.x{background:rgba(255,255,255,.14);color:#e2ecf8}
+.frItem button[disabled]{opacity:.35;cursor:default}
+#frInvite{position:absolute;z-index:6;left:50%;transform:translateX(-50%);top:calc(clamp(70px,13vh,120px));display:flex;gap:10px;align-items:center;padding:12px 16px;background:rgba(8,20,38,.92);border:2px solid #fff;font:600 15px var(--font-ui);color:#fff}
+#frInvite[hidden]{display:none}
+#frInvite button{font:700 12px var(--font-ui);letter-spacing:.16em;color:#0b1724;background:#f4f7fb;border:0;padding:8px 14px;cursor:pointer;border-radius:0}
+#menu .menuFoot{z-index:3}
+@media (max-width:760px),(max-height:520px){
+  .hmBanner{display:none}.hmNewsWrap{display:none}
+  #hmFriends .frMe,#hmFriends .frList{position:static;width:auto;max-height:none;margin:0 14px}
+  #hmFriends{overflow:auto;top:clamp(60px,14vh,80px)}
+  #hmFriends .frCol{position:static}
+  .hmList{left:12px;width:calc(100% - 24px);bottom:70px}
+}
+</style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
 
@@ -583,18 +649,63 @@ body{letter-spacing:.02em}
 <div class="overlay" id="menu">
   <video id="menuVid" muted loop playsinline preload="auto" aria-hidden="true"></video>
   <div id="menuShade"></div>
-  <div id="menuLogoBox"><img id="menuLogo" alt="HALO WARZONE ALPHA" hidden><h1 class="logo" id="menuLogoTxt">HALO</h1><div id="menuSub">WARZONE ALPHA</div></div>
-  <div class="menuWrap">
-    <div class="tag" id="tagLine">HOLD THE RING</div>
-    <button type="button" class="go mb" id="campBtn">CAMPAIGN</button>
-    <button type="button" class="ghost mb" id="trainBtn">TRAINING GROUND</button>
-    <button type="button" class="ghost mb" id="charBtn">CHARACTER: MASTER CHIEF</button>
-    <button type="button" class="ghost mb" id="mpBtn">PLAY ONLINE</button>
-    <button type="button" class="ghost mb" id="ctlBtn">CONTROLS</button>
-    <button type="button" class="ghost mb" id="achBtn">ACHIEVEMENTS</button>
-    <button type="button" class="ghost mb" id="sndBtn">MUSIC: ON</button>
-    <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">Warthog: &ldquo;Vehicles&gt;Human&gt;Ground&gt;Warthogs&gt;Halo Reach&rdquo; by jameslucino117 (sketchfab.com/jameslucino117), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Salt Rifle (old battle rifle shape): &ldquo;BR-80 Battle Rifle&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Battlecruiser: &ldquo;CCS Class Battlecruiser&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button><br>Code <input type="text" class="devCode" maxlength="12" autocomplete="off" placeholder="code" style="width:6em;font:inherit;padding:4px"> <button type="button" class="ghost devCodeGo" style="display:inline-block;padding:4px 12px">ENTER</button> <span class="devMsg"></span></div></details>
+  <div id="hmTabs"><i class="hk">Q</i>
+    <button type="button" class="hmTab on" data-tab="play">PLAY</button>
+    <button type="button" class="hmTab" data-tab="custom">CUSTOMIZE</button>
+    <button type="button" class="hmTab" data-tab="friends">FRIENDS<b id="hmReqDot" hidden></b></button>
+    <button type="button" class="hmTab" data-tab="settings">SETTINGS</button><i class="hk">E</i></div>
+  <div id="hmNet"><span id="hmNetDot"></span><span id="hmNetTxt">OFFLINE</span></div>
+  <div class="hmPane on" id="hmPlay">
+    <div class="hmList" id="hmPlayList">
+      <button type="button" class="hmItem sel" id="campBtn" data-d="Hold the ring against the Covenant and Flood across the campaign, mission by mission.">CAMPAIGN</button>
+      <button type="button" class="hmItem" id="mpBtn" data-d="Play online with friends: deathmatch, team modes, capture the flag and king of the hill. Share a room code or invite a friend.">MULTIPLAYER</button>
+      <button type="button" class="hmItem" id="trainBtn" data-d="The training ground: try every weapon and vehicle against targets, no pressure.">TRAINING GROUND</button>
+      <p class="hmDesc" id="hmDesc">Hold the ring against the Covenant and Flood across the campaign, mission by mission.</p>
+    </div>
+    <div class="hmBanner"><div id="menuLogoBox"><img id="menuLogo" alt="HALO WARZONE ALPHA" hidden><h1 class="logo" id="menuLogoTxt">HALO</h1><div id="menuSub">WARZONE ALPHA</div></div><div class="tag" id="tagLine">HOLD THE RING</div></div>
+    <div class="hmNewsWrap"><div class="hmH">LATEST UPDATE</div>
+      <div class="hmNews" id="hmNews"></div></div>
   </div>
+  <div class="hmPane" id="hmCustom">
+    <div class="hmList">
+      <button type="button" class="hmItem sel" id="charBtn" data-d="Change which Spartan you play as. Tap to cycle.">CHARACTER: MASTER CHIEF</button>
+      <button type="button" class="hmItem" id="achBtn" data-d="Your achievements and how far along you are on each.">ACHIEVEMENTS</button>
+      <p class="hmDesc" id="hmDesc2">Change which Spartan you play as. Tap to cycle.</p>
+    </div>
+  </div>
+  <div class="hmPane" id="hmFriends">
+    <div class="frCol frMe">
+      <div class="hmH">YOU</div>
+      <div class="frCard">
+        <label>DISPLAY NAME <small>change any time</small></label>
+        <div class="frRow"><input id="frDn" maxlength="20" autocomplete="off" spellcheck="false"><button type="button" class="frBtn" id="frDnSave">SAVE</button></div>
+        <label>USERNAME <small id="frUnNote">once a week</small></label>
+        <div class="frRow"><input id="frUn" maxlength="16" autocomplete="off" spellcheck="false" autocapitalize="none"><button type="button" class="frBtn" id="frUnSave">SAVE</button></div>
+        <p class="frMsg" id="frMeMsg"></p>
+      </div>
+      <div class="hmH">ADD A FRIEND</div>
+      <div class="frCard">
+        <div class="frRow"><input id="frAdd" maxlength="16" placeholder="THEIR USERNAME" autocomplete="off" spellcheck="false" autocapitalize="none"><button type="button" class="frBtn" id="frAddBtn">SEND REQUEST</button></div>
+        <p class="frMsg" id="frAddMsg"></p>
+      </div>
+    </div>
+    <div class="frCol frList">
+      <div class="hmH">REQUESTS <span id="frReqN"></span></div>
+      <div class="frBox" id="frReqs"></div>
+      <div class="hmH">FRIENDS <span id="frFriN"></span></div>
+      <div class="frBox" id="frFriends"></div>
+      <p class="frMsg" id="frNet"></p>
+    </div>
+  </div>
+  <div class="hmPane" id="hmSettings">
+    <div class="hmList">
+      <button type="button" class="hmItem sel" id="ctlBtn" data-d="Keyboard, mouse, controller and touch controls.">CONTROLS</button>
+      <button type="button" class="hmItem" id="sndBtn" data-d="Turn the menu and game music on or off.">MUSIC: ON</button>
+      <p class="hmDesc" id="hmDesc3">Keyboard, mouse, controller and touch controls.</p>
+      <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">Warthog: &ldquo;Vehicles&gt;Human&gt;Ground&gt;Warthogs&gt;Halo Reach&rdquo; by jameslucino117 (sketchfab.com/jameslucino117), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Salt Rifle (old battle rifle shape): &ldquo;BR-80 Battle Rifle&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Battlecruiser: &ldquo;CCS Class Battlecruiser&rdquo; by Admiral Tributon (sketchfab.com/doctor10), licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button><br>Code <input type="text" class="devCode" maxlength="12" autocomplete="off" placeholder="code" style="width:6em;font:inherit;padding:4px"> <button type="button" class="ghost devCodeGo" style="display:inline-block;padding:4px 12px">ENTER</button> <span class="devMsg"></span></div></details>
+    </div>
+  </div>
+  <div id="frInvite" hidden><b id="frInvWho"></b><span> invited you to a game</span><button type="button" id="frInvYes">JOIN</button><button type="button" id="frInvNo">NO</button></div>
   <div class="hint" id="sndHint" hidden>CLICK ANYWHERE FOR MUSIC</div>
   <div class="menuFoot">
     <p class="rotate">Turn your phone sideways for the best view.</p>
@@ -12788,6 +12899,182 @@ document.querySelectorAll('.devCodeGo').forEach(function(b){
 document.querySelectorAll('.devGo').forEach(function(b){ b.addEventListener('click',function(){ var inp=b.parentNode.querySelector('.devN'); devWave(parseInt(inp.value,10)||1); }); });
 try{ var qw=/[?&]wave=(\d+)/.exec(location.search); if(qw){ document.querySelectorAll('.devN').forEach(function(i){ i.value=qw[1]; }); } }catch(e){}
 window.devWave=devWave;
+/* ================= MAIN MENU TABS, LATEST UPDATE, AND FRIENDS =================
+   Friends use the same free PeerJS broker as online play. While the menu is open you are "online" under the id halofps-u-<username>, so a friend can send a request, see you are on, and invite you with a room code. There is no account server: a username is yours only while you are online with it, and the friends list lives in this browser. */
+var HM={tab:'play'};
+function hmTab(t){
+  HM.tab=t; var ids={play:'hmPlay',custom:'hmCustom',friends:'hmFriends',settings:'hmSettings'};
+  document.querySelectorAll('.hmTab').forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-tab')===t); });
+  for(var k in ids){ var e=$(ids[k]); if(e) e.classList.toggle('on',k===t); }
+  if(t==='friends'){ frStart(); frRender(); }
+  if(t==='custom'||t==='play'||t==='settings'){ var f=document.querySelector('#'+ids[t]+' .hmItem.sel'); if(f&&!coarsePtr){ try{ f.focus({preventScroll:true}); }catch(e){} } }
+}
+document.querySelectorAll('.hmTab').forEach(function(b){ b.addEventListener('click',function(){ hmTab(b.getAttribute('data-tab')); }); });
+document.querySelectorAll('.hmList').forEach(function(l){
+  var ds=l.querySelector('.hmDesc');
+  l.querySelectorAll('.hmItem').forEach(function(it){
+    var on=function(){ l.querySelectorAll('.hmItem').forEach(function(o){ o.classList.toggle('sel',o===it); }); if(ds&&it.getAttribute('data-d')) ds.textContent=it.getAttribute('data-d'); };
+    it.addEventListener('mouseenter',on); it.addEventListener('focus',on);
+  });
+});
+document.addEventListener('keydown',function(ev){
+  if(state!=='menu'||$('menu').hidden||ev.repeat) return;
+  var tg=ev.target&&ev.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA') return;
+  if(document.querySelectorAll('.overlay:not(#menu):not([hidden])').length) return;
+  var order=['play','custom','friends','settings'], i=order.indexOf(HM.tab);
+  if(ev.code==='KeyQ') hmTab(order[(i+3)%4]); else if(ev.code==='KeyE') hmTab(order[(i+1)%4]);
+});
+$('hmNews').innerHTML='<h3>BODYCAM UPDATE</h3><div class="dt">3 NOVEMBER 2026</div>'+
+  '<h4>NEW WEAPONS</h4><ul><li>Halo Reach Assault Rifle with a live ammo counter on the sight</li><li>H2A Covenant Carbine, Reach DMR with its own ammo screen, and the Spiker</li></ul>'+
+  '<h4>REAL SCOPES</h4><ul><li>Scoped guns magnify only the lens, picture in picture. The rest of the view stays wide and you keep seeing your gun</li></ul>'+
+  '<h4>BODYCAM VIEW</h4><ul><li>Chest camera fisheye, grain and shake, now also in vehicles</li><li>Faces are pixelated, and dying cuts to CONNECTION TERMINATED</li></ul>'+
+  '<h4>REALISM</h4><ul><li>You stumble from hits, blasts and hard landings</li><li>Stress changes your reloads: calm and smooth, or fast and shaky</li><li>The gun lags behind your view. Press U to look down and check the magazine</li><li>Lean, hold your breath, blood and tinnitus</li></ul>'+
+  '<h4>WORLD AND SOUND</h4><ul><li>A darker, grimmer overcast world, new ground textures, wavy water</li><li>New main menu theme</li></ul>'+
+  '<h4>FRIENDS</h4><ul><li>New Friends tab: add friends by username and invite them to a game</li></ul>';
+var FR={u:'',dn:'',uT:0,friends:[],reqs:[],on:{},peer:null,ready:false,starting:false,probeT:0,inv:null,pend:{}};
+(function(){
+  try{ var pr=JSON.parse(localStorage.getItem('halo-prof')||'{}'); FR.u=pr.u||''; FR.dn=pr.dn||''; FR.uT=pr.uT||0; FR.friends=JSON.parse(localStorage.getItem('halo-friends')||'[]')||[]; FR.reqs=JSON.parse(localStorage.getItem('halo-freqs')||'[]')||[]; }catch(e){}
+  if(!FR.u){ FR.u='player'+(1000+((Math.random()*9000)|0)); FR.uT=0; }
+  if(!FR.dn){ try{ FR.dn=(($('mpName')&&$('mpName').value)||'').trim()||'PLAYER'; }catch(e){ FR.dn='PLAYER'; } }
+})();
+function frSave(){ try{ localStorage.setItem('halo-prof',JSON.stringify({u:FR.u,dn:FR.dn,uT:FR.uT})); localStorage.setItem('halo-friends',JSON.stringify(FR.friends)); localStorage.setItem('halo-freqs',JSON.stringify(FR.reqs)); }catch(e){} }
+function frNameSync(){ var el=$('mpName'); if(el&&FR.dn){ el.value=FR.dn.replace(/[^A-Za-z0-9 _\-]/g,'').trim().toUpperCase().slice(0,12)||el.value; } }
+frNameSync();
+function frMsg(id,t,ok){ var e=$(id); if(e){ e.textContent=t; e.classList.toggle('ok',!!ok); } }
+function frWeek(){ var left=FR.uT+7*86400000-Date.now(); return left>0?left:0; }
+function frLeftTxt(ms){ var d=Math.floor(ms/86400000), h=Math.floor(ms%86400000/3600000), m=Math.floor(ms%3600000/60000); return d>0?(d+'d '+h+'h'):(h>0?(h+'h '+m+'m'):(m+'m')); }
+function frFill(){
+  $('frDn').value=FR.dn; $('frUn').value=FR.u;
+  var w=frWeek(); $('frUnNote').textContent=w>0?('next change in '+frLeftTxt(w)):'once a week'; $('frUnSave').disabled=w>0; $('frUn').disabled=w>0; $('frUnSave').style.opacity=w>0?.4:1;
+}
+$('frDnSave').addEventListener('click',function(){
+  var v=($('frDn').value||'').trim().replace(/\s+/g,' ');
+  if(v.length<1||v.length>20){ frMsg('frMeMsg','Display name must be 1 to 20 characters.'); return; }
+  FR.dn=v; frSave(); frNameSync(); frMsg('frMeMsg','Display name saved.',true); frNetText();
+});
+$('frUnSave').addEventListener('click',function(){
+  var v=($('frUn').value||'').trim().toLowerCase();
+  if(v===FR.u){ frMsg('frMeMsg','That is already your username.'); return; }
+  if(!/^[a-z0-9_]{3,16}$/.test(v)){ frMsg('frMeMsg','Username: 3 to 16 letters, numbers or _.'); return; }
+  var w=frWeek(); if(w>0){ frMsg('frMeMsg','You can change your username again in '+frLeftTxt(w)+'.'); return; }
+  if(!confirm('Change your username to "'+v+'"? You will not be able to change it again for 7 days.')) return;
+  FR.u=v; FR.uT=Date.now(); frSave(); frFill(); frMsg('frMeMsg','Username changed. Friends need your new username to find you.',true);
+  frClosePeer(); frStart();
+});
+function frClosePeer(){ try{ if(FR.peer) FR.peer.destroy(); }catch(e){} FR.peer=null; FR.ready=false; FR.starting=false; frNetText(); }
+function frNetText(){
+  var n=$('hmNet'); if(n){ n.classList.toggle('on',!!FR.ready); } var t=$('hmNetTxt'); if(t) t.textContent=FR.ready?('ONLINE AS '+FR.dn.toUpperCase()):'OFFLINE';
+}
+function frStart(){
+  if(FR.ready||FR.starting) return; FR.starting=true; frMsg('frNet','Connecting...');
+  mpLoadLib(function(ok){
+    if(!ok){ FR.starting=false; frMsg('frNet','Online is not available right now (could not load the online library).'); return; }
+    var pr; try{ pr=new Peer('halofps-u-'+FR.u); }catch(e){ FR.starting=false; return; }
+    FR.peer=pr;
+    pr.on('open',function(){ FR.ready=true; FR.starting=false; frMsg('frNet','',true); frNetText(); frProbe(); });
+    pr.on('connection',function(cn){
+      cn.on('data',function(m){ frOnData(cn,m); });
+    });
+    pr.on('error',function(e){
+      var t=e&&e.type;
+      if(t==='unavailable-id'){ FR.starting=false; FR.ready=false; frMsg('frNet','The username "'+FR.u+'" is already online somewhere else, so you cannot appear online with it.'); try{ pr.destroy(); }catch(x){} FR.peer=null; frNetText(); return; }
+      if(t==='peer-unavailable'){ var m=/halofps-u-([a-z0-9_]+)/.exec(e.message||''); if(m){ FR.on[m[1]]=false; var cb=FR.pend[m[1]]; if(cb){ delete FR.pend[m[1]]; cb(false); } frRender(); } return; }
+      if(t==='network'||t==='server-error'||t==='socket-error'||t==='socket-closed'){ FR.ready=false; FR.starting=false; frNetText(); }
+    });
+    pr.on('disconnected',function(){ FR.ready=false; frNetText(); try{ pr.reconnect(); }catch(e){} });
+  });
+}
+function frOnData(cn,m){
+  if(!m||typeof m!=='object') return;
+  var u=String(m.u||'').toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,16), dn=String(m.dn||u).slice(0,20);
+  if(m.t==='ping'){ try{ cn.send({t:'pong',u:FR.u,dn:FR.dn}); }catch(e){} return; }
+  if(!u||u===FR.u) return;
+  if(m.t==='freq'){
+    if(FR.friends.some(function(f){ return f.u===u; })){ try{ cn.send({t:'facc',u:FR.u,dn:FR.dn}); }catch(e){} return; }
+    if(!FR.reqs.some(function(r){ return r.u===u; })){ FR.reqs.push({u:u,dn:dn}); frSave(); showToast('FRIEND REQUEST: '+dn.toUpperCase()); }
+    frRender();
+  }else if(m.t==='facc'){
+    if(!FR.friends.some(function(f){ return f.u===u; })){ FR.friends.push({u:u,dn:dn}); frSave(); showToast(dn.toUpperCase()+' ACCEPTED YOUR REQUEST'); }
+    frRender();
+  }else if(m.t==='invite'){
+    if(!FR.friends.some(function(f){ return f.u===u; })) return;
+    var code=String(m.code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8); if(code.length<4) return;
+    FR.inv={u:u,dn:dn,code:code}; $('frInvWho').textContent=dn.toUpperCase(); $('frInvite').hidden=false; showToast(dn.toUpperCase()+' INVITED YOU');
+  }
+}
+function frSend(user,msg,cb){
+  if(!FR.peer||!FR.ready){ cb&&cb(false); return; }
+  var done=false, cn;
+  function fin(ok){ if(done) return; done=true; delete FR.pend[user]; cb&&cb(ok); }
+  FR.pend[user]=fin;
+  try{ cn=FR.peer.connect('halofps-u-'+user,{reliable:true}); }catch(e){ fin(false); return; }
+  cn.on('open',function(){ try{ cn.send(msg); }catch(e){} setTimeout(function(){ try{ cn.close(); }catch(e){} },600); FR.on[user]=true; fin(true); });
+  cn.on('error',function(){ fin(false); });
+  setTimeout(function(){ fin(false); },9000);
+}
+function frProbe(){
+  if(!FR.ready) return;
+  FR.friends.forEach(function(f){
+    frSend(f.u,{t:'ping',u:FR.u,dn:FR.dn},function(ok){ FR.on[f.u]=!!ok; frRender(); });
+  });
+}
+setInterval(function(){ if(state==='menu'&&HM.tab==='friends'&&FR.ready) frProbe(); },25000);
+$('frAddBtn').addEventListener('click',function(){
+  var u=($('frAdd').value||'').trim().toLowerCase().replace(/^@/,'');
+  if(!/^[a-z0-9_]{3,16}$/.test(u)){ frMsg('frAddMsg','Enter their username (3 to 16 letters, numbers or _).'); return; }
+  if(u===FR.u){ frMsg('frAddMsg','That is you.'); return; }
+  if(FR.friends.some(function(f){ return f.u===u; })){ frMsg('frAddMsg','Already your friend.'); return; }
+  if(!FR.ready){ frStart(); frMsg('frAddMsg','Connecting to online first, try again in a moment.'); return; }
+  frMsg('frAddMsg','Sending...',true);
+  frSend(u,{t:'freq',u:FR.u,dn:FR.dn},function(ok){
+    if(ok){ frMsg('frAddMsg','Request sent to '+u+'. They need to accept it.',true); $('frAdd').value=''; }
+    else frMsg('frAddMsg',u+' is not online right now. Requests can only be sent while they are on the menu.');
+  });
+});
+function frRender(){
+  frFill(); frNetText();
+  var rq=$('frReqs'), fl=$('frFriends'); if(!rq||!fl) return;
+  $('frReqN').textContent=FR.reqs.length?('('+FR.reqs.length+')'):''; $('frFriN').textContent=FR.friends.length?('('+FR.friends.length+')'):'';
+  $('hmReqDot').hidden=!FR.reqs.length;
+  rq.textContent=''; fl.textContent='';
+  if(!FR.reqs.length){ var e0=document.createElement('div'); e0.className='e'; e0.textContent='No pending requests.'; rq.appendChild(e0); }
+  FR.reqs.forEach(function(r){
+    var d=document.createElement('div'); d.className='frItem'; d.innerHTML='<span class="nm"></span><button type="button">ACCEPT</button><button type="button" class="x">DECLINE</button>';
+    d.querySelector('.nm').textContent=r.dn+' ('+r.u+')';
+    var bs=d.querySelectorAll('button');
+    bs[0].onclick=function(){ FR.reqs=FR.reqs.filter(function(x){ return x.u!==r.u; }); if(!FR.friends.some(function(f){ return f.u===r.u; })) FR.friends.push({u:r.u,dn:r.dn}); frSave(); frSend(r.u,{t:'facc',u:FR.u,dn:FR.dn}); frProbe(); frRender(); };
+    bs[1].onclick=function(){ FR.reqs=FR.reqs.filter(function(x){ return x.u!==r.u; }); frSave(); frRender(); };
+    rq.appendChild(d);
+  });
+  if(!FR.friends.length){ var e1=document.createElement('div'); e1.className='e'; e1.textContent='No friends yet. Add one by their username.'; fl.appendChild(e1); }
+  FR.friends.forEach(function(f){
+    var on=!!FR.on[f.u], d=document.createElement('div'); d.className='frItem'+(on?' on':'');
+    d.innerHTML='<i class="dot"></i><span class="nm"></span><button type="button">INVITE</button><button type="button" class="x">REMOVE</button>';
+    d.querySelector('.nm').innerHTML=''; var nm=d.querySelector('.nm'); nm.textContent=f.dn; var sm=document.createElement('small'); sm.textContent=f.u+' · '+(on?'ONLINE':'OFFLINE'); nm.appendChild(sm);
+    var bs=d.querySelectorAll('button'); bs[0].disabled=!on;
+    bs[0].onclick=function(){ frInvite(f,bs[0]); };
+    bs[1].onclick=function(){ if(!confirm('Remove '+f.dn+' from your friends?')) return; FR.friends=FR.friends.filter(function(x){ return x.u!==f.u; }); frSave(); frRender(); };
+    fl.appendChild(d);
+  });
+}
+/* invite: make sure a room is open (start hosting a free-for-all if not), then send its code */
+function frInvite(f,btn){
+  var old=btn.textContent; btn.disabled=true; btn.textContent='...';
+  function send(){ frSend(f.u,{t:'invite',u:FR.u,dn:FR.dn,code:mp.code},function(ok){ btn.textContent=ok?'SENT':'FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=!FR.on[f.u]; },2200); if(ok) showToast('INVITE SENT. ROOM '+mp.code); }); }
+  if(mp.code&&mp.host&&mp.peer&&mp.peer.open&&!mp.on){ send(); return; }
+  try{ mpSetMode('ff'); mpHost(); }catch(e){ btn.textContent='FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },2000); return; }
+  var t0=Date.now(), iv=setInterval(function(){
+    if(mp.code&&mp.host&&mp.peer&&mp.peer.open){ clearInterval(iv); send(); }
+    else if(Date.now()-t0>12000){ clearInterval(iv); btn.textContent='FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },2000); }
+  },300);
+}
+$('frInvNo').addEventListener('click',function(){ $('frInvite').hidden=true; FR.inv=null; });
+$('frInvYes').addEventListener('click',function(){
+  var iv=FR.inv; $('frInvite').hidden=true; FR.inv=null; if(!iv) return;
+  try{ mpSetMode('ff'); $('mpCode').value=iv.code; $('mp').hidden=false; mpJoin(); }catch(e){}
+});
+frFill(); frNetText(); frRender();
+setTimeout(function(){ if(state==='menu') frStart(); },2500);
 placeRover(); applyCamera(0);
 gfxApply(); gfxLabel();
 requestAnimationFrame(frame);
