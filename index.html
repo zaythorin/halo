@@ -2666,8 +2666,8 @@ function buildAR(){
   var lh=makeHand(true), rh=makeHand(false); lh.rotation.set(0.55,-0.35,0);
   g.add(lh); rh.position.set(0.0,-0.13,0.03); rh.rotation.set(0.6,0.3,0); g.add(rh);
   /* the ammo counter on the rear of the top sight, facing the shooter; redrawn whenever the count changes */
-  var cv=document.createElement('canvas'); cv.width=128; cv.height=140; var tx=new THREE.CanvasTexture(cv); tx.anisotropy=4;
-  var sm=new THREE.Mesh(new THREE.PlaneGeometry(0.034,0.037),new THREE.MeshBasicMaterial({map:tx,transparent:true,fog:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  var cv=document.createElement('canvas'); cv.width=160; cv.height=100; var tx=new THREE.CanvasTexture(cv); tx.anisotropy=4;
+  var sm=new THREE.Mesh(new THREE.PlaneGeometry(0.03,0.019),new THREE.MeshBasicMaterial({map:tx,transparent:true,fog:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
   sm.position.set(0,0.109,-0.257); g.add(sm);
   g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh,scC:cv,scT:tx,scN:-1,scR:false};
   dmrDraw(g.userData,32,32,false);
@@ -3295,8 +3295,15 @@ function dmrGeo(d){
 }
 function dmrDraw(ud,n,mx,rl){
   var c=ud.scC, g=c.getContext('2d'), w=c.width, h=c.height, low=n<=Math.ceil(mx*0.2);
-  g.clearRect(0,0,w,h); g.fillStyle='rgba(0,14,20,0.9)'; g.fillRect(0,0,w,h);
+  g.clearRect(0,0,w,h);
   var col=rl?'#7fe7ff':(low?'#ff5a3a':'#2fe0ff');
+  if(w>h){   /* wide readout (assault rifle): rounded dark pad, big number on the left, a thin bar of rounds under it, no hard frame */
+    var rr=h*0.3; g.fillStyle='rgba(0,12,18,0.82)'; g.beginPath(); g.moveTo(rr,0); g.lineTo(w-rr,0); g.quadraticCurveTo(w,0,w,rr); g.lineTo(w,h-rr); g.quadraticCurveTo(w,h,w-rr,h); g.lineTo(rr,h); g.quadraticCurveTo(0,h,0,h-rr); g.lineTo(0,rr); g.quadraticCurveTo(0,0,rr,0); g.fill();
+    g.shadowColor=col; g.shadowBlur=12; g.fillStyle=col; g.font='bold '+(rl?44:62)+'px "Courier New",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(rl?'--':String(n),w/2,h*0.4);
+    var k2, bw=(w-40)/mx; g.shadowBlur=5; for(k2=0;k2<mx;k2++){ g.globalAlpha=(k2<n&&!rl)?1:0.22; g.fillRect(20+k2*bw+0.5,h-24,Math.max(1.5,bw-2),9); } g.globalAlpha=1;
+    ud.scT.needsUpdate=true; return;
+  }
+  g.fillStyle='rgba(0,14,20,0.9)'; g.fillRect(0,0,w,h);
   g.shadowColor=col; g.shadowBlur=14; g.fillStyle=col; g.strokeStyle=col; g.lineWidth=4; g.strokeRect(5,5,w-10,h-10);
   g.font='bold '+(rl?60:104)+'px "Courier New",monospace'; g.textAlign='center'; g.textBaseline='middle';
   g.fillText(rl?'--':String(n),w/2,h*0.42);
@@ -5203,7 +5210,7 @@ function tpBack(rg){
   rg.back.visible=!!tpl&&wi!==cur&&!dwOnF;
 }
 var BCLOW=0, BCK=0;
-var ARMS_OUT=[0.045,0.02,0.05];   /* arms reach further out: left hand sideways and forward along the gun, right hand a little sideways */
+var ARMS_OUT=[0,0,0.03];   /* arms reach further out: left hand sideways and forward along the gun, right hand a little sideways */
 function applyCamera(bob){
   camLag*=Math.max(0,1-frameDt*9); if(camLag>0.7) camLag=0.7; else if(camLag<-0.7) camLag=-0.7; if(Math.abs(camLag)<0.001) camLag=0;
   var bcl=(BC&&BC.on&&!p.inVeh&&!p.air)?0.3:0; BCLOW+=(bcl-BCLOW)*Math.min(1,frameDt*6);   /* bodycam: the camera is clipped to the chest, lower than the eyes */
@@ -7516,9 +7523,9 @@ function animateWeaponParts(w){
   /* each weapon's own reload flourish, on top of the hand work */
   if(pr>=0&&an.fxP){ var fp=sampleKeys(an.fxP,pr); g.position.x+=fp[0]; g.position.y+=fp[1]; g.position.z+=fp[2]; }
   if(pr>=0&&an.fxR){ var fr=sampleKeys(an.fxR,pr); g.rotation.x+=fr[0]; g.rotation.y+=fr[1]; g.rotation.z+=fr[2]; }
-  ud.leftHand.position.set(hand[0]+HKS.x*0.6-0.07*BCK-ARMS_OUT[0],hand[1]+HKS.y*0.8-0.035*BCK,hand[2]+HKS.z*0.75+0.03*BCK-ARMS_OUT[2]);
+  ud.leftHand.position.set(hand[0]+HKS.x*0.6-0.035*BCK-ARMS_OUT[0],hand[1]+HKS.y*0.8-0.035*BCK,hand[2]+HKS.z*0.75+0.03*BCK-ARMS_OUT[2]);
   if(!ud.rhB){ ud.rhB=ud.rightHand.position.clone(); ud.rhR=ud.rightHand.rotation.clone(); }
-  ud.rightHand.position.set(ud.rhB.x+HKS.x+0.07*BCK+ARMS_OUT[1],ud.rhB.y+HKS.y-0.035*BCK,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
+  ud.rightHand.position.set(ud.rhB.x+HKS.x+0.035*BCK+ARMS_OUT[1],ud.rhB.y+HKS.y-0.035*BCK,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
   ud.mag.position.set(magPos[0],magPos[1],magPos[2]); ud.mag.visible=w.rocket?false:magVis;
   if(w.rocket&&ud.drum){ rocketDrum(w,ud,curDt||0.016); }
   if(ud.mover) ud.mover.position.z=ud.moverBase+sv;
