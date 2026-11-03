@@ -5062,7 +5062,7 @@ function hurt(n){
   if(state!=='play') return;
   if(p.air){ damageJet(n*0.7); return; }
   if(p.inVeh&&!GN.on&&!MG.seat){ damageVehicle(n*0.8); return; }
-  MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7);
+  MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; try{ stumble(hitDir.x,hitDir.z,Math.min(1,0.25+n/60)); addStress(0.25); }catch(e){} var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7);
   if(hitDir.x||hitDir.z){ var ax=-hitDir.x, az=-hitDir.z, al=Math.hypot(ax,az)||1; ax/=al; az/=al; var sn0=Math.sin(p.yaw), cs0=Math.cos(p.yaw); dmgAng=Math.atan2(ax*cs0-az*sn0,-ax*sn0-az*cs0)*57.2958; dmgT=0.9; dmgSh=shAbs&&p.shield>=n; }
   if(p.health-Math.max(0,n-p.shield-(p.ov||0))<85||n>=18){ try{ bloodSplat((hitDir.x||hitDir.z)?dmgAng:Math.random()*360,n); }catch(e){} }
   if(n>=40) earRing(n/90);
@@ -5222,10 +5222,31 @@ function applyCamera(bob){
   camera.position.set(p.x,p.y+eyeC()+(bob||0)+camLag-BCLOW*(1-0.4*CR),p.z);
   camera.rotation.y=p.yaw; camera.rotation.x=p.pitch;
   MA.roll+=(-MA.mxs*0.014*(p.onGround?1:0.4)-MA.roll)*Math.min(1,frameDt*8); camera.rotation.z=MA.roll;
-  if(state==='play'&&!p.inVeh&&!p.air){ camFeel(); camLean(); }
+  if(state==='play'&&!p.inVeh&&!p.air){ camFeel(); camLean(); stbStep(frameDt); }
   if(tpWanted()) tpCamera();
 }
 /* lean round a corner (J left, L right): the head and shoulders slide out and the view rolls, the gun goes with it, and shots leave from the leaned position. Breath hold (hold SHIFT while zoomed in): the scope's natural drift almost stops for about four seconds, then you have to exhale and it sways wildly for a moment */
+/* stress and balance. STRESS rises when you are hit, hurt, or caught in a blast and eases off in calm; reloads are quicker and shakier the more stressed you are. STB is a set of springs that stagger the view when a hit, an explosion or a hard landing shoves you, and the shove moves your feet a little too */
+var CHK={t:0};
+function checkMag(){ var w=weapons[cur]; if(CHK.t>0||reloading||swapT>0||zoomed||p.inVeh||p.air||w.inf||w.cov) return; CHK.t=1.7; showToast('MAG '+w.mag+' / '+w.magSize); }
+function chkK(){ return CHK.t>0?Math.sin(Math.min(1,(1.7-CHK.t)/1.7)*Math.PI):0; }
+var STRESS=0, STB={rx:0,rz:0,ry:0,vx:0,vz:0,vy:0};
+function addStress(a){ STRESS=Math.min(1,STRESS+a); }
+function stumble(hx,hz,mag){
+  var l=Math.hypot(hx,hz); if(l<1e-4){ hx=0; hz=1; l=1; } hx/=l; hz/=l;
+  var fx=-Math.sin(p.yaw), fz=-Math.cos(p.yaw), rx=Math.cos(p.yaw), rz=-Math.sin(p.yaw), pf=hx*fx+hz*fz, pr=hx*rx+hz*rz;
+  STB.vx+=-pf*mag*0.9+(Math.random()-0.5)*0.2*mag; STB.vz+=-pr*mag*1.6; STB.vy+=-pr*mag*0.7;
+  p.kbx=(p.kbx||0)+hx*mag*2.6; p.kbz=(p.kbz||0)+hz*mag*2.6; vmKick=Math.min(0.34,vmKick+mag*0.08); addStress(mag*0.35);
+}
+function stbStep(dt){
+  var k=70, c=9, st;
+  STB.vx+=(-k*STB.rx-c*STB.vx)*dt; STB.vz+=(-k*STB.rz-c*STB.vz)*dt; STB.vy+=(-k*STB.ry-c*STB.vy)*dt;
+  STB.rx+=STB.vx*dt; STB.rz+=STB.vz*dt; STB.ry+=STB.vy*dt;
+  camera.rotation.x+=STB.rx; camera.rotation.z+=STB.rz; camera.rotation.y+=STB.ry;
+  if(CHK.t>0){ CHK.t=Math.max(0,CHK.t-dt); camera.rotation.x-=0.34*chkK(); }   /* look down at the gun to read the magazine */
+  st=Math.max(p.health<35?0.55:0,(tAcc-p.lastHit)<3?0.45:0); STRESS=Math.max(st,STRESS-dt*0.12);
+  if(reloading&&STRESS>0.25){ camera.rotation.z+=(Math.random()-0.5)*0.006*STRESS; camera.rotation.x+=(Math.random()-0.5)*0.004*STRESS; }
+}
 var LEAN={k:0}, BRH={t:0,hold:false,rec:0,k:1,sd:0};
 function camLean(){
   var dt=frameDt, tg=((keys.KeyL?1:0)-(keys.KeyJ?1:0))*(MA.sprint>0.3?0:1);
@@ -5489,7 +5510,7 @@ function updatePlayer(dt){
     else if(TM.safeP&&p.y<TM.safeP.y-5){ p.x=TM.safeP.x; p.z=TM.safeP.z; p.y=TM.safeP.y+0.05; p.vx=p.vz=p.vy=0; p.kbx=p.kbz=0; gy=p.y; }
   }
   if(p.y<=gy+0.04){
-    if(!p.onGround && vyBefore<-3){ MA.land=Math.min(1,-vyBefore/14); camLag-=Math.min(0.22,-vyBefore*0.014); }
+    if(!p.onGround && vyBefore<-3){ MA.land=Math.min(1,-vyBefore/14); if(vyBefore<-7) stumble(p.vx,p.vz,Math.min(0.6,(-vyBefore-7)*0.08)); camLag-=Math.min(0.22,-vyBefore*0.014); }
     if(!p.onGround && vyBefore<-13 && !GR.safe){ mp.cause='FALL DAMAGE'; mp.causeT=tAcc; hurt((-vyBefore-13)*5); }
     GR.safe=false;
     if(p.onGround&&gy-p.y>((TM.on&&(TM.mom||TM.ship||TM.isl||TM.snb))?0.06:0.35)) camLag-=Math.min(EM_STEP,gy-p.y); /* stairs: glide the view up each step instead of snapping */
@@ -7535,7 +7556,8 @@ function animateWeaponParts(w){
   /* each weapon's own reload flourish, on top of the hand work */
   if(pr>=0&&an.fxP){ var fp=sampleKeys(an.fxP,pr); g.position.x+=fp[0]; g.position.y+=fp[1]; g.position.z+=fp[2]; }
   if(pr>=0&&an.fxR){ var fr=sampleKeys(an.fxR,pr); g.rotation.x+=fr[0]; g.rotation.y+=fr[1]; g.rotation.z+=fr[2]; }
-  ud.leftHand.position.set(hand[0]+HKS.x*0.6-0.035*BCK-ARMS_OUT[0],hand[1]+HKS.y*0.8-0.035*BCK,hand[2]+HKS.z*0.75+0.03*BCK-ARMS_OUT[2]);
+  var jx=(pr>=0&&STRESS>0.2)?(Math.random()-0.5)*0.016*STRESS:0, jy=(pr>=0&&STRESS>0.2)?(Math.random()-0.5)*0.016*STRESS:0;
+  ud.leftHand.position.set(hand[0]+jx+HKS.x*0.6-0.035*BCK-ARMS_OUT[0],hand[1]+jy+HKS.y*0.8-0.035*BCK,hand[2]+HKS.z*0.75+0.03*BCK-ARMS_OUT[2]);
   if(!ud.rhB){ ud.rhB=ud.rightHand.position.clone(); ud.rhR=ud.rightHand.rotation.clone(); }
   ud.rightHand.position.set(ud.rhB.x+HKS.x+0.035*BCK+ARMS_OUT[1],ud.rhB.y+HKS.y-0.035*BCK,ud.rhB.z+HKS.z); ud.rightHand.rotation.set(ud.rhR.x+HKS.r*0.8,ud.rhR.y,ud.rhR.z-HKS.x*2);
   ud.mag.position.set(magPos[0],magPos[1],magPos[2]); ud.mag.visible=w.rocket?false:magVis;
@@ -7699,7 +7721,7 @@ function updateWeapon(dt){
   if(w.shells) updatePump(w,dt);
   if(reloading&&w.shells){ updateShellReload(w,dt); }
   else if(reloading){
-    reloadT+=dt;
+    reloadT+=dt*(0.94+0.4*STRESS);   /* calm: a touch slower and smoother; stressed: faster and shakier */
     var pr=reloadT/w.reloadDur, ev=w.anim.events;
     for(var ei=0;ei<ev.length;ei++){
       if(!reloadEv[ei] && pr>=ev[ei][0]){
@@ -7750,8 +7772,8 @@ function updateWeapon(dt){
   var mp=meleePose(meleeT>0?1-meleeT/MELEE_DUR:-1); meleeFist(meleeT>0?1-meleeT/MELEE_DUR:-1);
   var sg=weapons[0].group.userData.spin; if(sg){ sg.rotation.x=gunSpin; sg.position.y=gunAir; }
   var av=swayIn.x/Math.max(dt,0.004), avy=swayIn.y/Math.max(dt,0.004); swayIn.x=0; swayIn.y=0;
-  var stx=Math.max(-0.05,Math.min(0.05,av*0.011)), sty=Math.max(-0.04,Math.min(0.04,-avy*0.009));
-  var hvK=HVK[w.id]||1;   /* the SAW lags behind the view and swings further: it is heavy */
+  var stx=Math.max(-0.07,Math.min(0.07,av*(BC&&BC.on&&!zoomed?0.017:0.011))), sty=Math.max(-0.04,Math.min(0.04,-avy*0.009));
+  var hvK=(HVK[w.id]||1)*((BC&&BC.on&&!zoomed)?0.6:1);   /* the SAW lags behind the view and swings further: it is heavy */
   sway.x+=(stx*(2-hvK)-sway.x)*Math.min(1,dt*9*hvK); sway.y+=(sty*(2-hvK)-sway.y)*Math.min(1,dt*9*hvK); sway.l+=(stx*5*(2-hvK)-sway.l)*Math.min(1,dt*7*hvK);
   var wb=Math.sin(tAcc*4.6)*moveFrac, bobx=wb*0.03, boby=0, brth=Math.sin(tAcc*1.4)*0.0065+Math.sin(tAcc*0.9+1)*0.002;
   var zs=zoomed?0.3:1;
@@ -7762,6 +7784,7 @@ function updateWeapon(dt){
   vm.rotation.set(vmKick*1.7+mp[3]+sf[0]+rc.r*zs-dip*0.9,mp[4]-0.05*zs+sf[1]+sway.x*2.5*zs,mp[5]+sf[2]+(rc.l+sway.l*0.4)*zs+dip*0.35);
   { var atr=AIMK*(1-AIMK)*4;   /* the gun is hauled up and in toward the face as you raise it, then settles */
     vm.position.y+=0.075*atr; vm.position.z+=0.11*atr; vm.position.x-=0.06*atr*(zoomed?1:0.5); vm.rotation.x+=0.16*atr; vm.rotation.z-=0.22*atr*(zoomed?1:-0.6); vm.rotation.y+=0.1*atr; }
+  { var ck=chkK(); if(ck>0){ vm.position.y+=0.07*ck; vm.position.z+=0.12*ck; vm.rotation.z+=0.55*ck; vm.rotation.x+=0.25*ck; } }
   if(swapT>0){ var bkm=swU<0.5?ss(swU*2):1-ss((swU-0.5)*2); vm.position.x+=bkm*0.6; vm.position.y+=bkm*0.12; vm.position.z+=bkm*0.5; vm.rotation.z+=bkm*0.55; vm.rotation.y+=bkm*0.5; }
   /* misc animations layered on top of the pose */
   var busy=reloading||swapT>0||meleeT>0||throwT>0||fireCool>0.05||ctrl.fire||zoomed, mov=moveFrac, ma=MA;
@@ -8084,7 +8107,7 @@ function blast(g){
   if(TRN.on) trBlast(P,R,d);
   spawnBlastFx(P,g.kind,R,g.fuel);
   if(g.fuel) gsfx.fuelBoom(dp); else if(g.kind==='plasma') gsfx.plasmaBoom(dp); else gsfx.fragBoom(dp);
-  if(dp<24){ shakeAmp=Math.max(shakeAmp,0.04*(1-dp/24)); shakeT=0.45; }
+  if(dp<24){ shakeAmp=Math.max(shakeAmp,0.04*(1-dp/24)); shakeT=0.45; if(!p.inVeh&&!p.air&&state==='play'){ try{ stumble(camera.position.x-P.x,camera.position.z-P.z,Math.min(1,1.1*(1-dp/24))); addStress(0.3*(1-dp/24)); }catch(e){} } }
   if(dp<14) earRing(1-dp/14);
   for(i=0;i<enemies.length;i++){
     var e=enemies[i]; if(e.dead||g.foe) continue;
@@ -9635,6 +9658,7 @@ window.addEventListener('keydown',function(ev){
   if(ev.code==='Space'){ ctrl.jump=true; ev.preventDefault(); }
   else if(ev.code==='KeyR') startReload();
   else if(ev.code==='KeyI'){ if(!ev.repeat) weaponInspect(); }
+  else if(ev.code==='KeyU'){ if(!ev.repeat) checkMag(); }
   else if(ev.code==='KeyT'){ if(!ev.repeat) dwToggle(); }
   else if(ev.code==='KeyQ') swapWeapon();
   else if(ev.code==='Digit1') swapWeapon(0);
@@ -9756,13 +9780,14 @@ function bcInit(w,h){
   if(!BC.sc){
     BC.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1); BC.sc=new THREE.Scene();
     BC.mat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,
-      uniforms:{tD:{value:null},uT:{value:0},uH:{value:0},uB:{value:new THREE.Vector2()},uS:{value:new THREE.Vector2()},uR:{value:new THREE.Vector2(w,h)}},
+      uniforms:{uF:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]},tD:{value:null},uT:{value:0},uH:{value:0},uB:{value:new THREE.Vector2()},uS:{value:new THREE.Vector2()},uR:{value:new THREE.Vector2(w,h)}},
       vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }',
-      fragmentShader:'uniform sampler2D tD; uniform float uT,uH; uniform vec2 uS,uR,uB; varying vec2 vUv;\n'+
+      fragmentShader:'uniform sampler2D tD; uniform float uT,uH; uniform vec2 uS,uR,uB; uniform vec4 uF[6]; varying vec2 vUv;\n'+
       'float hs(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }\n'+
       'void main(){\n'+
       '  float as=uR.x/uR.y; vec2 c=vUv-0.5; c.x*=as; float r2=dot(c,c);\n'+
       '  vec2 d=c*(1.0+0.3*r2)*0.8; d.x/=as; vec2 uv=clamp(d+0.5+uS,0.001,0.999);\n'+
+      '  for(int i=0;i<6;i++){ vec4 f=uF[i]; if(f.z>0.0){ vec2 q=(uv-f.xy)*vec2(as,1.0); if(length(q)<f.z){ float cs=f.z*0.4; q=(floor(q/cs)+0.5)*cs; uv=clamp(f.xy+q/vec2(as,1.0),0.001,0.999); } } }\n'+
       '  vec2 dir=normalize(c+vec2(1e-5))*vec2(1.0/as,1.0)*(0.0022+0.016*r2+0.008*uH);\n'+
       '  vec3 col=vec3(texture2D(tD,uv+dir).r,texture2D(tD,uv).g,texture2D(tD,uv-dir).b);\n'+
       '  if(abs(uB.x)+abs(uB.y)>0.0006){ vec3 m=col; for(int i=1;i<=5;i++){ float f=float(i)/5.0-0.5; m+=texture2D(tD,uv+uB*f).rgb; } col=m/6.0; }\n'+
@@ -9782,10 +9807,29 @@ function bcInit(w,h){
   try{ BC.rt.samples=coarsePtr?0:4; }catch(e){}   /* no multisampling on phones and tablets: it costs a lot of memory */
   BC.mat.uniforms.tD.value=BC.rt.texture; BC.mat.uniforms.uR.value.set(w,h); BC.w=w; BC.h=h;
 }
+/* bodycam censoring: every face in view is blurred into big pixels, like footage released to the public */
+var _fv=new THREE.Vector3(), _fL=[];
+function bcFace(x,y,z,out,n,r0){
+  if(n>=6) return n;
+  _fv.set(x,y,z); var dx=_fv.x-camera.position.x, dy=_fv.y-camera.position.y, dz=_fv.z-camera.position.z, d=Math.hypot(dx,dy,dz);
+  if(d>70||d<0.6) return n;
+  _fv.project(camera); if(_fv.z>1||Math.abs(_fv.x)>1.1||Math.abs(_fv.y)>1.1) return n;
+  var r=Math.max(0.014,r0/(2*d*Math.tan(camera.fov*Math.PI/360)));
+  _fL.push([d,_fv.x*0.5+0.5,_fv.y*0.5+0.5,r]); return n+1;
+}
+function bcFaces(arr){
+  var i, id; _fL.length=0; camera.updateMatrixWorld(); camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+  for(i=0;i<enemies.length;i++){ var e=enemies[i]; if(e.dead||e.kami) continue; bcFace(e.x,e.group.position.y+1.6*(e.sc||1),e.z,null,0,0.26*(e.sc||1)); }
+  if(mp.on){ for(id in mp.peers){ var R=mp.peers[id].rem; if(R&&R.al&&mp.peers[id].avatar&&mp.peers[id].avatar.visible) bcFace(R.x,R.y+1.62,R.z,null,0,0.26); } }
+  for(i=0;i<allies.length;i++){ var a=allies[i]; if(a.dead||a.ride!==undefined) continue; bcFace(a.x,a.fy+1.6,a.z,null,0,0.26); }
+  _fL.sort(function(p,q){ return p[0]-q[0]; });
+  for(i=0;i<6;i++){ if(i<_fL.length) arr[i].set(_fL[i][1],_fL[i][2],_fL[i][3],1); else arr[i].set(0,0,0,0); }
+}
 function bcRender(){
   var cv=renderer.domElement, w=cv.width, h=cv.height;
   if(!BC.rt||BC.w!==w||BC.h!==h) bcInit(w,h);
   var u=BC.mat.uniforms, since=tAcc-lastShot, mv=Math.min(1,moveFrac||0);
+  bcFaces(u.uF.value);
   u.uT.value=tAcc; u.uH.value=Math.min(1,vigT*1.5+(p.health<35?0.25:0));
   /* the chest rig jolts with every shot, bobs with every stride, and drifts a little even standing still */
   var jk=since<0.14?(1-since/0.14):0, tg=jk*0.006;
