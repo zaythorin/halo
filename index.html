@@ -191,15 +191,8 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #lockHint{position:absolute;left:0;right:0;bottom:calc(110px + var(--sb));text-align:center;font-size:11px;letter-spacing:.3em;color:var(--amber);font-weight:700;text-shadow:0 1px 6px #000;pointer-events:none}
 #menu.gate .go,#menu.gate #ctlBtn{visibility:hidden}
 /* sniper scope */
-#pipLens{position:absolute;left:50%;top:50%;width:46vmin;height:46vmin;margin:-23vmin 0 0 -23vmin;border-radius:50%;pointer-events:none;display:none;box-sizing:border-box;border:.9vmin solid #0b0d10;box-shadow:0 0 0 .35vmin rgba(150,160,175,.55),inset 0 0 3.2vmin rgba(0,0,0,.75);--c:#9fe8ff}
-#ui.pip #pipLens{display:block}
 #ui.pip .cross{display:none}
 #ui.pip #scope{opacity:0!important}
-#pipLens i{position:absolute;display:block}
-#pipLens .ph{left:6%;right:6%;top:50%;height:1px;background:linear-gradient(90deg,var(--c) 0 38%,transparent 38% 62%,var(--c) 62%);opacity:.85}
-#pipLens .pv{top:6%;bottom:6%;left:50%;width:1px;background:linear-gradient(180deg,transparent 0 50%,var(--c) 50%);opacity:.85}
-#pipLens .pr{inset:30%;border-radius:50%;border:1px solid var(--c);opacity:.35}
-#pipLens b{position:absolute;right:11%;bottom:12%;font:700 1.9vmin var(--font-ui,monospace);color:var(--c);text-shadow:0 0 6px #000}
 #scope{position:absolute;inset:0;opacity:0;pointer-events:none;--c:#8fd8ff;--w:min(61vw,112vh);--h:calc(var(--w) * 0.466);--tk:rgba(235,240,255,.85)}
 #ui.scoped #scope{opacity:1}
 /* Battle Rifle: round lens with a mil-dot reticle and range scale. Carbine: green hex HUD */
@@ -530,7 +523,6 @@ body{letter-spacing:.02em}
 <div id="ui" hidden>
   <div id="vig"></div>
   <div id="bcam" hidden><b class="dot"></b><span class="rec">REC</span><span id="bcT" class="tm">00:00:00</span><span class="lbl">BODYCAM 01</span><span class="bat">BAT 87%</span></div>
-  <div id="pipLens"><i class="pr"></i><i class="ph"></i><i class="pv"></i><b id="pipZ">4x</b></div>
   <div id="scope"><u class="bl bt"></u><u class="bl bb"></u><u class="bl bw"></u><u class="bl be"></u><i class="win"></i><i class="sc l"></i><i class="sc r"></i><i class="ar l"></i><i class="ar r"></i><i class="ln lh a"></i><i class="ln lh b"></i><i class="ln lv"></i><i class="bar a"></i><i class="bar b"></i><i class="ring"></i><b class="z" id="scopeZ">4x</b><div id="scBR"><div class="m"></div><svg viewBox="-106 -106 212 212"><circle r="100" fill="rgba(60,100,150,.10)"/><circle r="100" fill="none" stroke="#000" stroke-width="1.2"/><path d="M0-96V-52M0 52V96M-96 0H-52M52 0H96" stroke="#000" stroke-width="1.1" fill="none"/><path d="M-2.5-47.5h5M-2.5-35h5M-2.5-22.5h5M-2.5 22.5h5M-2.5 35h5M-2.5 47.5h5M-47.5-2.5v5M-35-2.5v5M-22.5-2.5v5M22.5-2.5v5M35-2.5v5M47.5-2.5v5" stroke="#000" stroke-width=".45" fill="none"/><path d="M0-47.5V-22.5M0 22.5V47.5M-47.5 0H-22.5M22.5 0H47.5" stroke="#000" stroke-width=".9" stroke-dasharray=".5 2" fill="none"/><text x="-47.5" y="11" text-anchor="middle">00</text><text x="47.5" y="11" text-anchor="middle">00</text><path class="rt" d="M2.66-12.52A12.8 12.8 0 0 1 12.52-2.66M12.52 2.66A12.8 12.8 0 0 1 2.66 12.52M-2.66 12.52A12.8 12.8 0 0 1 -12.52 2.66M-12.52-2.66A12.8 12.8 0 0 1 -2.66-12.52M0-17.2V-5.6M0 5.6V17.2M-17.2 0H-5.6M5.6 0H17.2"/><g fill="none" stroke="rgba(0,0,0,.5)" stroke-width=".6"><path d="M-73 54Q-40 53 -20 41M-73 58H-20M-72.5 54v-6M-59.5 53.4v-6M-46 51.5v-6M-33 48v-6M-20 41v-6M-66 54v-3M-53 52.5v-3M-39.5 50v-3M-26.5 45v-3"/></g><text x="-72.5" y="44">10</text><text x="-59.5" y="43.4">8</text><text x="-46" y="41.5">6</text><text x="-33" y="38">4</text><text x="-20" y="31">2</text><text x="-17" y="61" text-anchor="start">1,7</text></svg></div><div id="scCB"><svg viewBox="160 228 1364 910"><polygon points="744,247 940,247 1030,385 1180,392 1255,545 1425,545 1500,683 1425,825 1255,825 1180,965 1030,985 945,1110 739,1110 654,985 504,965 429,825 259,825 184,683 259,545 429,545 504,392 654,385" fill="rgba(0,30,6,.14)" stroke="#3dff45" stroke-width="3.5" stroke-linejoin="round"/><g fill="none" stroke="#2fdc3a" stroke-linejoin="round"><polygon points="215,683 265,572 415,572 462,683 415,795 265,795" stroke-width="4"/><polygon points="236,683 275,590 405,590 440,683 405,778 275,778" stroke-width="2" opacity=".55"/><polygon points="1469,683 1419,572 1269,572 1222,683 1269,795 1419,795" stroke-width="4"/><polygon points="1448,683 1409,590 1279,590 1244,683 1279,778 1409,778" stroke-width="2" opacity=".55"/><polygon points="795,555 890,555 945,610 945,757 890,812 795,812 740,757 740,610" stroke-width="4"/><path d="M462 683H740M945 683H1222" stroke-width="2" opacity=".4"/></g><g fill="none" stroke="#2f5a2f" stroke-width="6" opacity=".75"><path d="M790 640L505 500M895 640L1180 500M790 725L505 865M895 725L1180 865"/></g><g fill="none" stroke="#2fdc3a" stroke-width="3" opacity=".3"><rect x="225" y="433" width="200" height="68" rx="30"/><rect x="1259" y="433" width="200" height="68" rx="30"/><rect x="225" y="866" width="200" height="68" rx="30"/><rect x="1259" y="866" width="200" height="68" rx="30"/></g><circle class="rt" cx="842" cy="683" r="27" stroke-dasharray="30 12" stroke-width="2"/><path class="rt" d="M783 633L814 655M901 633L870 655M783 733L814 711M901 733L870 711" stroke-width="4"/></svg></div></div>
   <div class="cross" id="cross"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
 
@@ -9735,11 +9727,20 @@ function pipRender(){
   if(!PIP.rt){
     var rs=coarsePtr?400:700; PIP.rt=new THREE.WebGLRenderTarget(rs,rs,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});
     PIP.sc=new THREE.Scene(); PIP.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,10); PIP.cam.position.z=5;
+    var mk=function(g,c,z,o){ var m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:c,toneMapped:false,depthTest:false,depthWrite:false,transparent:!!o,opacity:o||1})); m.position.z=z; PIP.sc.add(m); return m; };
     PIP.mesh=new THREE.Mesh(new THREE.CircleGeometry(0.5,72),new THREE.MeshBasicMaterial({map:PIP.rt.texture,toneMapped:false,depthTest:false,depthWrite:false})); PIP.sc.add(PIP.mesh);
+    /* the scope's own parts: the dark tube around the glass, a soft shaded edge to the lens, and a fine reticle with a small red dot */
+    var vc=document.createElement('canvas'); vc.width=vc.height=128; var vg=vc.getContext('2d'), gr=vg.createRadialGradient(64,64,34,64,64,64); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,0.62)'); vg.fillStyle=gr; vg.fillRect(0,0,128,128);
+    PIP.vig=new THREE.Mesh(new THREE.CircleGeometry(0.5,72),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(vc),transparent:true,toneMapped:false,depthTest:false,depthWrite:false})); PIP.vig.position.z=0.1; PIP.sc.add(PIP.vig);
+    PIP.ring=mk(new THREE.RingGeometry(0.495,0.6,72),0x0a0b0d,0.2); PIP.rim=mk(new THREE.RingGeometry(0.598,0.612,72),0x3b4048,0.25);
+    PIP.hl=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92); PIP.hr=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92); PIP.vt=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92); PIP.vb=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92);
+    PIP.dot=mk(new THREE.CircleGeometry(1,16),0xff3a3a,0.4);
   }
-  var W=window.innerWidth, H=window.innerHeight, S=Math.round(Math.min(W,H)*0.46);
+  var W=window.innerWidth, H=window.innerHeight, S=Math.round(Math.min(W,H)*0.5);
   if(PIP.W!==W||PIP.H!==H){ PIP.W=W; PIP.H=H; PIP.cam.left=-W/2; PIP.cam.right=W/2; PIP.cam.top=H/2; PIP.cam.bottom=-H/2; PIP.cam.updateProjectionMatrix(); }
-  PIP.mesh.scale.set(S*0.985,S*0.985,1);
+  PIP.mesh.scale.set(S,S,1); PIP.vig.scale.set(S,S,1); PIP.ring.scale.set(S,S,1); PIP.rim.scale.set(S,S,1);
+  var lw=Math.max(1.5,S*0.004), gp=S*0.035; PIP.hl.scale.set(S*0.46-gp,lw,1); PIP.hl.position.x=-(gp+(S*0.46-gp)/2); PIP.hr.scale.set(S*0.46-gp,lw,1); PIP.hr.position.x=gp+(S*0.46-gp)/2;
+  PIP.vt.scale.set(lw,S*0.2,1); PIP.vt.position.y=gp+S*0.1; PIP.vb.scale.set(lw,S*0.46-gp,1); PIP.vb.position.y=-(gp+(S*0.46-gp)/2); PIP.dot.scale.set(Math.max(1.8,S*0.005),Math.max(1.8,S*0.005),1);
   var of=camera.fov, oa=camera.aspect, ov=vm.visible;
   camera.fov=PIP.f; camera.aspect=1; camera.updateProjectionMatrix(); vm.visible=false;
   renderer.setRenderTarget(PIP.rt); renderer.clear(); renderer.render(scene,camera); renderer.setRenderTarget(null);
