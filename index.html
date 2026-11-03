@@ -630,6 +630,31 @@ body{letter-spacing:.02em}
 
 .hmBanner #menuLogoBox{max-width:100%;display:flex;flex-direction:column;align-items:center}
 .hmBanner #menuLogo{height:auto;width:auto;max-width:78%;max-height:clamp(34px,9vh,74px);object-fit:contain}
+
+/* ---- every other screen (pause, online, controls, achievements, campaign...) in the same white, see-through style as the new main menu; nothing scrolls sideways ---- */
+.overlay:not(#menu){background:linear-gradient(90deg,rgba(2,8,20,.62) 0,rgba(2,8,20,.34) 55%,rgba(2,8,20,.12) 100%)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;overflow-x:hidden!important;color:#fff}
+.overlay:not(#menu) .card{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;box-sizing:border-box;min-width:0;max-width:min(560px,94vw)!important;overflow-x:hidden!important;overflow-y:auto;align-items:stretch!important;text-align:left!important;gap:14px;padding:0}
+.overlay:not(#menu) .card *{box-sizing:border-box;max-width:100%}
+.overlay:not(#menu) #controls .card,#controls .card{max-width:min(860px,94vw)!important}
+.overlay:not(#menu) h1,.overlay:not(#menu) h2,.overlay:not(#menu) h3{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-family:var(--font-ui)!important;font-weight:700;letter-spacing:.26em;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.6);filter:none!important}
+.overlay:not(#menu) p,.overlay:not(#menu) .dim,.overlay:not(#menu) .ctl,.overlay:not(#menu) .ctl div,.overlay:not(#menu) label,.overlay:not(#menu) small,.overlay:not(#menu) .mpOptT{color:#e4edf8!important;font-family:var(--font-ui)!important;font-stretch:normal;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.overlay:not(#menu) .ctl b,.overlay:not(#menu) .stats b{color:#fff!important}
+.overlay:not(#menu) .go,.overlay:not(#menu) .go.alt,.overlay:not(#menu) .ghost,.mpModes .go,.mpRow .go,.pbtns .go{display:block;width:100%;text-align:left!important;font-family:var(--font-ui)!important;font-weight:700;font-size:clamp(14px,2.4vh,19px)!important;letter-spacing:.22em!important;text-transform:uppercase;color:#fff!important;background:rgba(6,14,28,.1)!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.3)!important;border-radius:0!important;box-shadow:none!important;padding:clamp(10px,1.8vh,15px) 20px!important;white-space:normal;text-shadow:0 1px 6px rgba(0,0,0,.6);transform:none!important;margin:0}
+.overlay:not(#menu) .go:not(.alt):not(.ghost){border:2px solid rgba(255,255,255,.85)!important}
+.overlay:not(#menu) .go:hover,.overlay:not(#menu) .go:focus-visible,.overlay:not(#menu) .go.alt:hover,.overlay:not(#menu) .ghost:hover,.mpModes .go.on,.mpModes .go:hover,.mpRow .go:hover,.pbtns .go:hover{background:#f4f7fb!important;color:#0b1724!important;text-shadow:none;outline:none}
+.mpModes{flex-wrap:wrap;gap:0}.mpModes .go{flex:1 1 140px;min-width:0}
+.mpRow{flex-wrap:wrap;gap:8px}.mpRow .go{flex:0 1 auto;width:auto}
+.mpChips{display:flex;flex-wrap:wrap;gap:6px}
+.overlay:not(#menu) .mpChips *,.overlay:not(#menu) .chip{border-radius:0!important}
+.overlay:not(#menu) input,.overlay:not(#menu) select{background:rgba(4,10,20,.45)!important;color:#fff!important;border:1px solid rgba(255,255,255,.5)!important;border-radius:0!important;font-family:var(--font-ui)!important;max-width:100%}
+.overlay:not(#menu) input:focus,.overlay:not(#menu) select:focus{outline:none;border-color:#fff!important}
+.overlay:not(#menu) .stats div,.overlay:not(#menu) .ctl div{background:none!important;border:0!important;border-left:2px solid rgba(255,255,255,.6)!important;border-radius:0!important}
+.ctl{grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))!important}
+#pause,#over,#mp,#controls,#ach,#camp,#campCard,#campDone{justify-content:flex-start!important;padding-left:clamp(14px,6vw,90px)!important;padding-right:clamp(14px,3vw,40px)!important}
+.overlay:not(#menu) .credits summary{color:#cfe0f2}
+.overlay:not(#menu) .cm{background:rgba(6,14,28,.1)!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.3)!important;border-radius:0!important;color:#fff!important}
+.overlay:not(#menu) .cm.sel{background:#f4f7fb!important;color:#0b1724!important}
+html,body{overflow-x:hidden}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
