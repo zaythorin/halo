@@ -5214,7 +5214,7 @@ function tpBack(rg){
   rg.back.position.set(0,R.neck[1]-th*0.35,R.neck[2]-0.2/rg.sf);
   rg.back.visible=!!tpl&&wi!==cur&&!dwOnF;
 }
-var BCLOW=0, BCK=0;
+var BCLOW=0, BCK=0, BCVEH=0.2;   /* bodycam in a vehicle: how far behind the roof pivot the camera sits */
 var ARMS_OUT=[0,0,0.03];   /* arms reach further out: left hand sideways and forward along the gun, right hand a little sideways */
 function applyCamera(bob){
   camLag*=Math.max(0,1-frameDt*9); if(camLag>0.7) camLag=0.7; else if(camLag<-0.7) camLag=-0.7; if(Math.abs(camLag)<0.001) camLag=0;
@@ -5867,6 +5867,7 @@ function mgDriving(dt){
   updateLook(); ctrl.jump=false; updateFov(dt); regen(dt);
   var cp=Math.cos(p.pitch), fx=-Math.sin(p.yaw)*cp, fy=Math.sin(p.pitch), fz=-Math.cos(p.yaw)*cp;
   var dist=zoomed?3.0:4.8, pv=new V3(V.x,V.y+1.7,V.z), back=new V3(-fx,-fy,-fz);
+  if(BC.on&&!zoomed) dist=BCVEH;
   ray.set(pv,back); ray.far=dist;
   var hs=ray.intersectObjects(coverMeshes,false);
   if(hs.length) dist=Math.max(1.5,hs[0].distance-0.4);
@@ -6125,6 +6126,7 @@ function updateDriving(dt){
   if(GN.on) gnUpdate(dt);
   var cp=Math.cos(p.pitch), fx=-Math.sin(p.yaw)*cp, fy=Math.sin(p.pitch), fz=-Math.cos(p.yaw)*cp;
   var dist=(zoomed?4.2:7)*RK, pv=new V3(veh.x,veh.y+2.0*RK,veh.z), back=new V3(-fx,-fy,-fz);
+  if(BC.on&&!zoomed) dist=BCVEH*RK;   /* bodycam: the camera rides on the vehicle like a mounted body cam instead of chasing it from behind */
   ray.set(pv,back); ray.far=dist;
   var hs=ray.intersectObjects(coverMeshes,false);
   if(hs.length) dist=Math.max(1.5,hs[0].distance-0.4);
