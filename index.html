@@ -758,16 +758,16 @@ var ARENA_R=250, EYE=2.0, GRAV=12, JUMP_V=7.4, PSPEED=6.4, SENS=0.0042;
 var TRN={on:false,hid:[],objs:[],dum:[],hit:[],arcs:[],lights:[],last:null,tot:0,t:0,hx:34,hz:46,wx:null,hud:null,hudT:0,sv:null,lt:0};
 
 /* ---------- scene ---------- */
-var SKY=0xb3bfcc;
+var SKY=0x59626b;   /* heavy grey overcast */
 var scene=new THREE.Scene();
 scene.background=new THREE.Color(SKY);
-scene.fog=new THREE.Fog(SKY,85,760);
+scene.fog=new THREE.Fog(SKY,30,500);
 var BASE_FOV=62;
 var camera=new THREE.PerspectiveCamera(BASE_FOV,1,0.05,2000);
 camera.rotation.order='YXZ';
 scene.add(camera);
-var hemi=new THREE.HemisphereLight(0xd0dae6,0x7d6e54,0.72); scene.add(hemi);
-var sun=new THREE.DirectionalLight(0xfff0d8,0.95); sun.position.set(-90,160,110); scene.add(sun);
+var hemi=new THREE.HemisphereLight(0xa4afbb,0x5a5144,0.46); scene.add(hemi);
+var sun=new THREE.DirectionalLight(0xe4dccd,0.52); sun.position.set(-90,160,110); scene.add(sun);
 /* ---------- graphics: real-time sun shadows that follow the player, sharper pixels, a little colour punch; auto-lowers itself if the frame rate drops ---------- */
 var GFX={lvl:2,avg:16,slow:0,last:0,sweepT:0,S:40,dir:new V3(-90,160,110).normalize(),ctr:new V3(),rt:new V3(),up:new V3(),names:['LOW','MEDIUM','HIGH','ULTRA'],aniso:1,aq:[],tmOn:false};
 var ISLU={value:0}, ISLCHK={n:0,list:[]};
@@ -810,6 +810,7 @@ function bloomInit(){
 }
 function atmoTick(dt){
   if(!skyDome) return;
+  if(!TM.on) skyDome.material.color.setScalar(0.5*(1-0.9*night));   /* a darker, grimmer sky all the time */
   bloomInit(); var bon=state==='play'&&GFX.lvl>=2; if(bon!==BLM.on){ BLM.on=bon; BLM.c.style.display=bon?'block':'none'; }
   var u=skyDome.material.uniforms; u.t.value+=dt*0.004; if(scene.fog) u.fogc.value.copy(scene.fog.color);
   if(!ATMO.el){ var e=document.createElement('div'); e.style.cssText='position:fixed;left:0;top:0;width:90vmin;height:90vmin;margin:-45vmin 0 0 -45vmin;z-index:1;pointer-events:none;display:none;mix-blend-mode:screen;background:radial-gradient(circle,rgba(255,244,214,.9) 0,rgba(255,226,160,.42) 9%,rgba(255,200,120,.14) 28%,rgba(255,190,110,0) 62%)'; document.body.appendChild(e); ATMO.el=e; }
@@ -825,7 +826,7 @@ function atmoTick(dt){
   }
   ATMO.k+=(g-ATMO.k)*Math.min(1,dt*5);
   ATMO.el.style.display=ATMO.k>0.01?'block':'none'; ATMO.el.style.opacity=(ATMO.k*0.85).toFixed(3);
-  if(GFX.tmOn){ var ex=1.18*(1-0.13*ATMO.k); renderer.toneMappingExposure+=(ex-renderer.toneMappingExposure)*Math.min(1,dt*3); }   /* the eye adjusts when you look at the sun */
+  if(GFX.tmOn){ var ex=0.95*(1-0.13*ATMO.k); renderer.toneMappingExposure+=(ex-renderer.toneMappingExposure)*Math.min(1,dt*3); }   /* the eye adjusts when you look at the sun */
 }
 function gfxApply(){
   var L=GFX.lvl, dpr=window.devicePixelRatio||1;
@@ -834,10 +835,10 @@ function gfxApply(){
   var ms=L===3?4096:L===2?2048:1024; GFX.S=L===3?46:L===2?44:34;
   if(sun.shadow.mapSize.x!==ms){ sun.shadow.mapSize.set(ms,ms); if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map=null; } }
   var c=sun.shadow.camera; c.left=-GFX.S; c.right=GFX.S; c.top=GFX.S; c.bottom=-GFX.S; c.near=5; c.far=330; c.updateProjectionMatrix();
-  try{ $('gl').style.filter=L===3?'contrast(1.08) saturate(1.14)':L===2?'contrast(1.06) saturate(1.12)':''; }catch(e){}
+  try{ $('gl').style.filter=L===3?'contrast(1.12) saturate(0.74) brightness(.94)':L===2?'contrast(1.1) saturate(0.76) brightness(.95)':'contrast(1.06) saturate(0.82)'; }catch(e){}
   /* ultra: filmic tone mapping, a sky-bounce fill light, sharp textures at grazing angles, a soft vignette */
   var tmOn=L===3;
-  if(tmOn!==GFX.tmOn){ GFX.tmOn=tmOn; renderer.toneMapping=tmOn?THREE.ACESFilmicToneMapping:THREE.NoToneMapping; renderer.toneMappingExposure=1.18; scene.traverse(function(o){ if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(function(m){ m.needsUpdate=true; }); } }); }
+  if(tmOn!==GFX.tmOn){ GFX.tmOn=tmOn; renderer.toneMapping=tmOn?THREE.ACESFilmicToneMapping:THREE.NoToneMapping; renderer.toneMappingExposure=0.95; scene.traverse(function(o){ if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(function(m){ m.needsUpdate=true; }); } }); }
   try{ GFX.aniso=L>=2?Math.min(16,renderer.capabilities.getMaxAnisotropy()):1; }catch(e){}
   if(!GFX.fill){ GFX.fill=new THREE.DirectionalLight(0x9fc0e8,0.0); GFX.fill.position.set(90,50,-110); scene.add(GFX.fill); }
   GFX.fill.visible=tmOn;
@@ -4065,7 +4066,7 @@ function spawnRefugees(n){
 
 /* night, stars and the blue blood */
 var night=0, bloodMesh=null, bloodDyn=null, bloodMat=null, bloodI=0, stars=null, nightEl=null;
-var dayBg=new THREE.Color(SKY), nightBg=new THREE.Color(0x070d1c), dayHemi=new THREE.Color(0xd0dae6), nightHemi=new THREE.Color(0x4a66a8), daySun=new THREE.Color(0xfff0d8), nightSun=new THREE.Color(0x7d9cff);
+var dayBg=new THREE.Color(SKY), nightBg=new THREE.Color(0x070d1c), dayHemi=new THREE.Color(0xa4afbb), nightHemi=new THREE.Color(0x4a66a8), daySun=new THREE.Color(0xe4dccd), nightSun=new THREE.Color(0x7d9cff);
 var torch=new THREE.PointLight(0xa8d4ff,0,26,1.5); camera.add(torch);
 safe(function(){
   var n=700, pos=new Float32Array(n*3), i;
@@ -4106,10 +4107,10 @@ function addBlood(x,z,s){
   bloodDyn.setMatrixAt(k,o.matrix); bloodDyn.instanceMatrix.needsUpdate=true;
 }
 function applyNight(k){
-  scene.background.copy(dayBg).lerp(nightBg,k); scene.fog.color.copy(scene.background); scene.fog.near=85-55*k; scene.fog.far=760-420*k;
-  hemi.intensity=0.72-0.36*k; hemi.color.copy(dayHemi).lerp(nightHemi,k);
-  sun.intensity=0.95-0.65*k; sun.color.copy(daySun).lerp(nightSun,k);
-  if(skyDome) skyDome.material.color.setScalar(1-0.9*k);
+  scene.background.copy(dayBg).lerp(nightBg,k); scene.fog.color.copy(scene.background); scene.fog.near=30-8*k; scene.fog.far=500-190*k;
+  hemi.intensity=0.46-0.2*k; hemi.color.copy(dayHemi).lerp(nightHemi,k);
+  sun.intensity=0.52-0.26*k; sun.color.copy(daySun).lerp(nightSun,k);
+  if(skyDome) skyDome.material.color.setScalar(0.5*(1-0.9*k));
   torch.intensity=k*1.2;
   if(!nightEl) nightEl=document.getElementById('nightVeil');
   if(nightEl) nightEl.style.opacity=(0.62*k).toFixed(3);
