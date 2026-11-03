@@ -4679,7 +4679,15 @@ var MDS={};
 var ANN={on:true,voice:undefined};
 try{ ANN.on=localStorage.getItem('halo-ann')!=='0'; }catch(e){}
 /* the announcer: the browser's own speech voice, pitched down, says the medal out loud */
+var ANN_CLIPS={'DOUBLE KILL':'ann_double_kill.mp3','TRIPLE KILL':'ann_triple_kill.mp3','KILLING FRENZY':'ann_killing_frenzy.mp3'}, ANN_AUD={};
 function announce(t){
+  if(ANN.on&&ANN_CLIPS[t]){   /* the real Halo Reach announcer clips */
+    try{
+      var au=ANN_AUD[t]; if(!au){ au=ANN_AUD[t]=new Audio(ANN_CLIPS[t]); au.preload='auto'; }
+      au.volume=0.95; au.currentTime=0; var pr=au.play(); if(pr&&pr.catch) pr.catch(function(){});
+      return;
+    }catch(e){}
+  }
   if(!ANN.on||!window.speechSynthesis||!window.SpeechSynthesisUtterance) return;
   try{
     var u=new SpeechSynthesisUtterance(String(t).toLowerCase()); u.pitch=0.45; u.rate=0.9; u.volume=0.9;
