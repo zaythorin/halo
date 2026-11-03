@@ -9749,7 +9749,8 @@ function frame(now){
 /* ================= BODYCAM VIEW: the game seen through a chest camera. The scene is drawn to a texture and redrawn through a wide fisheye lens with colour fringing, film grain, a dark vignette, handheld jolts on every shot and step, and a blur when you are hit. Toggle it in the pause menu (it is off by default) ================= */
 var bcDeadOn=false; function bcDeadSet(on){ if(on===bcDeadOn) return; bcDeadOn=on; try{ var e=$('bcDead'); e.style.display=on?'flex':'none'; }catch(err){} }
 /* the scope lens: the scene seen again through a narrow field of view into a small texture, drawn as a circle in the middle of the screen over the gun. The gun itself is left out of the zoomed picture */
-var _pv=new THREE.Vector3();
+var _pv=new THREE.Vector3(), _pr=new THREE.Vector3();
+var SCP={dmr:[0,0.068,-0.116,0.03]};   /* weapon id -> where the rear lens of its own scope sits on the model (x,y,z) and its radius */
 function pipRender(){
   if(PIP.bad) return;
   if(!PIP.rt){
@@ -9766,15 +9767,23 @@ function pipRender(){
   }
   var W=window.innerWidth, H=window.innerHeight, S=Math.round(Math.min(W,H)*0.36);
   if(PIP.W!==W||PIP.H!==H){ PIP.W=W; PIP.H=H; PIP.cam.left=-W/2; PIP.cam.right=W/2; PIP.cam.top=H/2; PIP.cam.bottom=-H/2; PIP.cam.updateProjectionMatrix(); }
-  PIP.mesh.scale.set(S,S,1); PIP.vig.scale.set(S,S,1); PIP.ring.scale.set(S,S,1); PIP.rim.scale.set(S,S,1);
-  var lw=Math.max(1.5,S*0.004), gp=S*0.035; PIP.hl.scale.set(S*0.46-gp,lw,1); PIP.hl.position.x=-(gp+(S*0.46-gp)/2); PIP.hr.scale.set(S*0.46-gp,lw,1); PIP.hr.position.x=gp+(S*0.46-gp)/2;
-  PIP.vt.scale.set(lw,S*0.2,1); PIP.vt.position.y=gp+S*0.1; PIP.vb.scale.set(lw,S*0.46-gp,1); PIP.vb.position.y=-(gp+(S*0.46-gp)/2); PIP.dot.scale.set(Math.max(1.8,S*0.005),Math.max(1.8,S*0.005),1);
   /* the lens rides on the gun: it moves with the weapon's own sway, kick and lag, measured from where the sight sat once the weapon settled into aim */
   var wg=weapons[cur].group; camera.updateMatrixWorld(); camera.matrixWorldInverse.copy(camera.matrixWorld).invert(); wg.updateWorldMatrix(true,false);
   _pv.set(0,0.05,-0.2); wg.localToWorld(_pv); _pv.project(camera);
-  var psx=_pv.x*W/2, psy=_pv.y*H/2;
-  if(!PIP.ref){ if(AIMK>0.97) PIP.ref=[psx,psy]; }
-  PIP.grp.position.set(PIP.ref?psx-PIP.ref[0]:0,PIP.ref?psy-PIP.ref[1]:0,0);
+  var psx=_pv.x*W/2, psy=_pv.y*H/2, sc0=SCP[weapons[cur].id];
+  if(sc0){
+    /* the scope's real rear lens on the 3D model: its centre and edge are projected to the screen, and the zoomed picture is drawn exactly there */
+    _pv.set(sc0[0],sc0[1],sc0[2]); wg.localToWorld(_pv); var wp=_pv.clone(); _pv.project(camera); var cx0=_pv.x*W/2, cy0=_pv.y*H/2;
+    _pv.copy(wp).addScaledVector(_pr.setFromMatrixColumn(camera.matrixWorld,0),sc0[3]); _pv.project(camera);
+    S=Math.max(W*0.04,Math.min(Math.min(W,H)*0.6,2*Math.hypot(_pv.x*W/2-cx0,_pv.y*H/2-cy0)));
+    PIP.grp.position.set(cx0,cy0,0); PIP.sc0=1;
+  }else{
+    if(!PIP.ref){ if(AIMK>0.97) PIP.ref=[psx,psy]; }
+    PIP.grp.position.set(PIP.ref?psx-PIP.ref[0]:0,PIP.ref?psy-PIP.ref[1]:0,0);
+  }
+  PIP.mesh.scale.set(S,S,1); PIP.vig.scale.set(S,S,1); PIP.ring.scale.set(S,S,1); PIP.rim.scale.set(S,S,1);
+  var lw=Math.max(1.5,S*0.004), gp=S*0.035; PIP.hl.scale.set(S*0.46-gp,lw,1); PIP.hl.position.x=-(gp+(S*0.46-gp)/2); PIP.hr.scale.set(S*0.46-gp,lw,1); PIP.hr.position.x=gp+(S*0.46-gp)/2;
+  PIP.vt.scale.set(lw,S*0.2,1); PIP.vt.position.y=gp+S*0.1; PIP.vb.scale.set(lw,S*0.46-gp,1); PIP.vb.position.y=-(gp+(S*0.46-gp)/2); PIP.dot.scale.set(Math.max(1.8,S*0.005),Math.max(1.8,S*0.005),1);
   var of=camera.fov, oa=camera.aspect, ov=vm.visible;
   camera.fov=PIP.f; camera.aspect=1; camera.updateProjectionMatrix(); vm.visible=false;
   renderer.setRenderTarget(PIP.rt); renderer.clear(); renderer.render(scene,camera); renderer.setRenderTarget(null);
