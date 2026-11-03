@@ -668,8 +668,14 @@ html,body{overflow-x:hidden}
 .cuSw{grid-template-columns:repeat(3,1fr)}
 @media (max-width:760px),(max-height:520px){ #cuPrevWrap{position:relative;left:auto;top:auto;bottom:auto;width:auto;height:260px;margin:10px 14px} #hmCustom .hmList{top:auto} }
 
-/* only one screen at a time: hide the menu / pause screen while another overlay is open on top of it */
-#menu:has(~ #ach:not([hidden])),#menu:has(~ #controls:not([hidden])),#menu:has(~ #mp:not([hidden])),#menu:has(~ #camp:not([hidden])),#menu:has(~ #campCard:not([hidden])),#pause:has(~ #ach:not([hidden])),#pause:has(~ #controls:not([hidden])),#pause:has(~ #mp:not([hidden])){visibility:hidden!important}
+/* only one screen at a time: while another overlay is open on top of the main menu, keep the menu's own video behind it but hide its tabs and panels; the pause screen is hidden outright */
+#menu:has(~ #ach:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #controls:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #mp:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #camp:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #campCard:not([hidden])) > :not(#menuVid):not(#menuShade){visibility:hidden!important}
+#pause:has(~ #ach:not([hidden])),#pause:has(~ #controls:not([hidden])),#pause:has(~ #mp:not([hidden])){visibility:hidden!important}
+/* Play Online: use the width, with the match settings in a second column on the right */
+.overlay#mp:not(#menu) .card{max-width:min(1120px,94vw)!important;width:100%;display:grid!important;grid-template-columns:minmax(0,520px) minmax(0,1fr);column-gap:clamp(30px,6vw,90px);align-content:start;margin:0 auto}
+.overlay#mp:not(#menu) .card>*{grid-column:1}
+.overlay#mp:not(#menu) .card>.mpOpts{grid-column:2;grid-row:1 / span 12;max-width:none!important;align-self:start;margin-top:8px}
+@media (max-width:820px){.overlay#mp:not(#menu) .card{display:block!important;max-width:min(560px,94vw)!important}}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
