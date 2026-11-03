@@ -191,8 +191,6 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #lockHint{position:absolute;left:0;right:0;bottom:calc(110px + var(--sb));text-align:center;font-size:11px;letter-spacing:.3em;color:var(--amber);font-weight:700;text-shadow:0 1px 6px #000;pointer-events:none}
 #menu.gate .go,#menu.gate #ctlBtn{visibility:hidden}
 /* sniper scope */
-#ui.pip .cross{display:none}
-#ui.pip #scope{opacity:0!important}
 #scope{position:absolute;inset:0;opacity:0;pointer-events:none;--c:#8fd8ff;--w:min(61vw,112vh);--h:calc(var(--w) * 0.466);--tk:rgba(235,240,255,.85)}
 #ui.scoped #scope{opacity:1}
 /* Battle Rifle: round lens with a mil-dot reticle and range scale. Carbine: green hex HUD */
@@ -3401,12 +3399,10 @@ function hud(){
   els.cross.classList.toggle('foe',XH.tgt===1); els.cross.classList.toggle('ally',XH.tgt===2); els.cross.classList.toggle('rl',!!xr); els.cross.classList.toggle('spr',!!xs); els.cross.classList.toggle('low',!!hudCache.la&&!xr); els.cross.classList.toggle('zin',!!zoomed&&XH.tgt===0);
   var needLock=!coarsePtr&&gpActive<=0&&document.pointerLockElement!==lookEl;
   if(hudCache.nl!==needLock){ hudCache.nl=needLock; els.lockHint.hidden=!needLock; }
-  var pipOn=zoomed&&!p.inVeh&&pipWeapon(w)&&AIMK>0.82&&PIP.f<45; PIP.on=pipOn; if(!pipOn) PIP.ref=null;
-  var scoped=pipOn||(zoomed&&!p.inVeh&&!!(w.scope||w.lscope)&&!pipWeapon(w)&&camera.fov<45&&AIMK>0.82);
-  if(hudCache.pip!==pipOn){ hudCache.pip=pipOn; els.ui.classList.toggle('pip',pipOn); }
+  var scoped=zoomed&&!p.inVeh&&!!(w.scope||w.lscope)&&camera.fov<45&&AIMK>0.82;
   if(hudCache.scoped!==scoped){ hudCache.scoped=scoped; els.ui.classList.toggle('scoped',scoped); }
-  var scK=(scoped&&!pipOn)?((w.id==='br'||w.id==='dmr')?'br':(w.id==='carbine'?'cb':'')):''; if(hudCache.scK!==scK){ hudCache.scK=scK; if(scK) els.scope.setAttribute('data-k',scK); else els.scope.removeAttribute('data-k'); }
-  if(scoped){ var zt=((w.id==='sniper'||w.beam)?(zoomLvl>1?8:4):(zoomLvl>1?5:2))+'x'; if(hudCache.zt!==zt){ hudCache.zt=zt; $('scopeZ').textContent=zt; var pz=$('pipZ'); if(pz) pz.textContent=zt; } }
+  var scK=scoped?((w.id==='br'||w.id==='dmr')?'br':(w.id==='carbine'?'cb':'')):''; if(hudCache.scK!==scK){ hudCache.scK=scK; if(scK) els.scope.setAttribute('data-k',scK); else els.scope.removeAttribute('data-k'); }
+  if(scoped){ var zt=((w.id==='sniper'||w.beam)?(zoomLvl>1?8:4):(zoomLvl>1?5:2))+'x'; if(hudCache.zt!==zt){ hudCache.zt=zt; $('scopeZ').textContent=zt; } }
   var vo=Math.min(1,vigT);
   if(p.health<35) vo=Math.max(vo,0.25+0.15*Math.sin(tAcc*6));
   els.vig.style.opacity=vo.toFixed(2);
@@ -5522,18 +5518,13 @@ function readMove(){
   mv.mx=mx; mv.mz=mz; mv.len=len; return mv;
 }
 function updateLook(){
-  var k=effFov()/75;
+  var k=camera.fov/75;
   swayIn.x+=lookDX*SENS*k; swayIn.y+=lookDY*SENS*k; p.yaw-=lookDX*SENS*k; p.pitch-=lookDY*SENS*k; lookDX=0; lookDY=0;
   /* no zoom sway: the crosshair stays perfectly still when zoomed */
   p.pitch=Math.max(-1.45,Math.min(1.45,p.pitch));
 }
-var PIP={on:false,f:75,rt:null,sc:null,cam:null,mesh:null,S:0,W:0,H:0};
-function pipWeapon(w){ return !!(w.scope||w.lscope)&&w.id!=='salt'; }   /* every scoped gun looks through its own scope as a zoomed lens, except the SAW which keeps the overlay */
-function effFov(){ return PIP.on?PIP.f:camera.fov; }
 function updateFov(dt){
-  var w0=weapons[cur], pw=zoomed&&!p.inVeh&&pipWeapon(w0);
-  if(pw){ var zf=(w0.id==='sniper'||w0.beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30); PIP.f+=(zf-PIP.f)*Math.min(1,dt*12); } else PIP.f=BASE_FOV;
-  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?(pipWeapon(weapons[cur])?(BASE_FOV+(BC&&BC.on?22:0)+5*MA.sprint):((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30))):(weapons[cur].zoomFov||42))):BASE_FOV+(BC&&BC.on?22:0)+5*MA.sprint;   /* sprinting widens the view a little */
+  var ft=zoomed?(p.inVeh?55:((weapons[cur].scope||weapons[cur].lscope)?((weapons[cur].id==='sniper'||weapons[cur].beam)?(zoomLvl>1?8.6:17.1):(zoomLvl>1?12:30)):(weapons[cur].zoomFov||42))):BASE_FOV+(BC&&BC.on?22:0)+5*MA.sprint;   /* sprinting widens the view a little */
   if(Math.abs(camera.fov-ft)>0.05){ camera.fov+=(ft-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); }
 }
 var HINTS={seen:{},bT:0,hT:0}, _sfD=new THREE.Vector3(), _sfP=new THREE.Vector3();
@@ -8061,7 +8052,7 @@ function updateWeapon(dt){
   /* smoothing: the final pose follows through a light frame-rate-independent filter, which removes jitter and softens sudden jumps */
   if(!vmSm.on||swapT>0.39||dt>0.25){ vmSm.on=true; vmSm.p.copy(vm.position); vmSm.r.set(vm.rotation.x,vm.rotation.y,vm.rotation.z); }
   else{ var sa=1-Math.exp(-dt*(zoomed?26:34)); vmSm.p.lerp(vm.position,sa); vmSm.r.x+=(vm.rotation.x-vmSm.r.x)*sa; vmSm.r.y+=(vm.rotation.y-vmSm.r.y)*sa; vmSm.r.z+=(vm.rotation.z-vmSm.r.z)*sa; vm.position.copy(vmSm.p); vm.rotation.set(vmSm.r.x,vmSm.r.y,vmSm.r.z); }
-  vm.visible=!((w.scope||w.lscope)&&!pipWeapon(w)&&zoomed&&camera.fov<45&&AIMK>0.82);
+  vm.visible=!((w.scope||w.lscope)&&zoomed&&camera.fov<45&&AIMK>0.82);
   ammoScreen(w); animateWeaponParts(w); dwAnimate(w); fingerAnim(w,w.group,dt); if(w.group2) fingerAnim(w,w.group2,dt);
   flashT-=dt; flash.visible=flashT>0; muzzleLight.intensity=flashT>0?mlBase*Math.min(1,flashT/mlDur+0.2):0;
 }
@@ -9257,7 +9248,7 @@ function gameOver(){
   state='dying'; MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   mgForce(); if(p.inVeh){ p.inVeh=false; } p.air=false; lockEl.style.display='none'; stopEngine();
-  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped','pip'); PIP.on=false; hudCache.pip=false; camera.fov=BASE_FOV; camera.updateProjectionMatrix();
+  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   vm.visible=false; heldG.frag.visible=false; heldG.plasma.visible=false; throwT=0; throwDone=true;
   if(score>best){ best=score; try{ localStorage.setItem('halo-best',String(best)); }catch(e){} }
   medalPanel();
@@ -9759,7 +9750,7 @@ function aimMove(ev){
 function aimEnd(){ AIMS.id=null; AIMS.dx=0; AIMS.dy=0; var b=$('aimBase'); if(b) b.hidden=true; }
 function aimTarget(){
   var cx=camera.position.x, cy=camera.position.y, cz=camera.position.z, cp=Math.cos(p.pitch);
-  var fx=-Math.sin(p.yaw)*cp, fy=Math.sin(p.pitch), fz=-Math.cos(p.yaw)*cp, cone=AIM_CONE*effFov()/62, best=null, ba=cone, i;
+  var fx=-Math.sin(p.yaw)*cp, fy=Math.sin(p.pitch), fz=-Math.cos(p.yaw)*cp, cone=AIM_CONE*camera.fov/62, best=null, ba=cone, i;
   function test(x,y,z){
     var dx=x-cx, dy=y-cy, dz=z-cz, L=Math.hypot(dx,dy,dz); if(L<2||L>85) return;
     var a=Math.acos(Math.max(-1,Math.min(1,(dx*fx+dy*fy+dz*fz)/L))); if(a<ba){ ba=a; best={x:dx,y:dy,z:dz,L:L,a:a}; }
@@ -9968,52 +9959,9 @@ function frame(now){
   laserBeamStep(dt); nukeStep(dt);
   tpUpdate(dt); try{ atmoTick(dt); }catch(e){}
   if(BC.on){ try{ bcRender(); }catch(e){ BC.on=false; bcLabel(); renderer.setRenderTarget(null); renderer.render(scene,camera); } } else renderer.render(scene,camera);
-  if(PIP.on&&state==='play'){ try{ pipRender(); }catch(e){ PIP.on=false; PIP.bad=1; renderer.setRenderTarget(null); renderer.autoClear=true; } }
 }
 /* ================= BODYCAM VIEW: the game seen through a chest camera. The scene is drawn to a texture and redrawn through a wide fisheye lens with colour fringing, film grain, a dark vignette, handheld jolts on every shot and step, and a blur when you are hit. Toggle it in the pause menu (it is off by default) ================= */
 var bcDeadOn=false; function bcDeadSet(on){ if(on===bcDeadOn) return; bcDeadOn=on; try{ var e=$('bcDead'); e.style.display=on?'flex':'none'; }catch(err){} }
-/* the scope lens: the scene seen again through a narrow field of view into a small texture, drawn as a circle in the middle of the screen over the gun. The gun itself is left out of the zoomed picture */
-var _pv=new THREE.Vector3(), _pr=new THREE.Vector3();
-var SCP={dmr:[0,0.068,-0.116,0.03]};   /* weapon id -> where the rear lens of its own scope sits on the model (x,y,z) and its radius */
-function pipRender(){
-  if(PIP.bad) return;
-  if(!PIP.rt){
-    var rs=coarsePtr?400:700; PIP.rt=new THREE.WebGLRenderTarget(rs,rs,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});
-    PIP.sc=new THREE.Scene(); PIP.grp=new THREE.Group(); PIP.sc.add(PIP.grp); PIP.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,10); PIP.cam.position.z=5;
-    var mk=function(g,c,z,o){ var m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:c,toneMapped:false,depthTest:false,depthWrite:false,transparent:!!o,opacity:o||1})); m.position.z=z; PIP.grp.add(m); return m; };
-    PIP.mesh=new THREE.Mesh(new THREE.CircleGeometry(0.5,72),new THREE.MeshBasicMaterial({map:PIP.rt.texture,toneMapped:false,depthTest:false,depthWrite:false})); PIP.grp.add(PIP.mesh);
-    /* the scope's own parts: the dark tube around the glass, a soft shaded edge to the lens, and a fine reticle with a small red dot */
-    var vc=document.createElement('canvas'); vc.width=vc.height=128; var vg=vc.getContext('2d'), gr=vg.createRadialGradient(64,64,34,64,64,64); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,0.62)'); vg.fillStyle=gr; vg.fillRect(0,0,128,128);
-    PIP.vig=new THREE.Mesh(new THREE.CircleGeometry(0.5,72),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(vc),transparent:true,toneMapped:false,depthTest:false,depthWrite:false})); PIP.vig.position.z=0.1; PIP.grp.add(PIP.vig);
-    PIP.ring=mk(new THREE.RingGeometry(0.488,0.5,72),0x0a0b0d,0.2); PIP.rim=mk(new THREE.RingGeometry(0.5,0.508,72),0x20242a,0.25);
-    PIP.hl=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92); PIP.hr=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92); PIP.vt=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92); PIP.vb=mk(new THREE.PlaneGeometry(1,1),0x050607,0.3,0.92);
-    PIP.dot=mk(new THREE.CircleGeometry(1,16),0xff3a3a,0.4);
-  }
-  var W=window.innerWidth, H=window.innerHeight, S=Math.round(Math.min(W,H)*0.36);
-  if(PIP.W!==W||PIP.H!==H){ PIP.W=W; PIP.H=H; PIP.cam.left=-W/2; PIP.cam.right=W/2; PIP.cam.top=H/2; PIP.cam.bottom=-H/2; PIP.cam.updateProjectionMatrix(); }
-  /* the lens rides on the gun: it moves with the weapon's own sway, kick and lag, measured from where the sight sat once the weapon settled into aim */
-  var wg=weapons[cur].group; camera.updateMatrixWorld(); camera.matrixWorldInverse.copy(camera.matrixWorld).invert(); wg.updateWorldMatrix(true,false);
-  _pv.set(0,0.05,-0.2); wg.localToWorld(_pv); _pv.project(camera);
-  var psx=_pv.x*W/2, psy=_pv.y*H/2, sc0=SCP[weapons[cur].id];
-  if(sc0){
-    /* the scope's real rear lens on the 3D model: its centre and edge are projected to the screen, and the zoomed picture is drawn exactly there */
-    _pv.set(sc0[0],sc0[1],sc0[2]); wg.localToWorld(_pv); var wp=_pv.clone(); _pv.project(camera); var cx0=_pv.x*W/2, cy0=_pv.y*H/2;
-    _pv.copy(wp).addScaledVector(_pr.setFromMatrixColumn(camera.matrixWorld,0),sc0[3]); _pv.project(camera);
-    S=Math.max(W*0.04,Math.min(Math.min(W,H)*0.6,2*Math.hypot(_pv.x*W/2-cx0,_pv.y*H/2-cy0)));
-    PIP.grp.position.set(cx0,cy0,0); PIP.sc0=1;
-  }else{
-    if(!PIP.ref){ if(AIMK>0.97) PIP.ref=[psx,psy]; }
-    PIP.grp.position.set(PIP.ref?psx-PIP.ref[0]:0,PIP.ref?psy-PIP.ref[1]:0,0);
-  }
-  PIP.mesh.scale.set(S,S,1); PIP.vig.scale.set(S,S,1); PIP.ring.scale.set(S,S,1); PIP.rim.scale.set(S,S,1);
-  var lw=Math.max(1.5,S*0.004), gp=S*0.035; PIP.hl.scale.set(S*0.46-gp,lw,1); PIP.hl.position.x=-(gp+(S*0.46-gp)/2); PIP.hr.scale.set(S*0.46-gp,lw,1); PIP.hr.position.x=gp+(S*0.46-gp)/2;
-  PIP.vt.scale.set(lw,S*0.2,1); PIP.vt.position.y=gp+S*0.1; PIP.vb.scale.set(lw,S*0.46-gp,1); PIP.vb.position.y=-(gp+(S*0.46-gp)/2); PIP.dot.scale.set(Math.max(1.8,S*0.005),Math.max(1.8,S*0.005),1);
-  var of=camera.fov, oa=camera.aspect, ov=vm.visible;
-  camera.fov=PIP.f; camera.aspect=1; camera.updateProjectionMatrix(); vm.visible=false;
-  renderer.setRenderTarget(PIP.rt); renderer.clear(); renderer.render(scene,camera); renderer.setRenderTarget(null);
-  camera.fov=of; camera.aspect=oa; camera.updateProjectionMatrix(); vm.visible=ov;
-  var ac=renderer.autoClear; renderer.autoClear=false; renderer.clearDepth(); renderer.render(PIP.sc,PIP.cam); renderer.autoClear=ac;
-}
 var BC={on:false,rt:null,sc:null,cam:null,mat:null,w:0,h:0,sx:0,sy:0,tm:-1,bx:0,by:0};
 try{ BC.on=localStorage.getItem('halo-bc')==='1'; }catch(e){}
 function bcLabel(){ var b=$('pBody'); if(b) b.textContent='BODYCAM VIEW: '+(BC.on?'ON':'OFF'); var u=$('bcam'); if(u) u.hidden=!BC.on; }
@@ -12520,7 +12468,7 @@ function mpOnDeath(){
   kcClear();
   state='dying'; MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
-  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped','pip'); PIP.on=false; hudCache.pip=false; camera.fov=BASE_FOV; camera.updateProjectionMatrix();
+  zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   vm.visible=false; heldG.frag.visible=false; heldG.plasma.visible=false; throwT=0; throwDone=true;
   sfx.hurt();
   if(mp.mode==='dm'){
