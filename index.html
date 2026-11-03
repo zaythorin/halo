@@ -676,6 +676,16 @@ html,body{overflow-x:hidden}
 .overlay#mp:not(#menu) .card>*{grid-column:1}
 .overlay#mp:not(#menu) .card>.mpOpts{grid-column:2;grid-row:1 / span 12;max-width:none!important;align-self:start;margin-top:8px}
 @media (max-width:820px){.overlay#mp:not(#menu) .card{display:block!important;max-width:min(560px,94vw)!important}}
+
+/* pause menu: horizontal category tabs, only one group of settings shown at a time */
+.overlay#pause:not(#menu) .card{max-width:min(860px,94vw)!important;width:100%}
+.pTabs{display:flex;flex-wrap:wrap;gap:6px;width:100%;border-bottom:1px solid rgba(255,255,255,.3);margin:6px 0 10px}
+.pTab{font:700 13px var(--font-ui);letter-spacing:.2em;color:#e4edf8;background:rgba(4,10,20,.4);border:0;padding:11px 18px;cursor:pointer;border-radius:0}
+.pTab.on{background:#f4f7fb;color:#0b1724}
+.pTab:hover:not(.on),.pTab:focus-visible:not(.on){background:rgba(255,255,255,.18);outline:none}
+.pGrp{display:none!important}
+.pGrp.on{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 14px}
+.pRes{width:100%}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
@@ -791,21 +801,33 @@ html,body{overflow-x:hidden}
       <div>KILLS<b id="pKills">0</b></div>
       <div>SCORE<b id="pScore">0</b></div>
     </div>
-    <div class="pbtns">
-      <button type="button" class="go" id="resume">RESUME</button>
+    <div class="pbtns pRes"><button type="button" class="go" id="resume">RESUME</button></div>
+    <div class="pTabs" id="pTabs">
+      <button type="button" class="pTab on" data-g="game">GAME</button>
+      <button type="button" class="pTab" data-g="gfx">GRAPHICS</button>
+      <button type="button" class="pTab" data-g="aud">AUDIO</button>
+      <button type="button" class="pTab" data-g="acc">ACCESSIBILITY</button>
+    </div>
+    <div class="pbtns pGrp on" data-g="game">
       <button type="button" class="go alt" id="pRespawn">RESPAWN</button>
       <button type="button" class="go alt" id="restart">RESTART</button>
       <button type="button" class="go alt" id="pCtl">CONTROLS</button>
       <button type="button" class="go alt" id="pAch">ACHIEVEMENTS</button>
-      <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
+      <button type="button" class="go alt" id="toMenu">MAIN MENU</button>
+    </div>
+    <div class="pbtns pGrp" data-g="gfx">
       <button type="button" class="go alt" id="pGfx">GRAPHICS: HIGH</button>
       <button type="button" class="go alt" id="pBody">BODYCAM VIEW: OFF</button>
-      <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
-      <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
-      <button type="button" class="go alt" id="pAnn">ANNOUNCER: ON</button>
-      <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
       <button type="button" class="go alt" id="pFov">FIELD OF VIEW: 62</button>
-      <button type="button" class="go alt" id="toMenu">MAIN MENU</button>
+    </div>
+    <div class="pbtns pGrp" data-g="aud">
+      <button type="button" class="go alt" id="pMusic">MUSIC: ON</button>
+      <button type="button" class="go alt" id="pAnn">ANNOUNCER: ON</button>
+    </div>
+    <div class="pbtns pGrp" data-g="acc">
+      <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
+      <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
+      <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
     </div>
     <details class="credits devp"><summary>DEV MODE</summary><div class="cbody">Jump to wave <input type="number" class="devN" min="1" max="99" value="5" style="width:4.5em;font:inherit;padding:4px"> <button type="button" class="ghost devGo" style="display:inline-block;padding:4px 12px">GO</button><br>Code <input type="text" class="devCode" maxlength="12" autocomplete="off" placeholder="code" style="width:6em;font:inherit;padding:4px"> <button type="button" class="ghost devCodeGo" style="display:inline-block;padding:4px 12px">ENTER</button> <span class="devMsg"></span></div></details>
   </div>
@@ -9363,6 +9385,12 @@ function resetStick(){
   stickId=null; ctrl.mx=0; ctrl.mz=0;
   stickKnob.style.transform=''; stickBase.classList.remove('on'); stickBase.style.left=''; stickBase.style.top='';
 }
+
+/* pause menu categories */
+(function(){ var tabs=document.querySelectorAll('#pTabs .pTab'), grps=document.querySelectorAll('#pause .pGrp');
+  function show(g){ for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('on',tabs[i].getAttribute('data-g')===g); for(var j=0;j<grps.length;j++) grps[j].classList.toggle('on',grps[j].getAttribute('data-g')===g); }
+  for(var i=0;i<tabs.length;i++) tabs[i].addEventListener('click',function(){ show(this.getAttribute('data-g')); });
+})();
 function pauseGame(){
   if(state!=='play') return;
   state='paused';
