@@ -667,6 +667,9 @@ html,body{overflow-x:hidden}
 .cuRow{margin-top:12px;display:flex;gap:8px}.cuRow .frBtn{padding:9px 14px}
 .cuSw{grid-template-columns:repeat(3,1fr)}
 @media (max-width:760px),(max-height:520px){ #cuPrevWrap{position:relative;left:auto;top:auto;bottom:auto;width:auto;height:260px;margin:10px 14px} #hmCustom .hmList{top:auto} }
+
+/* only one screen at a time: hide the menu / pause screen while another overlay is open on top of it */
+#menu:has(~ #ach:not([hidden])),#menu:has(~ #controls:not([hidden])),#menu:has(~ #mp:not([hidden])),#menu:has(~ #camp:not([hidden])),#menu:has(~ #campCard:not([hidden])),#pause:has(~ #ach:not([hidden])),#pause:has(~ #controls:not([hidden])),#pause:has(~ #mp:not([hidden])){visibility:hidden!important}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
@@ -13123,8 +13126,8 @@ function frRender(){
 function frInvite(f,btn){
   var old=btn.textContent; btn.disabled=true; btn.textContent='...';
   function send(){ frSend(f.u,{t:'invite',u:FR.u,dn:FR.dn,code:mp.code},function(ok){ btn.textContent=ok?'SENT':'FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=!FR.on[f.u]; },2200); if(ok) showToast('INVITE SENT. ROOM '+mp.code); }); }
-  if(mp.code&&mp.host&&mp.peer&&mp.peer.open&&!mp.on){ send(); return; }
-  try{ mpSetMode('ff'); mpHost(); }catch(e){ btn.textContent='FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },2000); return; }
+  if(mp.code&&mp.host&&mp.peer&&mp.peer.open&&!mp.on){ $('mp').hidden=false; mpStatus('ROOM CODE:  '+mp.code+'   -  invite sent, waiting for your friend...'); send(); return; }
+  try{ mpSetMode('ff'); $('mp').hidden=false; mpHost(); }catch(e){ btn.textContent='FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },2000); return; }
   var t0=Date.now(), iv=setInterval(function(){
     if(mp.code&&mp.host&&mp.peer&&mp.peer.open){ clearInterval(iv); send(); }
     else if(Date.now()-t0>12000){ clearInterval(iv); btn.textContent='FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },2000); }
