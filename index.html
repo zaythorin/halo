@@ -2086,12 +2086,15 @@ CHIEF.id='chief'; CHIEF.eye=1; CHIEF.fps=1; CHIEF.rv=1; CHIEF.H=2.12; CHIEF.wfix
 var ARM_SLOTS=[{k:'helmet',n:'HELMET'},{k:'visor',n:'VISOR'},{k:'chest',n:'CHEST'},{k:'arms',n:'ARMS'},{k:'gloves',n:'GLOVES'},{k:'legs',n:'LEGS'}];
 var ARM_SET=[{k:'',n:'ORIGINAL',c:'#5b8c3a'},{k:'crimson',n:'CRIMSON',h:0.0,c:'#d23a32'},{k:'orange',n:'ORANGE',h:0.07,c:'#e8842a'},{k:'gold',n:'GOLD',h:0.12,c:'#d9b13a'},{k:'cobalt',n:'COBALT',h:0.61,c:'#2f6fe0'},{k:'violet',n:'VIOLET',h:0.76,c:'#8a4fd6'},{k:'rose',n:'ROSE',h:0.93,c:'#d6508a'},{k:'steel',n:'STEEL',h:0.6,sat:0.1,lm:1.2,c:'#8d99a8'},{k:'shadow',n:'SHADOW',h:0.6,sat:0.06,lm:0.4,c:'#2a2f36'}];
 var ARM_VIS=[{k:'',n:'ORIGINAL',c:'#d9a93a'},{k:'v_blue',n:'BLUE',h:0.58,any:1,c:'#3d7de8'},{k:'v_red',n:'RED',h:0.0,any:1,c:'#e0402e'},{k:'v_green',n:'GREEN',h:0.35,any:1,c:'#3fd070'},{k:'v_violet',n:'VIOLET',h:0.77,any:1,c:'#9a58e0'},{k:'v_silver',n:'SILVER',h:0.6,sat:0.08,lm:1.25,any:1,c:'#b9c3cf'},{k:'v_smoke',n:'SMOKE',h:0.6,sat:0.05,lm:0.45,any:1,c:'#30353c'}];
-var ARM={s:{helmet:'',visor:'',chest:'',arms:'',gloves:'',legs:''}}, armTex={}, armMatC={};
+var ARM={s:{helmet:'',visor:'',chest:'',arms:'',gloves:'',legs:''}}, armTex={}, armMatC={}, AV_CUSTOM=false;
 try{
   var _a2=JSON.parse(localStorage.getItem('halo-arm2')||'null');
   if(_a2){ ARM_SLOTS.forEach(function(sl){ ARM.s[sl.k]=_a2[sl.k]||''; }); }
   else{ var _ak=localStorage.getItem('halo-arm')||''; if(_ak) ['helmet','chest','arms','gloves','legs'].forEach(function(k){ ARM.s[k]=_ak; }); }
 }catch(e){}
+/* custom armour sent to other players: the six colour names in a short string ('' when nothing is changed) */
+function armCode(){ var a=ARM_SLOTS.map(function(sl){ return ARM.s[sl.k]||''; }); return a.join('')?a.join(','):''; }
+function armFromCode(c){ var o={}, a=String(c||'').slice(0,120).split(','); ARM_SLOTS.forEach(function(sl,i){ var k=a[i]||''; o[sl.k]=armPreset(sl.k,k)?k:''; }); return o; }
 function armPreset(slot,k){ var L=slot==='visor'?ARM_VIS:ARM_SET, o=null; if(k) L.forEach(function(a){ if(a.k===k) o=a; }); return o; }
 function armSlotOf(part,mi){
   if(part==='head') return mi===1?'visor':'helmet';
@@ -9149,7 +9152,7 @@ function buildRagdoll(noCustom){
         geo.setIndex(new THREE.BufferAttribute(emBuf(md.i,Uint16Array),1));
         chiefGeoCache[key]=geo;
       }
-      g.add(new THREE.Mesh(geo,noCustom?mats[md.t]:armSlotMat(armSlotOf(pd.n,mi),md.t,mats[md.t])));
+      g.add(new THREE.Mesh(geo,(noCustom&&!AV_CUSTOM)?mats[md.t]:armSlotMat(armSlotOf(pd.n,mi),md.t,mats[md.t])));
     });
     g.scale.setScalar(CH_SCALE); root.add(g); groups[pd.n]=g;
   });
@@ -12255,13 +12258,14 @@ function mpAddPeer(id,team){
   if(!mp.avatar){ mp.avatar=pe.avatar; mp.rem=pe.rem; }
   return pe;
 }
-function mpSetPeerChar(pe,k){
+function mpSetPeerChar(pe,k,ar){
   if(TM.sky) return;
-  if(!k||pe.ch===k||!CHARS[k]&&!CHAR_FILE[k]) return;
-  if(!CHARS[k]){ if(!pe.chL){ pe.chL=1; loadChar(k,function(ok){ pe.chL=0; if(ok) mpSetPeerChar(pe,k); else pe.ch=k; }); } return; }
-  pe.ch=k; var old=CHIEF, oav=pe.avatar, nav;
+  ar=ar||'';
+  if(!k||(pe.ch===k&&(pe.ar||'')===ar)||!CHARS[k]&&!CHAR_FILE[k]) return;
+  if(!CHARS[k]){ if(!pe.chL){ pe.chL=1; loadChar(k,function(ok){ pe.chL=0; if(ok) mpSetPeerChar(pe,k,ar); else pe.ch=k; }); } return; }
+  pe.ch=k; pe.ar=ar; var old=CHIEF, oav=pe.avatar, nav, oldArm=ARM.s;
   CHIEF=CHARS[k];
-  try{ nav=buildChiefAvatar(); if(mp.mode==='dm') tmTintAvatar(nav,pe.team); } finally{ CHIEF=old; }
+  try{ if(ar){ ARM.s=armFromCode(ar); AV_CUSTOM=true; } nav=buildChiefAvatar(); if(mp.mode==='dm') tmTintAvatar(nav,pe.team); } finally{ CHIEF=old; ARM.s=oldArm; AV_CUSTOM=false; }
   nav.visible=oav.visible; nav.position.copy(oav.position); nav.rotation.copy(oav.rotation);
   nav.userData.hit.forEach(function(m){ m.userData.pid=pe.id; });
   scene.remove(oav); scene.add(nav); pe.avatar=nav; if(mp.avatar===oav) mp.avatar=nav;
@@ -12498,7 +12502,7 @@ function mpOnDeath(){
     if(!mp.host){ try{ var kc2=function(id){ var t=mpTeamOf(id); return (t!==undefined&&TEAMS[t])?TEAMS[t].css:'#fff'; }; if(kby!==undefined) killFeed(mpNm(kby),kc2(kby),mpNm(mp.id),kc2(mp.id),khow); else killFeed(null,null,mpNm(mp.id),kc2(mp.id),'DIED'); }catch(err){} }
     mp.lastBy=undefined; mp.lastHow=undefined; mp.cause=undefined;
   }
-  mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:0,al:0,hp:0,w:(slots[sel]===17?8:slots[sel]),iv:0,ch:curChar});
+  mpSend({t:'st',x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:0,al:0,hp:0,w:(slots[sel]===17?8:slots[sel]),iv:0,ch:curChar,ar:armCode()});
   try{ startRagdoll(); }catch(err){ rag=null; }
 }
 function mpRevive(near){
@@ -12545,7 +12549,7 @@ function mpRecv(m){
     case 'kh': khApply(m); break;
     case 'st':
       if(!R) break;
-      if(pe&&m.ch) mpSetPeerChar(pe,m.ch);
+      if(pe&&m.ch) mpSetPeerChar(pe,m.ch,m.ar);
       if(pe&&m.nm&&pe.nm!==m.nm) mpSetName(pe,m.nm);
       R.tx=m.x; R.ty=m.y; R.tz=m.z; R.tyaw=m.yaw; R.al=!!m.al; R.hp=m.hp; R.w=m.w|0; R.pit=m.pit||0; R.rl=m.rl|0; R.og=m.og===undefined?1:m.og|0; R.iv=m.iv|0; R.cr=m.cr||0; R.cm=m.cm|0; R.tjp=m.jp||0; R.tjr=m.jr||0;
       var nowt=performance.now(); if(R.lt){ var dtm=Math.max(0.02,(nowt-R.lt)/1000), sv=Math.hypot(m.x-R.sx,m.z-R.sz)/dtm; R.sp=(R.sp||0)*0.6+Math.min(12,sv)*0.4; } R.lt=nowt; R.sx=m.x; R.sz=m.z;
@@ -12758,7 +12762,7 @@ function mpTick(dt){
   mp.sendT-=dt;
   if(mp.sendT<=0){
     mp.sendT=0.05;
-    mpSend({t:'st',nm:myName(),ch:curChar,x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:(slots[sel]===17?8:slots[sel]),rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:(!TM.sky&&((p.inVeh&&!GN.on)||p.air))?1:0,cr:r2(CR),cm:EQ.camo>0?1:0,jp:TM.sky?r2(jet.pitch):0,jr:TM.sky?r2(jet.roll):0});
+    mpSend({t:'st',nm:myName(),ch:curChar,ar:armCode(),x:r2(p.x),y:r2(p.y),z:r2(p.z),yaw:r2(p.yaw),pit:r2(p.pitch),al:state==='play'?1:0,hp:Math.round(p.health+p.shield),w:(slots[sel]===17?8:slots[sel]),rl:reloading?1:0,og:(p.onGround||Math.abs(p.vy)<3)?1:0,iv:(!TM.sky&&((p.inVeh&&!GN.on)||p.air))?1:0,cr:r2(CR),cm:EQ.camo>0?1:0,jp:TM.sky?r2(jet.pitch):0,jr:TM.sky?r2(jet.roll):0});
   }
   if(mp.host&&mp.mode==='ff'){
     mp.enT-=dt; if(mp.enT<=0){ mp.enT=0.09; mpSend({t:'en',a:mpSnapshot()}); }
