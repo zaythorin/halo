@@ -2037,11 +2037,28 @@ function pointInCover(x,y,z){
 
 /* ---------- audio ---------- */
 var ac=null, master=null, noiseBuf=null;
+var MUF={f:null};
+/* hit muffle: the whole mix dips to a dull low-pass and recovers, like being deafened by a hit */
+function muffle(k){
+  if(!ac||!MUF.f) return; try{ var t=ac.currentTime, f=MUF.f.frequency; k=Math.max(0.2,Math.min(1,k));
+    f.cancelScheduledValues(t); f.setValueAtTime(Math.max(300,f.value),t); f.exponentialRampToValueAtTime(Math.max(350,3200-2600*k),t+0.04); f.setValueAtTime(Math.max(350,3200-2600*k),t+0.25+0.5*k); f.exponentialRampToValueAtTime(20000,t+1.2+1.6*k);
+  }catch(e){}
+}
+/* bullet crack (a round going past) and distance-based gunshot echo / delayed distant report */
+function bulletCrack(v){ v=v||1; noise(0.05,0.28*v,'highpass',4200,2500); tone(2400,900,0.04,'square',0.05*v); noise(0.22,0.1*v,'bandpass',1800,600); }
+function echoTail(d,v){
+  if(!ac) return; v=v||1; var n=d<15?1:d<60?2:3, i;
+  for(i=0;i<n;i++){ (function(k){ setTimeout(function(){ noise(0.35+0.15*k,0.07*v/(1+k*0.7),'lowpass',1600-250*k,200); tone(90-12*k,40,0.3,'sine',0.05*v/(1+k)); },(90+d*3.2)*(k+1)*(k?1.7:1)); })(i); }
+}
+function farShot(d){
+  if(!ac||d<25) return; var v=Math.max(0.08,Math.min(0.5,1-d/160));
+  setTimeout(function(){ noise(0.18,0.45*v,'lowpass',Math.max(600,3200-d*14),150); tone(130,45,0.2,'sine',0.35*v); echoTail(d,v*1.2); },Math.min(900,d*2.9));
+}
 function initAudio(){
   if(ac) return;
   try{
     ac=new (window.AudioContext||window.webkitAudioContext)();
-    master=ac.createGain(); master.gain.value=0.5; master.connect(ac.destination);
+    master=ac.createGain(); master.gain.value=0.5; MUF.f=ac.createBiquadFilter(); MUF.f.type='lowpass'; MUF.f.frequency.value=20000; MUF.f.Q.value=0.5; master.connect(MUF.f); MUF.f.connect(ac.destination);
     var len=Math.floor(ac.sampleRate*0.5);
     noiseBuf=ac.createBuffer(1,len,ac.sampleRate); setTimeout(loadSamples,0);
     var d=noiseBuf.getChannelData(0); for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
@@ -3280,10 +3297,11 @@ function mpShotFx(fo,fe,fdd){
       if(!MPF.l){ MPF.l=new THREE.PointLight(0xffb060,0,10,1.8); scene.add(MPF.l); }
       MPF.l.position.copy(fo); MPF.l.intensity=1.6; MPF.t=0.06;
     }
+    farShot(fdd);
     var ax=fe.x-fo.x, ay=fe.y-fo.y, az=fe.z-fo.z, L2=ax*ax+ay*ay+az*az; if(L2<1||fdd<4) return;
     var px=p.x-fo.x, py=p.y+EYE*0.8-fo.y, pz=p.z-fo.z, u=Math.max(0,Math.min(1,(px*ax+py*ay+pz*az)/L2));
     var cx=fo.x+ax*u-p.x, cy=fo.y+ay*u-(p.y+EYE*0.8), cz=fo.z+az*u-p.z;
-    if(cx*cx+cy*cy+cz*cz<2.4){ noise(0.16,0.16,'bandpass',2600,700); tone(1700,500,0.1,'sine',0.05); shakeAmp=Math.max(shakeAmp,0.006); shakeT=Math.max(shakeT,0.12); }
+    if(cx*cx+cy*cy+cz*cz<2.4){ bulletCrack(0.9); noise(0.16,0.16,'bandpass',2600,700); tone(1700,500,0.1,'sine',0.05); shakeAmp=Math.max(shakeAmp,0.006); shakeT=Math.max(shakeT,0.12); }
   }catch(e){}
 }
 function heatTick(dt){
@@ -5490,7 +5508,7 @@ function updateBolts(dt){
     else if(mp.on&&mp.host&&mp.mode==='ff'&&mp.rem.al&&Math.hypot(pos.x-mp.rem.x,pos.z-mp.rem.z)<0.55&&pos.y>mp.rem.y&&pos.y<mp.rem.y+EYE+0.2){ mpSend({t:'hurt',n:b.dmg,dx:b.v.x,dz:b.v.z}); dead=true; }
     if(!dead&&!b.wz&&!b.vis&&state==='play'){
       var wdx=pos.x-p.x, wdy=pos.y-(p.y+EYE*0.8), wdz=pos.z-p.z, wd=wdx*wdx+wdy*wdy+wdz*wdz;
-      if(wd<2.4){ b.wz=1; noise(0.16,0.16,'bandpass',2600,700); tone(1700,500,0.1,'sine',0.05); shakeAmp=Math.max(shakeAmp,0.006); shakeT=Math.max(shakeT,0.12); }  /* near miss: a whiz and a tiny jolt */
+      if(wd<2.4){ b.wz=1; bulletCrack(1-wd/3); noise(0.16,0.16,'bandpass',2600,700); tone(1700,500,0.1,'sine',0.05); shakeAmp=Math.max(shakeAmp,0.006); shakeT=Math.max(shakeT,0.12); }  /* near miss: a whiz and a tiny jolt */
     }
     if(dead){ scene.remove(b.m); bolts.splice(i,1); }
   }
@@ -5709,7 +5727,7 @@ function hurt(n){
   if(state!=='play') return;
   if(p.air){ damageJet(n*0.7); return; }
   if(p.inVeh&&!GN.on&&!MG.seat){ damageVehicle(n*0.8); return; }
-  MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; try{ stumble(hitDir.x,hitDir.z,Math.min(1,0.25+n/60)); addStress(0.25); }catch(e){} var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7); try{ radio('hit',6); }catch(e){} if(WND.aid>0) aidCancel('FIRST AID INTERRUPTED');
+  MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; try{ stumble(hitDir.x,hitDir.z,Math.min(1,0.25+n/60)); addStress(0.25); }catch(e){} var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); muffle(Math.min(1,0.3+n/50)); rumble(220,0.9,0.7); try{ radio('hit',6); }catch(e){} if(WND.aid>0) aidCancel('FIRST AID INTERRUPTED');
   if(hitDir.x||hitDir.z){ var ax=-hitDir.x, az=-hitDir.z, al=Math.hypot(ax,az)||1; ax/=al; az/=al; var sn0=Math.sin(p.yaw), cs0=Math.cos(p.yaw); dmgAng=Math.atan2(ax*cs0-az*sn0,-ax*sn0-az*cs0)*57.2958; dmgT=0.9; dmgSh=shAbs&&p.shield>=n; }
   if(p.health-Math.max(0,n-p.shield-(p.ov||0))<85||n>=18){ try{ bloodSplat((hitDir.x||hitDir.z)?dmgAng:Math.random()*360,n); }catch(e){} }
   if(n>=40) earRing(n/90);
@@ -8093,6 +8111,7 @@ function laserTick(w,dt){
 }
 function fireWeapon(w,muzzleObj,inVeh){
   noiseT=tAcc; noiseR=NOISE[w.id]||50;
+  if(!w.laser&&!w.sword&&!w.cov) echoTail(w.rocket?30:w.scope?45:10,w.rocket||w.scope?1.3:0.8);
   if(!w.inf) w.mag--;
   if(!w.inf&&!w.cov&&!w.laser&&w.mag>0&&w.mag<=Math.max(2,Math.ceil(w.magSize*0.2))) tone(2600+(w.magSize-w.mag)*0,2300,0.05,'triangle',0.035);   /* the last few rounds ring a warning ping */
   if(w.cov) covHeat(w);
