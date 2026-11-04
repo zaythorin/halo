@@ -686,6 +686,39 @@ html,body{overflow-x:hidden}
 .cuSw{grid-template-columns:repeat(3,1fr)}
 @media (max-width:760px),(max-height:520px){ #cuPrevWrap{position:relative;left:auto;top:auto;bottom:auto;width:auto;height:260px;margin:10px 14px} #hmCustom .hmList{top:auto} }
 
+/* ---- customisation in the Halo Reach appearance layout: three big tabs, a heading with a checklist under it, a description along the bottom and the Spartan large on the right ---- */
+.cuLeft{position:absolute;z-index:3;left:clamp(14px,5vw,96px);top:clamp(104px,15vh,140px);bottom:clamp(54px,8vh,80px);width:min(540px,50vw);display:flex;flex-direction:column;min-height:0}
+.cuHead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:12px}
+.cuHead small{display:block;font:700 11px var(--font-ui);letter-spacing:.26em;color:#6fd3ff}
+.cuHead h2{margin:2px 0 0;font:700 clamp(16px,2.6vh,22px) var(--font-ui);letter-spacing:.1em;white-space:nowrap;color:#fff;text-transform:uppercase}
+.cuAch{font:700 11px var(--font-ui);letter-spacing:.18em;color:#fff;background:rgba(4,10,20,.55);border:1px solid rgba(255,255,255,.5);padding:8px 10px;cursor:pointer;border-radius:0}
+.cuAch:hover{background:#f4f7fb;color:#0b1724}
+.cuTabs{display:flex;gap:8px}
+.cuTab{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:clamp(70px,11vh,104px);font:700 10px var(--font-ui);letter-spacing:.14em;color:#9fb6cc;background:rgba(4,12,24,.55);border:2px solid rgba(111,211,255,.45);padding:8px 4px;cursor:pointer;border-radius:0}
+.cuTab svg{width:clamp(22px,4.4vh,38px);height:clamp(22px,4.4vh,38px);opacity:.85}
+.cuTab:hover{color:#fff;border-color:#6fd3ff}.cuTab.on{color:#fff;background:rgba(40,110,150,.38);border-color:#6fd3ff;box-shadow:0 0 14px rgba(111,211,255,.25)}
+.cuBar{height:3px;background:#6fd3ff;margin:6px 0 10px;box-shadow:0 0 10px rgba(111,211,255,.6)}
+.cuHd{margin:0 0 8px;font:700 clamp(22px,3.6vh,32px) var(--font-ui);letter-spacing:.06em;color:#fff;text-transform:uppercase}
+.cuBody{flex:1;min-height:0;overflow:auto;padding-right:6px;scrollbar-width:thin}
+.cuPanel[hidden]{display:none}
+.cuSlots{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.cuSl{padding:6px 8px;font-size:10px;letter-spacing:.1em}.cuSl i{margin-right:5px}
+.cuList{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
+.cuCols{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 10px}
+.cuList .cuS,.cuList .cuCh{display:flex;align-items:center;gap:12px;width:100%;border:0;border-left:3px solid transparent;background:rgba(4,12,24,.3);padding:9px 12px;font:600 13px var(--font-ui);letter-spacing:.1em;color:#dfe9f4;text-align:left}
+.cuList .cuS::before,.cuList .cuCh::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid rgba(255,255,255,.7);background:transparent}
+.cuList .cuS.on::before,.cuList .cuCh.on::before{background:#6fd3ff;border-color:#6fd3ff;box-shadow:inset 0 0 0 2px #04121e}
+.cuList .cuS:hover,.cuList .cuCh:hover{background:rgba(111,211,255,.14);color:#fff}
+.cuList .cuS.on,.cuList .cuCh.on{background:linear-gradient(90deg,rgba(111,211,255,.3),rgba(111,211,255,.06));border-left-color:#6fd3ff;color:#fff}
+.cuList .cuCh b{font:700 13px var(--font-ui);letter-spacing:.1em;display:inline}.cuList .cuCh small{display:inline;margin:0 0 0 auto;color:#8fc8e8;font:600 10px var(--font-ui);letter-spacing:.18em}
+.cuList .cuS i{width:16px;height:16px}
+.cuStT{margin:14px 0 6px;font:700 11px var(--font-ui);letter-spacing:.22em;color:#6fd3ff}
+.cuDesc{margin:10px 0 0;padding-top:10px;border-top:1px solid rgba(255,255,255,.3);font:500 13px/1.45 var(--font-ui);color:#cfe0f0;min-height:2.9em}
+@media (min-width:761px) and (min-height:521px){
+  #cuPrevWrap{left:auto;right:clamp(8px,2vw,40px);top:clamp(100px,14vh,130px);bottom:0;width:min(560px,46vw);height:auto}
+}
+@media (max-width:760px),(max-height:520px){ .cuLeft{position:static;width:auto;margin:10px 14px} .cuCols{grid-template-columns:1fr} .cuBody{overflow:visible} }
+
 /* only one screen at a time: while another overlay is open on top of the main menu, keep the menu's own video behind it but hide its tabs and panels; the pause screen is hidden outright */
 #menu:has(~ #ach:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #controls:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #mp:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #tablet:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #camp:not([hidden])) > :not(#menuVid):not(#menuShade),#menu:has(~ #campCard:not([hidden])) > :not(#menuVid):not(#menuShade){visibility:hidden!important}
 #pause:has(~ #ach:not([hidden])),#pause:has(~ #controls:not([hidden])),#pause:has(~ #mp:not([hidden])),#pause:has(~ #tablet:not([hidden])){visibility:hidden!important}
@@ -826,16 +859,22 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
       <div class="hmNews" id="hmNews"></div></div>
   </div>
   <div class="hmPane" id="hmCustom">
-    <div class="hmList">
-      <button type="button" class="hmItem sel" id="charBtn" data-d="Change which Spartan you play as. Tap to cycle.">CHARACTER: MASTER CHIEF</button>
-      <button type="button" class="hmItem" id="achBtn" data-d="Your achievements and how far along you are on each.">ACHIEVEMENTS</button>
-      <p class="hmDesc" id="hmDesc2">Change which Spartan you play as. Tap to cycle.</p>
-    </div>
-    <div class="cuSide">
-      <div class="hmH">SPECIES AND CHARACTER</div>
-      <div class="cuCard"><div class="cuChars" id="cuChars"></div><p class="frMsg" id="cuMsg"></p></div>
-      <div class="hmH">ARMOUR</div>
-      <div class="cuCard"><div class="cuSlots" id="cuSlots"></div><div class="cuSw" id="cuSw"></div><div class="cuStT" id="cuStT">STYLE</div><div class="cuSw cuSt" id="cuSt"></div><div class="cuStT">VICTORY EMOTE (PLAYS ON THE END-OF-MATCH PODIUM)</div><div class="cuSw cuSt" id="cuEm"></div><div class="cuRow"><button type="button" class="frBtn dim" id="cuReset">RESET ALL</button></div><p class="cuNote">Pick a part, then a colour. Parts recolour the green armour; other armour colours (like the Arbiter's) stay as they are.</p></div>
+    <div class="hmList" style="display:none"><button type="button" class="hmItem sel" id="charBtn" data-d="">CHARACTER: MASTER CHIEF</button><p class="hmDesc" id="hmDesc2"></p></div>
+    <div class="cuLeft">
+      <div class="cuHead"><div><small>CUSTOMIZATION</small><h2>HALO: WARZONE APPEARANCE</h2></div><button type="button" class="cuAch" id="achBtn">ACHIEVEMENTS</button></div>
+      <div class="cuTabs">
+        <button type="button" class="cuTab on" data-t="armor"><svg viewBox="0 0 40 40"><path d="M20 4l12 6v10c0 8-5 13-12 16C13 33 8 28 8 20V10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 16h12M14 22h12" stroke="currentColor" stroke-width="2"/></svg><span>ARMOR</span></button>
+        <button type="button" class="cuTab" data-t="pers"><svg viewBox="0 0 40 40"><circle cx="20" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 34c0-8 5-12 12-12s12 4 12 12" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>PERSONALIZATION</span></button>
+        <button type="button" class="cuTab" data-t="col"><svg viewBox="0 0 40 40"><path d="M8 32l14-14 6 6-14 14z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M22 18l8-10 4 4-10 8z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>COLORS</span></button>
+      </div>
+      <div class="cuBar"></div>
+      <h3 class="cuHd" id="cuHd">HELMET</h3>
+      <div class="cuBody">
+        <div class="cuPanel" id="cuP_armor"><div class="cuSlots" id="cuSlots"></div><div class="cuList" id="cuSt"></div></div>
+        <div class="cuPanel" id="cuP_pers" hidden><div class="cuList" id="cuChars"></div><p class="frMsg" id="cuMsg"></p><div class="cuStT">VICTORY EMOTE (PLAYS ON THE END-OF-MATCH PODIUM)</div><div class="cuList" id="cuEm"></div><div class="cuRow"><button type="button" class="frBtn dim" id="cuReset">RESET ALL</button></div></div>
+        <div class="cuPanel" id="cuP_col" hidden><div class="cuSlots" id="cuSlots2"></div><div class="cuList cuCols" id="cuSw"></div></div>
+      </div>
+      <p class="cuDesc" id="cuDesc"></p>
     </div>
     <div id="cuPrevWrap"><canvas id="cuPrev"></canvas><div class="cuHint">DRAG TO TURN</div></div>
   </div>
@@ -13908,7 +13947,7 @@ $('pRadio').addEventListener('click',function(){ RAD.on=!RAD.on; try{ localStora
 $('pRadio').textContent='RADIO CHATTER: '+(RAD.on?'ON':'OFF');
 
 /* ---- customize: species / character, armour colour part by part, and a turning 3D preview ---- */
-var CU_SPECIES={chief:'SPARTAN',noble:'SPARTAN',arbiter:'SANGHEILI'}, CU={slot:'helmet',r:null,sc:null,cam:null,root:null,spin:0,drag:null,raf:0,rebuild:true};
+var CU_SPECIES={chief:'SPARTAN',noble:'SPARTAN',arbiter:'SANGHEILI'}, CU={tab:'armor',slot:'helmet',r:null,sc:null,cam:null,root:null,spin:0,drag:null,raf:0,rebuild:true};
 function cuApplyAll(){
   try{ HANDS.forEach(function(g){ for(var i=g.children.length-1;i>=0;i--) g.remove(g.children[i]); fillHand(g,g.userData.hk[0],g.userData.hk[1]); }); TP.rigId=null; }catch(e){}
   CU.rebuild=true; cuRender();
@@ -13924,7 +13963,11 @@ function cuPick(k){
 function cuSetColour(slot,k){ ARM.s[slot]=k; cuSaveArm(); cuApplyAll(); }
 function cuSetStyle(slot,k){ ARM.st[slot]=k; cuSaveArm(); cuApplyAll(); }
 function cuRender(){
-  var c=$('cuChars'), w=$('cuSw'), sl=$('cuSlots'); if(!c||!w||!sl) return; c.textContent=''; w.textContent=''; sl.textContent='';
+  var c=$('cuChars'), w=$('cuSw'), sl=$('cuSlots'), sl2=$('cuSlots2'); if(!c||!w||!sl) return; c.textContent=''; w.textContent=''; sl.textContent=''; if(sl2) sl2.textContent='';
+  var slotN=''; ARM_SLOTS.forEach(function(q){ if(q.k===CU.slot) slotN=q.n; });
+  ['armor','pers','col'].forEach(function(t){ var pn=$('cuP_'+t); if(pn) pn.hidden=(t!==CU.tab); });
+  Array.prototype.forEach.call(document.querySelectorAll('.cuTab'),function(tb){ tb.classList.toggle('on',tb.dataset.t===CU.tab); });
+  $('cuHd').textContent=CU.tab==='armor'?slotN:CU.tab==='col'?slotN+' COLOUR':'SPARTAN';
   CHAR_KEYS.forEach(function(k){
     var b=document.createElement('button'); b.type='button'; b.className='cuCh'+(k===curChar?' on':'');
     b.innerHTML='<b></b><small></small>'; b.querySelector('b').textContent=CHAR_NAMES[k]; b.querySelector('small').textContent=CU_SPECIES[k]||'';
@@ -13934,8 +13977,10 @@ function cuRender(){
     var cur=armPreset(st.k,ARM.s[st.k]), col=cur?cur.c:(st.k==='visor'?ARM_VIS[0].c:ARM_SET[0].c);
     var b=document.createElement('button'); b.type='button'; b.className='cuSl'+(st.k===CU.slot?' on':''); b.innerHTML='<i></i><span></span>'; b.querySelector('i').style.background=col; b.querySelector('span').textContent=st.n;
     b.onclick=function(){ CU.slot=st.k; cuRender(); }; sl.appendChild(b);
+    if(sl2){ var b2=b.cloneNode(true); b2.onclick=b.onclick; sl2.appendChild(b2); }
   });
   var stw=$('cuSt'), stt=$('cuStT'); if(stw){ stw.textContent=''; var SL=ARM_STY[CU.slot]; stw.style.display=SL?'':'none'; if(stt) stt.style.display=SL?'':'none';
+    var ds=$('cuDesc'); if(ds){ var sel=null; (SL||[]).forEach(function(a){ if(a.k===(ARM.st[CU.slot]||'')) sel=a; }); ds.textContent=CU.tab==='armor'?(SL?('Reshape your '+slotN.toLowerCase()+'. Selected: '+(sel?sel.n:'STANDARD')+'.'):'The visor has no shapes. Change its tint under COLORS.'):CU.tab==='col'?('Recolour your '+slotN.toLowerCase()+'. Parts recolour the green armour; other armour colours (like the Arbiter\'s) stay as they are.'):'Choose your Spartan and the victory emote that plays on the end-of-match podium.'; }
     (SL||[]).forEach(function(a){ var b=document.createElement('button'); b.type='button'; b.className='cuS'+(a.k===(ARM.st[CU.slot]||'')?' on':''); b.innerHTML='<span></span>'; b.querySelector('span').textContent=a.n; b.onclick=function(){ cuSetStyle(CU.slot,a.k); }; stw.appendChild(b); }); }
   var emw=$('cuEm'); if(emw){ emw.textContent=''; EMOTES.forEach(function(a){ var b=document.createElement('button'); b.type='button'; b.className='cuS'+(a.k===EMO.k?' on':''); b.innerHTML='<span></span>'; b.querySelector('span').textContent=a.n+(a.w?' (WEAPON)':''); b.onclick=function(){ EMO.k=a.k; try{ localStorage.setItem('halo-emote',a.k); }catch(e){} CU.emo={k:a.k,t0:performance.now()}; cuRender(); }; emw.appendChild(b); }); }
   (CU.slot==='visor'?ARM_VIS:ARM_SET).forEach(function(a){
@@ -13944,6 +13989,7 @@ function cuRender(){
     b.onclick=function(){ cuSetColour(CU.slot,a.k); }; w.appendChild(b);
   });
 }
+Array.prototype.forEach.call(document.querySelectorAll('.cuTab'),function(tb){ tb.addEventListener('click',function(){ CU.tab=tb.dataset.t; cuRender(); }); });
 $('cuReset').addEventListener('click',function(){ ARM_SLOTS.forEach(function(st){ ARM.s[st.k]=''; }); Object.keys(ARM.st).forEach(function(k){ ARM.st[k]=''; }); cuSaveArm(); cuApplyAll(); });
 /* the preview: its own small renderer, the character stood in its rest pose and slowly turning */
 function cuPrevInit(){
