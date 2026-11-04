@@ -983,6 +983,8 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
     <div class="pbtns pGrp on" data-g="game">
       <button type="button" class="go alt" id="pRespawn">RESPAWN</button>
       <button type="button" class="go alt" id="restart">RESTART</button>
+      <button type="button" class="go alt" id="pInvite" hidden>INVITE FRIENDS / ROOM CODE</button>
+      <div id="pInvBox" hidden></div>
       <button type="button" class="go alt" id="pTablet">FIELD TABLET (K)</button>
       <button type="button" class="go alt" id="pCtl">CONTROLS</button>
       <button type="button" class="go alt" id="pAch">ACHIEVEMENTS</button>
@@ -5194,7 +5196,7 @@ function crateSpawn(x,z,wi){
   var beam=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,70,10,1,true),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.18,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false})); beam.position.y=35; g.add(beam);
   g.position.set(x,y,z); g.rotation.y=Math.random()*6.28; scene.add(g);
   var pk=tmLooseWeapon(x,z,wi,undefined,{y0:y+0.9,vx:0,vz:0,vy:0});
-  CRATES.list.push({g:g,pk:pk,beam:beam,x:x,y:y,z:z,t:0,wi:wi,up:0});
+  CRATES.list.push({g:g,pk:pk,beam:beam,x:x,y:y,z:z,t:0,wi:wi,up:0,base:wi});
   showToast('SUPPLY CRATE: '+weapons[wi].name);
   try{ sfx.pickup(); }catch(e){}
 }
@@ -9686,6 +9688,8 @@ function startGame0(){
   if(mp.on) CAMP.on=false;
   if(CAMP.on) campSetup(); else campClear();
   if(!FLY.on&&!CUT.on) cinStart();
+  if(mp.on&&!mp.host){ if(mp.late){ showToast('JOINED MATCH IN PROGRESS'); } try{ mpSend({t:'rdy'}); }catch(e){} }
+  mp.late=false;
 }
 /* ---------- death: the player's Spartan model as a ragdoll, seen from a third-person camera ---------- */
 var hitDir={x:0,z:0}, rag=null, deathT=0, deathCamA=0, deathCamD=4.2, chiefTexCache=null, chiefGeoCache={};
@@ -10001,6 +10005,30 @@ function resetStick(){
   function show(g){ for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('on',tabs[i].getAttribute('data-g')===g); for(var j=0;j<grps.length;j++) grps[j].classList.toggle('on',grps[j].getAttribute('data-g')===g); }
   for(var i=0;i<tabs.length;i++) tabs[i].addEventListener('click',function(){ show(this.getAttribute('data-g')); });
 })();
+/* invite people into a match that is already running: the room code, a copy button, and your online friends */
+function pInvShow(){
+  var b=$('pInvite'), box=$('pInvBox'); if(!b||!box) return;
+  var ok=mp.on&&mp.code&&mp.code!=='SOLO'; b.hidden=!ok; box.hidden=true; box.textContent='';
+  if(ok&&FR.ready) frProbe();
+}
+function pInvBuild(){
+  var box=$('pInvBox'); box.textContent=''; box.hidden=false; if(!mp.code) return;
+  var top=document.createElement('div'); top.style.cssText='display:flex;align-items:center;gap:10px;margin:4px 0 8px;font:700 13px var(--font-ui);letter-spacing:.2em';
+  top.innerHTML='<span>ROOM CODE</span><b style="font-size:22px;letter-spacing:.3em"></b><button type="button" class="frBtn" style="padding:6px 12px">COPY</button>';
+  top.querySelector('b').textContent=mp.code;
+  top.querySelector('button').onclick=function(){ var t=this; try{ navigator.clipboard.writeText(mp.code); t.textContent='COPIED'; }catch(e){ t.textContent=mp.code; } setTimeout(function(){ t.textContent='COPY'; },1600); };
+  box.appendChild(top);
+  var nt=document.createElement('div'); nt.style.cssText='font:500 12px/1.4 var(--font-ui);color:#a9bdd2;margin-bottom:8px'; nt.textContent='Anyone with this code can join while the match is running. Online friends also see a JOIN MATCH button on their Friends tab.'; box.appendChild(nt);
+  var any=false;
+  FR.friends.forEach(function(f){
+    if(!FR.on[f.u]) return; any=true;
+    var r=document.createElement('div'); r.style.cssText='display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px var(--font-ui);letter-spacing:.1em';
+    r.innerHTML='<span style="flex:1"></span><button type="button" class="frBtn" style="padding:6px 12px">INVITE</button>'; r.querySelector('span').textContent=f.dn;
+    var bt=r.querySelector('button'); bt.onclick=function(){ bt.disabled=true; bt.textContent='...'; frSend(f.u,{t:'invite',u:FR.u,dn:FR.dn,code:mp.code},function(ok2){ bt.textContent=ok2?'SENT':'FAILED'; setTimeout(function(){ bt.textContent='INVITE'; bt.disabled=false; },2200); }); };
+    box.appendChild(r);
+  });
+  if(!any){ var e=document.createElement('div'); e.style.cssText='font:500 12px var(--font-ui);color:#a9bdd2'; e.textContent=FR.ready?'No friends online right now.':'Connecting to friends...'; box.appendChild(e); }
+}
 function pauseGame(){
   if(state!=='play') return;
   state='paused';
@@ -10009,7 +10037,7 @@ function pauseGame(){
   if(ac&&ac.state==='running'&&ac.suspend) ac.suspend();
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   $('pWave').textContent=Math.max(1,wave.n); $('pKills').textContent=kills; $('pScore').textContent=score;
-  $('pause').hidden=false;
+  $('pause').hidden=false; try{ pInvShow(); }catch(e){}
   try{ $('resume').focus(); }catch(e){}
 }
 function resumeGame(){
@@ -11972,7 +12000,7 @@ function cinTitle(){
 function cinCast(a,b,t){ return a+(b-a)*t; }
 function cinSmooth(t){ t=Math.max(0,Math.min(1,t)); return t*t*(3-2*t); }
 function cinStart(){
-  if(CIN.on||FLY.on||CUT.on||TRN.on||state!=='play'||p.inVeh||p.air) return;
+  if(CIN.on||FLY.on||CUT.on||TRN.on||state!=='play'||p.inVeh||p.air||mp.late) return;
   try{
     var wi=(slots[sel]===17?8:slots[sel])|0, av=podAvatar(curChar,armCode(),true,mp.team,wi);
     av.visible=true; scene.add(av); CIN.av=av; CIN.on=true; CIN.t=0; CIN.fov=camera.fov;
@@ -12055,7 +12083,7 @@ function cinEnd(quiet){
 function flyDiv(css){ var e=document.createElement('div'); e.style.cssText=css; document.body.appendChild(e); FLY.el.push(e); return e; }
 function flySkip(){ if(FLY.on&&FLY.t>=0.8) FLY.t=Math.max(FLY.t,FLY.D); }
 function flyStart(){
-  if(FLY.on||CUT.on||!TM.on) return;
+  if(FLY.on||CUT.on||!TM.on||mp.late) return;
   var te=1-mp.team, E=ctfHome(te), M=ctfHome(mp.team);
   function gy(h){ return h.y!==undefined?h.y:groundH(h.x,h.z); }
   var ey=gy(E), my=gy(M), dx=M.x-E.x, dz=M.z-E.z, dl=Math.max(1,Math.hypot(dx,dz)), px=-dz/dl, pz=dx/dl;
@@ -12165,7 +12193,7 @@ function kcClear(){
   try{ var kl=$('kcLabel'); if(kl) kl.style.display='none'; }catch(e){}
 }
 function cutStart(){
-  var P=CUT.prep; if(!P||!(TM.mom||TM.isl||TM.snb)||CUT.on) return;
+  var P=CUT.prep; if(!P||!(TM.mom||TM.isl||TM.snb)||CUT.on||mp.late) return;
   var sx=p.x, sy=p.y, sz=p.z, hl=Math.hypot(sx,sz), H=hl>30?{x:sx/hl,z:sz/hl}:{x:0,z:1}, V=38, D=V*CUT_FT/2;
   CUT.on=true; CUT.t=0; CUT.H=H; CUT.V=V; CUT.sp=[sx,sy,sz]; CUT.im=0; CUT.st=0; CUT.hb=0; CUT.ring=0;
   CUT.c0=[sx-H.x*D,118,sz-H.z*D]; CUT.th=Math.atan2(-H.z,H.x);
@@ -12789,6 +12817,7 @@ function mpSend(o,to){
 var MP_RELAY={dome:1,ping:1,st:1,fx:1,dead:1,boom:1,vs:1,vc:1,vx:1,vhit:1,tu:1,rk:1,gr:1,vg:1};
 function mpOnData(cn,m){
   if(!m||!m.t) return;
+  if(m.t==='rdy'){ if(mp.host&&mp.on) mpSnapshot(cn); return; }
   if(mp.host){
     m.f=cn.pid;
     if(m.to!==undefined&&m.to!==0){ for(var i=0;i<mp.conns.length;i++){ var c=mp.conns[i]; if(c.id===m.to&&c.cn.open){ try{ c.cn.send(m); }catch(e){} } } return; }
@@ -13053,20 +13082,29 @@ function mpHost(){
 }
 function mpHostAccept(cn){
   var max=mp.mode==='dm'?3:1;
-  if(mp.conns.length>=max){ try{ cn.close(); }catch(e){} return; }
+  if(mp.conns.length>=max||(mp.on&&mp.over)){ try{ cn.close(); }catch(e){} return; }
   var id=1; while(mp.conns.some(function(c){ return c.id===id; })) id++;
   var cnt=[0,0]; cnt[mp.team]++; mp.conns.forEach(function(c){ cnt[c.team]++; });
   var want=cn.metadata?cn.metadata.team:-1, tm=(want===0||want===1)?(cnt[want]<2?want:1-want):(cnt[1]<cnt[0]?1:0);   /* the team you asked for, unless it is full */
   var ent={cn:cn,id:id,team:tm};
   mp.conns.push(ent); cn.pid=id; if(!mp.conn) mp.conn=cn;
   cn.on('open',function(){
-    try{ cn.send({t:'start',mode:mp.mode,ctf:mp.ctf?1:0,koth:mp.koth?1:0,opt:mp.opt||null,id:id,team:ent.team,ps:mpRosterMsg(),sc:mp.score,f:0}); }catch(e){}
+    try{ cn.send({t:'start',mode:mp.mode,ctf:mp.ctf?1:0,koth:mp.koth?1:0,opt:mp.opt||null,id:id,team:ent.team,ps:mpRosterMsg(),sc:mp.score,f:0,late:mp.on?1:0}); }catch(e){}
     if(!mp.on) mpBegin(); else mpAddPeer(id,ent.team);
     if(mp.mode==='dm'){ mpSend({t:'roster',ps:mpRosterMsg()}); showToast('PLAYER JOINED'); }
   });
   cn.on('data',function(m){ mpOnData(cn,m); });
   cn.on('close',function(){ mpHostDrop(ent); });
   cn.on('error',function(){ mpStatus('Connection error.',true); });
+}
+/* someone joined a match already in progress: once their game is up they ask for the current state (score, flags, hill, open supply crates) */
+function mpSnapshot(cn){
+  try{
+    cn.send({t:'sc',s:mp.score});
+    if(CTF.on&&CTF.F[0]&&CTF.F[1]){ cn.send({t:'fl',ft:0,s:[0,1].map(function(i){ var F=CTF.F[i]; return [F.home?1:0,F.carrier===undefined?-1:F.carrier,F.x||0,F.y||0,F.z||0]; }),sc:mp.score}); }
+    if(KH.on) cn.send({t:'kh',own:KH.own,sc:mp.score,hs:KH.hs});
+    CRATES.list.forEach(function(c){ if(c.pk&&c.pk.taken) return; cn.send({t:'crate',x:Math.round(c.x*10)/10,z:Math.round(c.z*10)/10,wi:c.up&&c.base!==undefined?c.base:c.wi}); if(c.up) cn.send({t:'crate',up:1,x:Math.round(c.x*10)/10,z:Math.round(c.z*10)/10,wi:c.wi}); });
+  }catch(e){}
 }
 function mpHostDrop(ent){
   var i=mp.conns.indexOf(ent); if(i<0) return;
@@ -13082,7 +13120,7 @@ function mpJoin(){
   mpStatus('Connecting...');
   mpLoadLib(function(ok){
     if(!ok){ mpStatus('Could not load the online library. Check your connection (or a blocker).',true); return; }
-    mpClose(); mp.host=false; mp.conns=[];
+    mpClose(); mp.host=false; mp.conns=[]; mp.code=code;
     var pr=new Peer(), done=false; mp.peer=pr;
     pr.on('open',function(){
       var cn=pr.connect('halofps-'+code,{reliable:true,metadata:{team:mpWant}}); mpSetupConn(cn);
@@ -13403,7 +13441,7 @@ function mpRecv(m){
   var pe=mp.peers[m.f], R=pe?pe.rem:mp.rem, avatar=pe?pe.avatar:mp.avatar;
   switch(m.t){
     case 'start':
-      mp.mode=m.mode; mp.ctf=!!m.ctf; mp.koth=!!m.koth; mp.opt=m.opt||null; mp.id=m.id; mp.team=m.team||0; mp.roster=m.ps||[]; mp.score=m.sc||[0,0]; mpBegin(); break;
+      mp.mode=m.mode; mp.ctf=!!m.ctf; mp.koth=!!m.koth; mp.opt=m.opt||null; mp.id=m.id; mp.team=m.team||0; mp.roster=m.ps||[]; mp.score=m.sc||[0,0]; mp.late=!!m.late; mpBegin(); break;
     case 'roster':
       if(!mp.on||mp.host) break;
       var seen={}; m.ps.forEach(function(r){ seen[r[0]]=1; if(r[0]!==mp.id) mpAddPeer(r[0],r[1]); });
@@ -13932,10 +13970,15 @@ function frStart(){
     pr.on('disconnected',function(){ FR.ready=false; frNetText(); try{ pr.reconnect(); }catch(e){} });
   });
 }
+function mpJoinInfo(){
+  if(!mp.on||!mp.host||!mp.code||mp.code==='SOLO'||mp.over) return null;
+  var mx=mp.mode==='dm'?3:1; if(mp.conns.length>=mx) return null;
+  return {rc:mp.code,md:mp.mode==='dm'?(mp.ctf?'CTF':mp.koth?'KING OF THE HILL':'TEAM SLAYER'):'CO-OP',sc:mp.mode==='dm'?(mp.score[0]+' - '+mp.score[1]):'',pl:mp.conns.length+1,mx:mx+1};
+}
 function frOnData(cn,m){
   if(!m||typeof m!=='object') return;
   var u=String(m.u||'').toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,16), dn=String(m.dn||u).slice(0,20);
-  if(m.t==='ping'){ try{ var ps=pgStats(); cn.send({t:'pong',u:FR.u,dn:FR.dn,lv:ps.lv,rk:ps.rk,k:ps.k,w:ps.w,fav:ps.fav}); }catch(e){} return; }
+  if(m.t==='ping'){ try{ var ps=pgStats(); var jn=mpJoinInfo(); cn.send({t:'pong',u:FR.u,dn:FR.dn,lv:ps.lv,rk:ps.rk,k:ps.k,w:ps.w,fav:ps.fav,rc:jn?jn.rc:'',md:jn?jn.md:'',sc:jn?jn.sc:'',pl:jn?jn.pl:0,mx:jn?jn.mx:0}); }catch(e){} return; }
   if(!u||u===FR.u) return;
   if(m.t==='freq'){
     if(FR.friends.some(function(f){ return f.u===u; })){ try{ cn.send({t:'facc',u:FR.u,dn:FR.dn}); }catch(e){} return; }
@@ -13956,7 +13999,7 @@ function frSend(user,msg,cb){
   function fin(ok){ if(done) return; done=true; delete FR.pend[user]; cb&&cb(ok); }
   FR.pend[user]=fin;
   try{ cn=FR.peer.connect('halofps-u-'+user,{reliable:true}); }catch(e){ fin(false); return; }
-  cn.on('open',function(){ try{ cn.on('data',function(m){ if(m&&m.t==='pong'){ FR.st=FR.st||{}; FR.st[user]={lv:Math.min(999,+m.lv||1),rk:String(m.rk||'').slice(0,20),k:+m.k||0,w:+m.w||0,fav:String(m.fav||'').slice(0,24)}; try{ frRender(); }catch(e){} } }); }catch(e){} try{ cn.send(msg); }catch(e){} setTimeout(function(){ try{ cn.close(); }catch(e){} },900); FR.on[user]=true; fin(true); });
+  cn.on('open',function(){ try{ cn.on('data',function(m){ if(m&&m.t==='pong'){ FR.st=FR.st||{}; FR.st[user]={lv:Math.min(999,+m.lv||1),rk:String(m.rk||'').slice(0,20),k:+m.k||0,w:+m.w||0,fav:String(m.fav||'').slice(0,24),j:(m.rc?{rc:String(m.rc).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8),md:String(m.md||'').slice(0,24),sc:String(m.sc||'').slice(0,12),pl:+m.pl||0,mx:+m.mx||0,t:Date.now()}:null)}; try{ frRender(); }catch(e){} } }); }catch(e){} try{ cn.send(msg); }catch(e){} setTimeout(function(){ try{ cn.close(); }catch(e){} },900); FR.on[user]=true; fin(true); });
   cn.on('error',function(){ fin(false); });
   setTimeout(function(){ fin(false); },9000);
 }
@@ -13997,11 +14040,14 @@ function frRender(){
   if(!FR.friends.length){ var e1=document.createElement('div'); e1.className='e'; e1.textContent='No friends yet. Add one by their username.'; fl.appendChild(e1); }
   FR.friends.forEach(function(f){
     var on=!!FR.on[f.u], d=document.createElement('div'); d.className='frItem'+(on?' on':'');
-    d.innerHTML='<i class="dot"></i><span class="nm"></span><button type="button">INVITE</button><button type="button" class="x">REMOVE</button>';
+    d.innerHTML='<i class="dot"></i><span class="nm"></span><button type="button" class="jn" hidden>JOIN MATCH</button><button type="button">INVITE</button><button type="button" class="x">REMOVE</button>';
     d.querySelector('.nm').innerHTML=''; var nm=d.querySelector('.nm'); nm.textContent=f.dn; var sm=document.createElement('small'); var fs=(FR.st&&FR.st[f.u])?(' · LVL '+FR.st[f.u].lv+' '+FR.st[f.u].rk+' · '+FR.st[f.u].k+' KILLS'+(FR.st[f.u].fav&&FR.st[f.u].fav!=='-'?' · '+FR.st[f.u].fav:'')):''; sm.textContent=f.u+' · '+(on?'ONLINE':'OFFLINE')+fs; nm.appendChild(sm);
-    var bs=d.querySelectorAll('button'); bs[0].disabled=!on;
-    bs[0].onclick=function(){ frInvite(f,bs[0]); };
-    bs[1].onclick=function(){ if(!confirm('Remove '+f.dn+' from your friends?')) return; FR.friends=FR.friends.filter(function(x){ return x.u!==f.u; }); frSave(); frRender(); };
+    var bs=d.querySelectorAll('button'), jb=bs[0], ib=bs[1], xb=bs[2]; ib.disabled=!on;
+    var jn=(on&&FR.st&&FR.st[f.u]&&FR.st[f.u].j&&Date.now()-FR.st[f.u].j.t<120000)?FR.st[f.u].j:null;
+    if(jn){ jb.hidden=false; jb.textContent='JOIN MATCH'; var sj=document.createElement('small'); sj.textContent='  IN A MATCH: '+jn.md+(jn.sc?'  '+jn.sc:'')+'  ('+jn.pl+'/'+jn.mx+')'; nm.appendChild(sj);
+      jb.onclick=function(){ if(state!=='menu') return; try{ mpSetMode('ff'); $('mpCode').value=jn.rc; $('mp').hidden=false; mpJoin(); }catch(e){} }; }
+    ib.onclick=function(){ frInvite(f,ib); };
+    xb.onclick=function(){ if(!confirm('Remove '+f.dn+' from your friends?')) return; FR.friends=FR.friends.filter(function(x){ return x.u!==f.u; }); frSave(); frRender(); };
     fl.appendChild(d);
   });
 }
@@ -14016,6 +14062,7 @@ function frInvite(f,btn){
     else if(Date.now()-t0>12000){ clearInterval(iv); btn.textContent='FAILED'; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },2000); }
   },300);
 }
+try{ $('pInvite').addEventListener('click',function(){ var bx=$('pInvBox'); if(!bx.hidden){ bx.hidden=true; return; } pInvBuild(); setTimeout(function(){ if(!bx.hidden&&state==='paused') pInvBuild(); },1500); }); }catch(e){}
 $('frInvNo').addEventListener('click',function(){ $('frInvite').hidden=true; FR.inv=null; });
 $('frInvYes').addEventListener('click',function(){
   var iv=FR.inv; $('frInvite').hidden=true; FR.inv=null; if(!iv) return;
