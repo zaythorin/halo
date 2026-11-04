@@ -3504,6 +3504,7 @@ function drawMinimap(){
   for(i=0;i<enemies.length;i++){ var en=enemies[i]; if(en.dead) continue; dot(en.x,en.z,'#ff4a3d',(en.elite||en.hunter)?4.5:3.2,!!en.air); }
   if(mp.on) for(k in mp.peers){ var pe=mp.peers[k]; if(!pe.rem||!pe.rem.al||!pe.avatar||!pe.avatar.visible) continue; var foe=mp.mode==='dm'&&pe.team!==mp.team; dot(pe.rem.x,pe.rem.z,foe?'#ff4a3d':'#7dff9a',4,false); }
   if(veh.alive&&!p.inVeh) dot(veh.x,veh.z,'#8fe0ff',3.4,true);
+  CRATES.list.forEach(function(c){ if(!(c.pk&&c.pk.taken)) dot(c.x,c.z,'#ffd24a',3.8,true); });
   x.restore();
   /* locator: an arrow on the rim towards the nearest enemy territory when it is off the map */
   if(near&&!inZ&&nd>RANGE*0.9){
@@ -4979,7 +4980,7 @@ var WB={}, PS0=null;
 function pgApplyLoadout(){
   if(PS0===null) PS0=PSPEED;
   var lv=pgLevel(PG.xp), lo=PG.lo, i;
-  function okIn(L,id){ for(var j=0;j<L.length;j++) if(L[j].id===id&&L[j].lv<=lv&&weapons[id]) return true; return false; }
+  function okIn(L,id){ for(var j=0;j<L.length;j++) if(L[j].id===id&&L[j].lv<=lv&&weapons[id]&&wAllowed(id)) return true; return false; }
   if(!okIn(PG_PRI,lo.pri)) lo.pri=1; if(!okIn(PG_SEC,lo.sec)) lo.sec=0;
   function okK(L,k){ for(var j=0;j<L.length;j++) if(L[j].k===k&&L[j].lv<=lv) return true; return false; }
   if(!okK(PG_PERK,lo.perk)) lo.perk=''; if(!okK(PG_ATT,lo.ap)) lo.ap=''; if(!okK(PG_ATT,lo.as)) lo.as='';
@@ -5037,6 +5038,61 @@ function dmgState(dt){
   if(DMGF.sh>0&&p.shield<=0) radio('shield',9); DMGF.sh=p.shield;
   if(st!==DMGF.st){ DMGF.st=st; document.body.classList.toggle('hurt1',st===1); document.body.classList.toggle('hurt2',st===2); if(st===2) radio('low',8); }
   if(st===2){ DMGF.hb-=dt; if(DMGF.hb<=0){ DMGF.hb=0.95; try{ tone(58,40,0.14,'sine',0.22); setTimeout(function(){ tone(52,38,0.16,'sine',0.18); },190); }catch(e){} } }
+}
+
+/* ---------- supply crates: weapons are no longer free at the start. A crate drops now and then with one weapon in it, marked by a light beam and on the minimap ---------- */
+var CRATES={list:[],t:20};
+function crateMode(){ return !TRN.on&&!(TM&&TM.sky); }
+var CRATE_POOL=[[3,1],[2,2],[7,3],[19,3],[4,3],[6,3],[15,2],[12,2],[13,1],[14,2],[9,1],[8,1],[16,1],[18,2]];
+function crateClear(){ CRATES.list.forEach(function(c){ try{ scene.remove(c.g); if(c.pk){ c.pk.taken=true; c.pk.rt=-1; c.pk.g.visible=false; } }catch(e){} }); CRATES.list=[]; CRATES.t=18; }
+function crateSpawn(x,z,wi){
+  if(!rackTpl) buildRackTpl();
+  if(!isFinite(x)||!isFinite(z)||!weapons[wi]||!rackTpl[wi]) return;
+  var y=lyG(x,z), g=new THREE.Group(), M=new THREE.MeshLambertMaterial({color:0x40583c}), D=new THREE.MeshLambertMaterial({color:0x2c3a2a});
+  function part(w,h,d,px,py,pz,m){ var q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||M); q.position.set(px,py,pz); g.add(q); return q; }
+  part(1.6,0.08,1.0,0,0.04,0,D); part(1.6,0.5,0.07,0,0.25,0.465); part(1.6,0.5,0.07,0,0.25,-0.465); part(0.07,0.5,1.0,0.765,0.25,0); part(0.07,0.5,1.0,-0.765,0.25,0);
+  var lid=part(1.64,0.06,1.0,0,0.78,-0.62,D); lid.rotation.x=-1.15;
+  part(1.2,0.05,0.04,0,0.42,0.5,new THREE.MeshBasicMaterial({color:0x6be4ff}));
+  var beam=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,70,10,1,true),new THREE.MeshBasicMaterial({color:0x6be4ff,transparent:true,opacity:0.18,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false})); beam.position.y=35; g.add(beam);
+  g.position.set(x,y,z); g.rotation.y=Math.random()*6.28; scene.add(g);
+  var pk=tmLooseWeapon(x,z,wi,undefined,{y0:y+0.9,vx:0,vz:0,vy:0});
+  CRATES.list.push({g:g,pk:pk,beam:beam,x:x,y:y,z:z,t:0});
+  showToast('SUPPLY CRATE: '+weapons[wi].name);
+  try{ sfx.pickup(); }catch(e){}
+}
+function crateTick(dt){
+  var i;
+  for(i=CRATES.list.length-1;i>=0;i--){
+    var c=CRATES.list[i]; c.t+=dt; c.beam.material.opacity=c.pk&&c.pk.taken?0:0.15+0.05*Math.sin(c.t*2.2);
+    if(c.pk&&c.pk.taken){ c.gone=(c.gone||0)+dt; if(c.gone>6){ scene.remove(c.g); CRATES.list.splice(i,1); } }
+    else if(c.t>110){ if(c.pk){ c.pk.taken=true; c.pk.rt=-1; c.pk.g.visible=false; } scene.remove(c.g); CRATES.list.splice(i,1); }
+  }
+  if(!crateMode()||(mp.on&&!mp.host)||state!=='play') return;
+  CRATES.t-=dt; if(CRATES.t>0) return;
+  CRATES.t=(mp.on?26:36)+Math.random()*12; if(CRATES.list.length>=3) return;
+  var pool=CRATE_POOL.filter(function(a){ return wAllowed(a[0])&&weapons[a[0]]; }), tot=0; pool.forEach(function(a){ tot+=a[1]; }); if(!pool.length) return;
+  var r=Math.random()*tot, wi=pool[0][0]; for(i=0;i<pool.length;i++){ r-=pool[i][1]; if(r<=0){ wi=pool[i][0]; break; } }
+  var x,z, L=(typeof packSpots!=='undefined'&&packSpots&&packSpots.length)?packSpots:null, best=-1, k;
+  for(k=0;k<8;k++){
+    var cx,cz; if(L){ var a=L[(Math.random()*L.length)|0]; cx=a[0]; cz=a[2]; } else { var sp=pickSpawn(); cx=sp.x; cz=sp.z; }
+    var d=Math.hypot(cx-p.x,cz-p.z), sc2=(d>=25&&d<=90)?1000-Math.abs(d-55):d>90?200-d:d;
+    if(sc2>best){ best=sc2; x=cx; z=cz; }
+  }
+  if(x===undefined) return;
+  crateSpawn(x,z,wi); if(mp.on&&mp.host) mpSend({t:'crate',x:Math.round(x*10)/10,z:Math.round(z*10)/10,wi:wi});
+}
+/* dying drops what you were carrying, and you come back with your chosen loadout */
+function dropDeathWeapons(){
+  try{
+    if(!rackTpl) buildRackTpl();
+    var seen={}, n=0, i;
+    for(i=0;i<wpicks.length;i++) if(wpicks[i].once) n++;
+    for(i=0;i<wpicks.length&&n>8;i++) if(wpicks[i].once&&wpicks[i].taken){ scene.remove(wpicks[i].g); wpicks.splice(i,1); i--; n--; }
+    slots.forEach(function(wi){
+      if(wi===undefined||seen[wi]||wi===10||!weapons[wi]||!rackTpl[wi]) return; seen[wi]=1;
+      var a=Math.random()*6.28, dk=tmLooseWeapon(p.x+Math.cos(a)*0.5,p.z+Math.sin(a)*0.5,wi,undefined,{y0:p.y+1.0,vx:Math.cos(a)*2.4,vz:Math.sin(a)*2.4,vy:2.2}); if(dk) dk.ign=1.5;
+    });
+  }catch(e){}
 }
 function achShow(){
   var L=$('achList'); L.textContent=''; var got=0;
@@ -7159,7 +7215,7 @@ function spawnRacks(){
   for(var r=0;r<racks.length;r++){
     var rk=racks[r];
     for(var j=0;j<lay.length;j++){
-      if(!wAllowed(lay[j][0])) continue;
+      if(crateMode()||!wAllowed(lay[j][0])) continue;
       if(lay[j][0]===3&&r%3!==1) continue; /* rocket launchers: only on every third rack */
       var L=lay[j], g=new THREE.Group(), inner=rackTpl[L[0]].clone();
       g.add(inner);
@@ -7169,7 +7225,7 @@ function spawnRacks(){
       g.position.set(x,y,z); scene.add(g);
       wpicks.push({wi:L[0],g:g,m:inner,hl:hl,x:x,y:y,z:z,t:Math.random()*6,taken:false,rt:0});
     }
-    tmLooseWeapon(rk.x-1.9,rk.z+rk.f*1.9,6,rk.y); tmLooseWeapon(rk.x+1.9,rk.z+rk.f*1.9,7,rk.y); tmLooseWeapon(rk.x,rk.z+rk.f*3.4,8,rk.y); tmLooseWeapon(rk.x-3.2,rk.z+rk.f*3.0,9,rk.y);
+    if(!crateMode()){ tmLooseWeapon(rk.x-1.9,rk.z+rk.f*1.9,6,rk.y); tmLooseWeapon(rk.x+1.9,rk.z+rk.f*1.9,7,rk.y); tmLooseWeapon(rk.x,rk.z+rk.f*3.4,8,rk.y); tmLooseWeapon(rk.x-3.2,rk.z+rk.f*3.0,9,rk.y); }
     spawnTurret(rk.x+5.2,rk.z+rk.f*2.8,rk.f>0?Math.PI:0,lyH(rk.x+5.2,rk.z+rk.f*2.8,rk.y+0.5));
   }
 }
@@ -9007,7 +9063,7 @@ function resetGame(){
   mgForce(); if(p.inVeh){ p.inVeh=false; p.air=false; vm.visible=true; stopEngine(); }
   p.air=false; lockEl.style.display='none'; clearMissiles(); reloading=false; placeRover(); placeJet(); mgReset();
   noiseT=-9; spawnGarrison(); ensureAllies();
-  try{ pgApplyLoadout(); }catch(e){}
+  try{ crateClear(); pgApplyLoadout(); }catch(e){}
 }
 /* ================= TRAINING GROUND: an abandoned, bombed-out city square at night in heavy rain; every gun hung on the building faces (Covenant ones too), target dummies down the range ================= */
 function trLabel(txt,w,h,col){
@@ -9586,6 +9642,7 @@ function gameOver(){
   if(mp.on){ mpOnDeath(); return; }
   state='dying'; MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ PG.deaths++; pgSave(); dmgClear(); radio('dead',0); }catch(e){}
+  dropDeathWeapons();
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   mgForce(); if(p.inVeh){ p.inVeh=false; } p.air=false; lockEl.style.display='none'; stopEngine();
   zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
@@ -10297,7 +10354,7 @@ function frame(now){
     updateWeapon(dt); updateThrow(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
     if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ updateShips(dt); updateWaves(dt); if(CAMP.on) campTick(dt); } for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on&&!TRN.on) updateAllies(dt);
-    updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
+    updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); try{ crateTick(dt); }catch(e){} if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
   }else if(state==='menu'){
     updateMenu(dt); if(!menuVidOn) renderer.render(menuScene,menuCam); return;
   }
@@ -11172,7 +11229,7 @@ function tmMomRack(cx,gy,cz,dz,t,wl){
     boxes.push({minx:ccx-CW/2,maxx:ccx+CW/2,minz:cz-0.45,maxz:cz+0.45,h:gy+2.3,y0:gy});
   }
   for(i=0;i<ws.length;i++){
-    if(!wAllowed(ws[i])) continue;
+    if(crateMode()||!wAllowed(ws[i])) continue;
     var ci2=Math.floor(i/per), inC=Math.min(per,ws.length-ci2*per), ccx2=cx+(ci2-(nC-1)/2)*(CW+0.05);
     var x=ccx2+((i%per)-(inC-1)/2)*0.68, z=cz-dz*0.2;
     var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,Math.min(1.3,sz.x)), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
@@ -11526,6 +11583,7 @@ function lyG(x,z){
   return m;
 }
 function tmLooseWeapon(x,z,wi,fy,fall){
+  if(!fall&&crateMode()) return null;   /* weapons no longer lie around: they come in supply crates */
   if(TM.ship&&!fall&&COVMAP[wi]!==undefined) wi=COVMAP[wi];
   if(!fall&&!wAllowed(wi)) return null;
   var sz=rackTpl[wi].userData.sz||new V3(1,0.3,0.15), hz=Math.max(0.04,sz.z/2), y=fall?fall.y0:(fy!==undefined?fy:lyG(x,z))+hz+0.07, g=new THREE.Group(), inner=rackTpl[wi].clone();
@@ -11542,7 +11600,7 @@ function tmWallRack(Z,dz,t){
   var ws=[2,1,4,0,7,6,8,9], xs=[-18,-14,-10,-6,6,10,14,18], zz=Z+dz*28.45+dz*0.42, i, tc=TEAMS[t].c;
   if(TM.ship) ws=ws.map(function(w){ return COVMAP[w]!==undefined?COVMAP[w]:w; });
   for(i=0;i<ws.length;i++){
-    if(!wAllowed(ws[i])) continue;
+    if(crateMode()||!wAllowed(ws[i])) continue;
     var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,sz.x), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
     inner.rotation.z=Math.PI/2; g.add(inner);
     var plate=new THREE.Mesh(new THREE.BoxGeometry(0.34,L+0.3,0.05),new THREE.MeshLambertMaterial({color:0x2a3038})); plate.position.z=-dz*0.3; g.add(plate);
@@ -12941,7 +12999,7 @@ function mpOppNear(P){
 /* ---- death and respawn ---- */
 function mpOnDeath(){
   kcClear();
-  state='dying'; try{ bcDeadSet(true); PG.deaths++; pgSave(); dmgClear(); radio('dead',0); }catch(e){} MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
+  state='dying'; try{ bcDeadSet(true); PG.deaths++; pgSave(); dmgClear(); radio('dead',0); }catch(e){} dropDeathWeapons(); MD.spree=0; ctrl.fire=false; ctrl.mx=0; ctrl.mz=0; ctrl.jump=false; ctrl.brake=false; meleeT=0; reloading=false;
   try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
   zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on'); els.ui.classList.remove('scoped'); camera.fov=BASE_FOV; camera.updateProjectionMatrix();
   vm.visible=false; heldG.frag.visible=false; heldG.plasma.visible=false; throwT=0; throwDone=true;
@@ -12977,6 +13035,7 @@ function mpRevive(near){
     weapons.forEach(function(w){ if(!w.inf){ w.mag=w.magSize; w.reserve=Math.max(w.reserve,w.maxRes>>1); } if(w._i){ w.heat=0; w.ohT=0; w.bat=100; } });
     gren.frag=3; gren.plasma=2;
   }else if(near&&R.has){ p.x=R.x+2; p.z=R.z+2; p.y=groundH(p.x,p.z); p.yaw=R.yaw; }
+  try{ pgApplyLoadout(); }catch(e){}
   p.vx=0; p.vz=0; p.vy=0; reloading=false; swapT=0; fireCool=0; meleeT=0; camLag=0;
   mp.inv=tAcc+4; $('ui').hidden=false; devApplyNuke(); /* 4 s of spawn protection */ lockMouse(); showToast('RESPAWNED'); try{ $('killMsg').style.display='none'; }catch(e){}
 }
@@ -13078,6 +13137,7 @@ function mpRecv(m){
     case 'nk': nukeAddBomb(m.x,m.y,m.z,false); break;
     case 'en': if(!mp.host) mpApplySnap(m.a); break;
     case 'dmg': if(mp.host) mpApplyDmg(m); break;
+    case 'crate': if(!mp.host&&crateMode()) crateSpawn(+m.x,+m.z,m.wi|0); break;
     case 'kill':
       if(!mp.host){ showToast((m.h?'HEADSHOT  +':'+')+m.pts); sfx.kill(); dropLoot(m.x,m.y,m.z); }
       break;
