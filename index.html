@@ -762,6 +762,14 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
 #frRec{font-size:12px;letter-spacing:.1em}
 #frRec .tbRec{grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}
 #frRec .tbRec div b{font-size:16px}
+
+#aidHud{position:fixed;left:50%;bottom:7vh;transform:translateX(-50%);z-index:10;display:none;flex-direction:column;align-items:center;gap:6px;pointer-events:none;font:700 12px var(--font-ui);letter-spacing:.24em;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+#aidHud.on{display:flex}
+#aidHud i{display:none;width:min(260px,60vw);height:8px;background:rgba(255,255,255,.2);overflow:hidden}
+#aidHud.run i{display:block}
+#aidHud u{display:block;height:100%;width:0;background:#7dff9a}
+#bAid{display:none;right:calc(110px + var(--sr));bottom:calc(250px + var(--sb));width:64px;height:40px;font-size:11px}
+@media (pointer:coarse){#bAid{display:grid}}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
@@ -772,6 +780,7 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
   <button type="button" class="btn" id="bFire">FIRE</button>
   <button type="button" class="btn" id="bJump">JUMP</button>
   <button type="button" class="btn" id="bReload">RELOAD</button>
+  <button type="button" class="btn" id="bAid">AID</button>
   <button type="button" class="btn" id="bSwap">SWAP</button>
   <button type="button" class="btn" id="bInspect">INSPECT</button>
   <button type="button" class="btn" id="bLeanL">LEAN L</button>
@@ -872,6 +881,7 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
 </div>
 
 <div id="dmgFeed"><i></i><b>SIGNAL UNSTABLE</b></div>
+<div id="aidHud"><span id="aidTxt"></span><i><u id="aidBar"></u></i></div>
 <div id="radio"><small>RADIO</small><b id="radioWho"></b><span id="radioTxt"></span></div>
 <div id="lyBar" hidden><span id="lyTxt">DRAG BUTTONS. TAP ONE TO RESIZE</span><input type="range" id="lySize" min="50" max="180" value="100" disabled><button type="button" id="lyReset">RESET</button><button type="button" id="lyDone">DONE</button></div>
 <div class="overlay" id="pause" hidden>
@@ -5001,6 +5011,7 @@ function pgApplyLoadout(){
   PSPEED=PS0*(lo.perk==='sprint'?1.08:1);
   gren.frag=Math.min(GMAX.frag,3+(lo.perk==='gren'?1:0)); gren.plasma=Math.min(GMAX.plasma,2+(lo.perk==='gren'?1:0));
   slots=[lo.pri,lo.sec]; sel=0; setWeapon(0); swapT=0; pendingW=null; reloading=false;
+  try{ aidCancel(); }catch(e){} WND.kits=2+(lo.perk==='scav'?1:0);
 }
 /* ---------- radio chatter and the damaged-feed look ---------- */
 var RAD={on:true,cd:{},gap:0,voice:undefined,to:0};
@@ -5013,6 +5024,7 @@ var RAD_L={
   reload:['RELOADING!','CHANGING MAG!','COVER ME, RELOADING!'],
   frag:['FRAG OUT!','GRENADE!'],
   dead:['MAN DOWN... MAN DOWN...','I\'M... I\'M DOWN...'],
+  aid:['APPLYING FIRST AID.','PATCHING MYSELF UP.'],
   rank:['COMMAND: PROMOTION APPROVED.']
 };
 function radio(k,cd){
@@ -5093,6 +5105,65 @@ function dropDeathWeapons(){
       var a=Math.random()*6.28, dk=tmLooseWeapon(p.x+Math.cos(a)*0.5,p.z+Math.sin(a)*0.5,wi,undefined,{y0:p.y+1.0,vx:Math.cos(a)*2.4,vz:Math.sin(a)*2.4,vy:2.2}); if(dk) dk.ign=1.5;
     });
   }catch(e){}
+}
+
+/* ---------- wounded-state play: limping, a shaky aim, and limited first aid ---------- */
+var WND={kits:2,aid:0,dur:3.4,ph:0,mdl:null,jab:false};
+function woundK(){ return (p.inVeh||p.air)?0:Math.max(0,Math.min(1,(75-p.health)/55)); }
+function aidBuild(){
+  var g=new THREE.Group(), white=new THREE.MeshLambertMaterial({color:0xe8ecef}), red=new THREE.MeshBasicMaterial({color:0xd8322a}), dark=new THREE.MeshLambertMaterial({color:0x34452f}), steel=new THREE.MeshLambertMaterial({color:0xaab4bc});
+  function box(w,h,d,x,y,z,m){ var q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); q.position.set(x,y,z); g.add(q); return q; }
+  box(0.2,0.12,0.08,0,0,0,white); box(0.09,0.02,0.01,0,0,0.046,red); box(0.02,0.09,0.01,0,0,0.046,red);
+  box(0.09,0.09,0.55,0.07,-0.02,0.34,dark);
+  var inj=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.17,10),steel); inj.rotation.z=Math.PI/2; inj.position.set(-0.17,0.02,0.02); g.add(inj);
+  var nd=new THREE.Mesh(new THREE.CylinderGeometry(0.003,0.003,0.07,6),steel); nd.rotation.z=Math.PI/2; nd.position.set(-0.29,0.02,0.02); g.add(nd);
+  g.visible=false; camera.add(g); g.renderOrder=999; return g;
+}
+function aidStart(){
+  if(state!=='play'||WND.aid>0||p.inVeh||p.air||reloading||throwT>0||meleeT>0) return;
+  if(p.health>=100){ showToast('HEALTH FULL'); return; }
+  if(WND.kits<=0){ showToast('NO FIRST AID LEFT'); try{ sfx.click(); }catch(e){} return; }
+  WND.kits--; WND.aid=WND.dur; WND.jab=false; if(zoomed) zoomOff();
+  if(!WND.mdl) WND.mdl=aidBuild(); WND.mdl.visible=true; vm.visible=false; ctrl.fire=false;
+  try{ radio('aid',0); tone(900,900,0.05,'square',0.05); }catch(e){}
+}
+function aidCancel(msg){
+  if(WND.aid<=0) return; WND.aid=0; if(WND.mdl) WND.mdl.visible=false; if(state==='play'&&!p.inVeh) vm.visible=true;
+  if(msg) showToast(msg);
+}
+function woundTick(dt){
+  var hud=$('aidHud');
+  if(state!=='play'){ if(WND.aid>0) aidCancel(); if(hud) hud.classList.remove('on'); return; }
+  if(WND.aid>0){
+    if(p.inVeh||p.air) aidCancel('FIRST AID CANCELLED');
+    else{
+      WND.aid-=dt; ctrl.fire=false; var u=1-Math.max(0,WND.aid)/WND.dur, m=WND.mdl;
+      if(u>0.5&&u<0.95) p.health=Math.min(100,p.health+58/(WND.dur*0.45)*dt);
+      if(!WND.jab&&u>0.55){ WND.jab=true; try{ noise(0.18,0.2,'highpass',3500,5000); tone(1200,700,0.08,'square',0.04); }catch(e){} }
+      if(m){
+        var e1=Math.min(1,u/0.15), ez=e1*e1*(3-2*e1), x,y,zz,tilt=0;
+        x=0.22+(0.10-0.22)*ez; y=-0.55+(-0.18+0.55)*ez; zz=-0.5+(-0.46+0.5)*ez;
+        if(u>0.45){ var j=Math.min(1,(u-0.45)/0.12); x+=(-0.04-0.10)*j; y+=-0.02*j; zz+=0.04*j; tilt=0.25*j; }
+        if(u>0.88){ var r=(u-0.88)/0.12; y-=0.45*r; x+=0.15*r; }
+        var tr=u>0.12&&u<0.85?0.004:0;
+        m.position.set(x+Math.sin(tAcc*31)*tr,y+Math.sin(tAcc*27)*tr,zz); m.rotation.set(-0.1,0.25-tilt*0.5,tilt*0.4);
+      }
+      if(WND.aid<=0){ WND.aid=0; if(m) m.visible=false; vm.visible=true; showToast('FIRST AID APPLIED'); try{ tone(600,900,0.12,'sine',0.06); }catch(e){} }
+    }
+  }
+  var wk=woundK();
+  if(wk>0.02&&!p.inVeh&&!p.air){
+    if(moveFrac>0.1&&p.onGround) WND.ph+=dt*(5.2+3*moveFrac)*(0.7+0.3*wk);
+    var step=Math.sin(WND.ph), dip=Math.max(0,step)*0.085*wk;
+    camera.position.y-=dip; camera.rotation.z+=step*0.032*wk*Math.min(1,moveFrac*2);
+    var t=tAcc, amp=(0.0024+(zoomed?0.004:0)+(ctrl.fire?0.0015:0))*wk;
+    camera.rotation.y+=(Math.sin(t*2.3)+0.6*Math.sin(t*4.1+1.3))*amp; camera.rotation.x+=(Math.sin(t*2.9+0.7)+0.6*Math.sin(t*5.2))*amp;
+  }
+  if(hud){
+    var show=(p.health<100&&(wk>0||WND.aid>0))||WND.aid>0;
+    hud.classList.toggle('on',show); hud.classList.toggle('run',WND.aid>0);
+    if(show){ $('aidTxt').textContent=WND.aid>0?'APPLYING FIRST AID':('FIRST AID  x'+WND.kits+'  -  PRESS 4'); if(WND.aid>0) $('aidBar').style.width=Math.round((1-WND.aid/WND.dur)*100)+'%'; }
+  }
 }
 function achShow(){
   var L=$('achList'); L.textContent=''; var got=0;
@@ -5638,7 +5709,7 @@ function hurt(n){
   if(state!=='play') return;
   if(p.air){ damageJet(n*0.7); return; }
   if(p.inVeh&&!GN.on&&!MG.seat){ damageVehicle(n*0.8); return; }
-  MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; try{ stumble(hitDir.x,hitDir.z,Math.min(1,0.25+n/60)); addStress(0.25); }catch(e){} var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7); try{ radio('hit',6); }catch(e){}
+  MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; try{ stumble(hitDir.x,hitDir.z,Math.min(1,0.25+n/60)); addStress(0.25); }catch(e){} var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); rumble(220,0.9,0.7); try{ radio('hit',6); }catch(e){} if(WND.aid>0) aidCancel('FIRST AID INTERRUPTED');
   if(hitDir.x||hitDir.z){ var ax=-hitDir.x, az=-hitDir.z, al=Math.hypot(ax,az)||1; ax/=al; az/=al; var sn0=Math.sin(p.yaw), cs0=Math.cos(p.yaw); dmgAng=Math.atan2(ax*cs0-az*sn0,-ax*sn0-az*cs0)*57.2958; dmgT=0.9; dmgSh=shAbs&&p.shield>=n; }
   if(p.health-Math.max(0,n-p.shield-(p.ov||0))<85||n>=18){ try{ bloodSplat((hitDir.x||hitDir.z)?dmgAng:Math.random()*360,n); }catch(e){} }
   if(n>=40) earRing(n/90);
@@ -6049,11 +6120,11 @@ function updatePlayer(dt){
   moveFrac=len; MA.mx=mx;
   var sprintHeld=!!(keys.ShiftLeft||keys.ShiftRight||ctrl.sprintTouch||gpSprint);
   CR+=((((keys.KeyC||ctrl.crouchTouch)&&!p.inVeh)?1:0)-CR)*Math.min(1,dt*12);
-  MA.want=sprintHeld&&mz>0.3&&!zoomed&&!ctrl.fire&&p.onGround&&CR<0.3;
+  MA.want=sprintHeld&&mz>0.3&&!zoomed&&!ctrl.fire&&p.onGround&&CR<0.3&&woundK()<0.6&&WND.aid<=0;
   if(ctrl.sprintTouch&&len<0.12){ MA.sprIdle=(MA.sprIdle||0)+dt; if(MA.sprIdle>0.2){ ctrl.sprintTouch=false; $('bSprint').classList.remove('on'); } } else MA.sprIdle=0;
   var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(WSPD[weapons[cur].id]||(/FUEL ROD/.test(weapons[cur].name||'')?0.84:1))*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1)*(TM.on&&TM.ship?1.5:1);
   try{ footTick(dt,len*sp); }catch(e){}
-  sp*=1-0.45*CR;
+  sp*=1-0.45*CR; sp*=1-0.3*woundK(); if(WND.aid>0) sp*=0.5;
   if(TM.on&&TM.wire&&!p.inVeh){
     var wn=false, wi2, W2;
     for(wi2=0;wi2<TM.wire.length;wi2++){ W2=TM.wire[wi2]; if(Math.abs(p.x-W2.x)<1.0&&Math.abs(p.z-W2.z)<1.0&&p.y<W2.y+1.2){ wn=true; break; } }
@@ -7485,7 +7556,7 @@ function startReload(){
   if(w.id==='mmg'){ if(state==='play'&&!p.inVeh&&!w.mounted) showToast('NO RELOAD'); return; }
   if(w.laser){ if(state==='play'&&!p.inVeh) showToast('NO RELOAD  CHARGE '+Math.round(w.mag)+'%'); return; }
   if(dwOn(w)){ if(state==='play'&&!p.inVeh&&swapT<=0&&meleeT<=0&&throwT<=0){ var q=(dwG[1].mag/dwW(1).magSize<dwG[0].mag/dwW(0).magSize)?1:0; if(!dwReload(q)) dwReload(1-q); } return; }
-  if(state!=='play'||p.inVeh||reloading||swapT>0||meleeT>0||throwT>0||w.mag>=w.magSize||w.reserve<=0) return;
+  if(state!=='play'||p.inVeh||reloading||swapT>0||meleeT>0||throwT>0||WND.aid>0||w.mag>=w.magSize||w.reserve<=0) return;
   if(zoomed&&(w.scope||w.lscope)) zoomOff();
   burstLeft=0; reloading=true; reloadT=0; reloadEmpty=(w.mag===0); try{ radio('reload',14); }catch(e){}
   MA.rv=[(Math.random()-0.5)*0.22,(Math.random()-0.5)*0.2,(Math.random()-0.5)*0.03];   /* every reload is handled a little differently */
@@ -8531,7 +8602,7 @@ function updateBlast(dt){
 
 /* throwing */
 function throwGrenade(kind){
-  if(state!=='play'||p.inVeh||throwT>0||meleeT>0||swapT>0) return;
+  if(state!=='play'||p.inVeh||throwT>0||meleeT>0||swapT>0||WND.aid>0) return;
   if(gren[kind]<=0){ showToast('NO '+GDEF[kind].n+' GRENADES'); sfx.click(); return; }
   if(grens.length>=10) return;
   throwKind=kind; throwT=THROW_DUR; throwDone=false; try{ radio('frag',8); }catch(e){}
@@ -10279,6 +10350,7 @@ window.addEventListener('keydown',function(ev){
   else if(ev.code==='KeyR') startReload();
   else if(ev.code==='KeyI'){ if(!ev.repeat) weaponInspect(); }
   else if(ev.code==='KeyU'){ if(!ev.repeat) checkMag(); }
+  else if(ev.code==='Digit4'){ if(!ev.repeat) aidStart(); }
   else if(ev.code==='KeyT'){ if(!ev.repeat) dwToggle(); }
   else if(ev.code==='KeyQ') swapWeapon();
   else if(ev.code==='Digit1') swapWeapon(0);
@@ -10360,6 +10432,7 @@ function frame(now){
   }
   if(shakeT>0&&state==='play'){ shakeT-=dt; var sk=shakeAmp*Math.max(0,shakeT/0.45); camera.rotation.x+=(Math.random()-0.5)*sk; camera.rotation.z=(Math.random()-0.5)*sk*1.5; if(shakeT<=0) shakeAmp=0; }
   else if(camera.rotation.z!==0) camera.rotation.z=0;
+  try{ woundTick(dt); }catch(e){}
   updateFx(dt); if(TM.on){ tmSnow(dt); tmDoors(dt); }
   if(lzLoop&&(state!=='play'||!LZ.on)){ laserLoopStop(); LZ.on=false; }
   laserBeamStep(dt); nukeStep(dt);
@@ -13747,6 +13820,7 @@ window.addEventListener('keydown',function(ev){
   if(ev.code==='KeyK'&&!ev.repeat){ if(TB.open) tabletClose(); else if(state==='play'){ TB.tab='ops'; tabletOpen(); } }
   else if(ev.code==='Escape'&&TB.open){ tabletClose(); }
 });
+$('bAid').addEventListener('pointerdown',function(ev){ ev.preventDefault(); aidStart(); });
 $('pRadio').addEventListener('click',function(){ RAD.on=!RAD.on; try{ localStorage.setItem('halo-radio',RAD.on?'1':'0'); }catch(e){} $('pRadio').textContent='RADIO CHATTER: '+(RAD.on?'ON':'OFF'); });
 $('pRadio').textContent='RADIO CHATTER: '+(RAD.on?'ON':'OFF');
 
