@@ -13525,6 +13525,13 @@ function cuPrevBuild(){
   [['R',-1],['L',1]].forEach(function(sd){ var s2=sd[0], sg=sd[1], dir=vNorm([sg*0.12,-1,0.05]), pts=['s'+s2,'e'+s2,'w'+s2,'f'+s2]; for(var k=1;k<4;k++){ var len=Math.hypot.apply(null,vSub(R[pts[k]],R[pts[k-1]])); SS[pts[k]]=[SS[pts[k-1]][0]+dir[0]*len,SS[pts[k-1]][1]+dir[1]*len,SS[pts[k-1]][2]+dir[2]*len]; } });
   var minS=1e9; CH_NAMES.forEach(function(n){ if(SS[n][1]<minS) minS=SS[n][1]; });
   CU.rig={built:built,R:R,S:SS,minY:minS};
+  try{   /* a rifle for the weapon emotes, held the same way the multiplayer avatars hold theirs */
+    var hr0=HREG; HREG=false; var gun=buildAR(); HREG=hr0;
+    if(gun.userData.leftHand) gun.userData.leftHand.visible=false; if(gun.userData.rightHand) gun.userData.rightHand.visible=false;
+    var hs0=(CHIEF.H||2.12)/2.12, pv=new THREE.Group(), wr=new THREE.Group();
+    pv.position.set(-0.12*CH_SCALE,1.42*hs0*CH_SCALE,0.05*CH_SCALE); pv.scale.setScalar(CH_SCALE); wr.rotation.y=Math.PI; wr.position.set(-0.1,0.06,0.42); wr.add(gun); pv.add(wr); pv.visible=false; built.root.add(pv);
+    CU.rig.pv=pv; CU.rig.wr=wr;
+  }catch(e){}
   var wrap=new THREE.Group(); built.root.position.y=-minY; wrap.add(built.root); CU.root=wrap; CU.sc.add(wrap);
   var h=(maxY-minY)*1.12; CU.h=h; CU.rebuild=false;
 }
@@ -13536,7 +13543,7 @@ function cuPrevFrame(){
       if(CU.w!==w||CU.h2!==h){ CU.w=w; CU.h2=h; CU.r.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); CU.r.setSize(w,h,false); CU.cam.aspect=w/h; CU.cam.updateProjectionMatrix(); }
       if(CU.rebuild||!CU.root) cuPrevBuild();
       if(CU.drag===null) CU.spin+=0.012;
-      if(CU.emo&&CU.rig){ var et=(performance.now()-CU.emo.t0)/1000; if(et>5){ CU.emo=null; CU.rebuild=true; } else{ CU.rig.built.root.position.y=0; try{ poseEmote(CU.rig,CU.emo.k,et,false); }catch(e){ CU.emo=null; CU.rebuild=true; } } }
+      if(CU.emo&&CU.rig){ var et=(performance.now()-CU.emo.t0)/1000; if(et>5){ CU.emo=null; CU.rebuild=true; } else{ CU.rig.built.root.position.y=0; if(CU.rig.pv) CU.rig.pv.visible=!!emoOk(CU.emo.k).w; try{ poseEmote(CU.rig,CU.emo.k,et,false); }catch(e){ CU.emo=null; CU.rebuild=true; } } }
       CU.root.rotation.y=CU.spin;
       var H=CU.h, dist=Math.max(H/2/Math.tan(CU.cam.fov*Math.PI/360),H/2/Math.tan(CU.cam.fov*Math.PI/360)/CU.cam.aspect*0.55)*1.05;
       CU.cam.position.set(0,H*0.5,dist); CU.cam.lookAt(0,H*0.5,0);
