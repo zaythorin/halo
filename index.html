@@ -5182,7 +5182,8 @@ function dmgState(dt){
 
 /* ---------- supply crates: weapons are no longer free at the start. A crate drops now and then with one weapon in it, marked by a light beam and on the minimap ---------- */
 var CRATES={list:[],t:20};
-function crateMode(){ return !TRN.on&&!(TM&&TM.sky); }
+var CRATES_ON=false;   /* supply crates are switched off: weapons are back on the racks (set true to bring the crates back instead) */
+function crateMode(){ return CRATES_ON&&!TRN.on&&!(TM&&TM.sky); }
 var CRATE_POOL=[[3,1],[2,2],[7,3],[19,3],[4,3],[6,3],[15,2],[12,2],[13,1],[14,2],[9,1],[8,1],[16,1],[18,2]];
 function crateClear(){ CRATES.list.forEach(function(c){ try{ scene.remove(c.g); if(c.pk){ c.pk.taken=true; c.pk.rt=-1; c.pk.g.visible=false; } }catch(e){} }); CRATES.list=[]; CRATES.t=18; }
 function crateSpawn(x,z,wi){
