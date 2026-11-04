@@ -9626,6 +9626,7 @@ function startGame0(){
   devApplyNuke();
   if(mp.on) CAMP.on=false;
   if(CAMP.on) campSetup(); else campClear();
+  if(!FLY.on&&!CUT.on) cinStart();
 }
 /* ---------- death: the player's Spartan model as a ragdoll, seen from a third-person camera ---------- */
 var hitDir={x:0,z:0}, rag=null, deathT=0, deathCamA=0, deathCamD=4.2, chiefTexCache=null, chiefGeoCache={};
@@ -10537,6 +10538,7 @@ function frame(now){
   }
   if(FLY.on&&state==='play'){ flyFrame(dt); renderer.render(scene,camera); return; }
   if(CUT.on&&state==='play'){ cutFrame(dt); renderer.render(scene,camera); return; }
+  if(CIN.on&&state==='play'){ cinFrame(dt); renderer.render(scene,camera); return; }
   if(state==='play'){
     aimFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
     updateWeapon(dt); updateThrow(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
@@ -11899,6 +11901,98 @@ function cutSkip(){
 }
 /* ---------- match intro: a fly-through of the arena over both bases that lands on your spawn (Snowbound opens on a storm shot, lightning striking the enemy tower) ---------- */
 var FLY={on:false,t:0,D:9,el:[],cv:[],pc:null,tc:null,strike:null,hit:0};
+/* ---------- cinematic reveal: letterboxed third-person shots of your own Spartan, a title card, then a smooth cut into first person ---------- */
+var CIN={on:false,t:0,D:7.6,av:null,el:[],cv:[],fov:62,au:null};
+function cinDiv(css){ var e=document.createElement('div'); e.style.cssText=css; document.body.appendChild(e); CIN.el.push(e); return e; }
+function cinTitle(){
+  if(CAMP.on&&CAMP_M[CAMP.m]) return [CAMP_M[CAMP.m].n,CAMP_M[CAMP.m].sub||'CAMPAIGN'];
+  var map=TM.rcb?'RECON':TM.snb?'SNOWBOUND':TM.isl?'SILENT CARTOGRAPHER':TM.mom?'NEW MOMBASA':TM.ship?'COVENANT SHIP':TM.sky?'SKYBOUND':'WARZONE';
+  var mode=!mp.on?'SURVIVAL':mp.ctf?'CAPTURE THE FLAG':mp.koth?'KING OF THE HILL':mp.mode==='dm'?'TEAM SLAYER':'CO-OP';
+  return [map,mode];
+}
+function cinCast(a,b,t){ return a+(b-a)*t; }
+function cinSmooth(t){ t=Math.max(0,Math.min(1,t)); return t*t*(3-2*t); }
+function cinStart(){
+  if(CIN.on||FLY.on||CUT.on||TRN.on||state!=='play'||p.inVeh||p.air) return;
+  try{
+    var wi=(slots[sel]===17?8:slots[sel])|0, av=podAvatar(curChar,armCode(),true,mp.team,wi);
+    av.visible=true; scene.add(av); CIN.av=av; CIN.on=true; CIN.t=0; CIN.fov=camera.fov;
+    CIN.p={x:p.x,y:p.y,z:p.z,yaw:p.yaw,pit:p.pitch||0};
+    CIN.cv=camera.children.map(function(c){ var v=c.visible; c.visible=false; return v; });
+    $('ui').hidden=true; try{ $('mpHud').hidden=true; }catch(e){}
+    mp.inv=tAcc+CIN.D+3;
+    var tt=cinTitle();
+    CIN.top=cinDiv('position:fixed;left:0;right:0;top:0;height:0;background:#000;z-index:9;pointer-events:none');
+    CIN.bot=cinDiv('position:fixed;left:0;right:0;bottom:0;height:0;background:#000;z-index:9;pointer-events:none');
+    CIN.black=cinDiv('position:fixed;inset:0;background:#000;z-index:8;pointer-events:none;opacity:1');
+    cinDiv('position:fixed;inset:0;z-index:7;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.6) 100%),linear-gradient(180deg,rgba(20,60,80,.12),rgba(80,40,10,.1));mix-blend-mode:multiply');
+    CIN.card=cinDiv('position:fixed;left:clamp(24px,7vw,110px);bottom:19vh;z-index:10;pointer-events:none;opacity:0;transition:opacity .9s;color:#fff;font-family:var(--font-ui,sans-serif)');
+    CIN.card.innerHTML='<div style="font:700 11px var(--font-ui,sans-serif);letter-spacing:.42em;color:#6fd3ff;margin-bottom:8px">HALO WARZONE ALPHA</div><div id="cinT" style="font:700 clamp(26px,5.4vw,58px) var(--font-ui,sans-serif);letter-spacing:.16em;line-height:1.05;text-shadow:0 2px 18px rgba(0,0,0,.7)"></div><div style="height:2px;width:min(280px,40vw);background:#6fd3ff;margin:12px 0 10px;box-shadow:0 0 10px #6fd3ff"></div><div id="cinS" style="font:600 clamp(11px,1.6vw,15px) var(--font-ui,sans-serif);letter-spacing:.3em;color:#d6e6f5"></div>';
+    CIN.card.querySelector('#cinT').textContent=tt[0]; CIN.card.querySelector('#cinS').textContent=String(tt[1]).toUpperCase()+'  •  '+(myName()||'SPARTAN').toUpperCase();
+    cinDiv('position:fixed;right:14px;bottom:calc(11vh + 8px);z-index:10;pointer-events:none;font:700 11px monospace;letter-spacing:.14em;color:rgba(255,255,255,.55)').textContent='PRESS ANY KEY OR TAP TO SKIP';
+    ['keydown','pointerdown','touchstart'].forEach(function(n){ window.addEventListener(n,cinSkip,true); });
+    if(ac){ try{ tone(55,110,2.4,'sawtooth',0.1); noise(2.2,0.05,'lowpass',200,1400); }catch(e){} }
+  }catch(e){ cinEnd(true); }
+}
+function cinSkip(){ if(CIN.on&&CIN.t>0.5&&CIN.t<CIN.D-0.9) CIN.t=CIN.D-0.9; }
+function cinCam(pos,tg,fov){
+  /* keep the camera out of walls: pull it in along the line from the subject */
+  var dx=pos[0]-tg[0], dy=pos[1]-tg[1], dz=pos[2]-tg[2], L=Math.hypot(dx,dy,dz)||1;
+  try{ ray.set(new V3(tg[0],tg[1],tg[2]),new V3(dx/L,dy/L,dz/L)); ray.far=L; var hs=ray.intersectObjects(coverMeshes,false); if(hs.length&&hs[0].distance<L){ var k=Math.max(0.8,hs[0].distance-0.35)/L; pos=[tg[0]+dx*k,tg[1]+dy*k,tg[2]+dz*k]; } }catch(e){}
+  var gy=groundH(pos[0],pos[2])+0.35; if(pos[1]<gy) pos[1]=gy;
+  camera.position.set(pos[0],pos[1],pos[2]); camera.lookAt(tg[0],tg[1],tg[2]); camera.rotation.z=0;
+  if(Math.abs(camera.fov-fov)>0.05){ camera.fov=fov; camera.updateProjectionMatrix(); }
+}
+function cinFrame(dt){
+  var t=(CIN.t+=dt), P=CIN.p, av=CIN.av, D=CIN.D, yaw=P.yaw, fx=-Math.sin(yaw), fz=-Math.cos(yaw), rx=Math.cos(yaw), rz=-Math.sin(yaw);
+  lookDX=0; lookDY=0; ctrl.jump=false; ctrl.fire=false;
+  var fy=P.y, tgt, pos, fov, hero=1.55*(av.userData.hs||1);
+  /* the Spartan stands ready, breathing, head turning a touch */
+  var au=av.userData; au.pit=0.04*Math.sin(t*0.9); au.kick=0; au.rl=0; au.air=0; au.mk=0; au.ph=0;
+  try{ au.pv.rotation.x=-au.pit*0.9; au.wr.position.set(-0.1,-0.12,0.42); }catch(e){}
+  poseAvatar(av,0,0);
+  av.position.set(P.x,fy,P.z); av.rotation.set(0,yaw+Math.PI,0);
+  var base=[P.x,fy,P.z];
+  if(t<2.6){               /* shot 1: low-angle hero, slowly rising, long lens */
+    var u=t/2.6; var e=cinSmooth(u);
+    pos=[base[0]+fx*cinCast(3.0,2.5,u)+rx*cinCast(1.1,0.5,e), fy+cinCast(0.35,1.1,e), base[2]+fz*cinCast(3.0,2.5,u)+rz*cinCast(1.1,0.5,e)];
+    tgt=[base[0],fy+cinCast(1.25,1.5,e),base[2]]; fov=cinCast(34,30,u);
+  } else if(t<5.1){        /* shot 2: orbit from the front round to the side */
+    var u2=(t-2.6)/2.5, a=cinCast(0.45,2.55,cinSmooth(u2)), R=cinCast(3.4,3.0,u2);
+    var ox=Math.sin(a)*R, oz=Math.cos(a)*R;
+    pos=[base[0]+fx*oz+rx*ox, fy+cinCast(1.1,1.7,u2), base[2]+fz*oz+rz*ox];
+    tgt=[base[0],fy+hero*0.95,base[2]]; fov=40;
+  } else if(t<D-0.9){      /* shot 3: over the shoulder, pushing in on the arena ahead */
+    var u3=(t-5.1)/(D-0.9-5.1), e3=cinSmooth(u3);
+    pos=[base[0]-fx*cinCast(3.0,1.7,e3)+rx*cinCast(0.9,0.55,e3), fy+cinCast(1.9,1.8,e3), base[2]-fz*cinCast(3.0,1.7,e3)+rz*cinCast(0.9,0.55,e3)];
+    tgt=[base[0]+fx*14,fy+1.5,base[2]+fz*14]; fov=cinCast(48,60,e3);
+  } else {                 /* hand-off: swing into your own eyes */
+    var u4=cinSmooth((t-(D-0.9))/0.9);
+    var s3=[base[0]-fx*1.7+rx*0.55, fy+1.8, base[2]-fz*1.7+rz*0.55], eyeP=[P.x,fy+EYE,P.z];
+    pos=[cinCast(s3[0],eyeP[0],u4),cinCast(s3[1],eyeP[1],u4),cinCast(s3[2],eyeP[2],u4)];
+    var cp=Math.cos(P.pit), tg0=[base[0]+fx*14,fy+1.5,base[2]+fz*14], tg1=[eyeP[0]+fx*cp*10,eyeP[1]+Math.sin(P.pit)*10,eyeP[2]+fz*cp*10];
+    tgt=[cinCast(tg0[0],tg1[0],u4),cinCast(tg0[1],tg1[1],u4),cinCast(tg0[2],tg1[2],u4)]; fov=cinCast(60,CIN.fov,u4);
+    av.visible=u4<0.55;
+  }
+  cinCam(pos,tgt,fov);
+  /* bars, fade in, title card */
+  var bars=Math.min(1,t/0.9)*(t>D-0.5?Math.max(0,(D-t)/0.5):1)*11;
+  CIN.top.style.height=bars+'vh'; CIN.bot.style.height=bars+'vh';
+  CIN.black.style.opacity=t<0.8?String(1-t/0.8):t>D-0.35?String(Math.max(0,1-(D-t)/0.35)*0):'0';
+  CIN.card.style.opacity=(t>1.0&&t<4.6)?'1':'0';
+  if(t>=D){ cinEnd(false); }
+}
+function cinEnd(quiet){
+  if(!CIN.on) return; CIN.on=false;
+  try{ if(CIN.av){ scene.remove(CIN.av); } }catch(e){} CIN.av=null;
+  CIN.el.forEach(function(e){ e.remove(); }); CIN.el=[];
+  camera.children.forEach(function(c,i){ if(CIN.cv[i]!==undefined) c.visible=CIN.cv[i]; });
+  ['keydown','pointerdown','touchstart'].forEach(function(n){ window.removeEventListener(n,cinSkip,true); });
+  camera.fov=CIN.fov||BASE_FOV; camera.updateProjectionMatrix(); camera.rotation.z=0; camLag=0; MA.roll=0;
+  lookDX=0; lookDY=0; ctrl.fire=false;
+  if(!quiet){ $('ui').hidden=false; try{ $('mpHud').hidden=false; }catch(e){} mp.inv=tAcc+3; }
+}
+
 function flyDiv(css){ var e=document.createElement('div'); e.style.cssText=css; document.body.appendChild(e); FLY.el.push(e); return e; }
 function flySkip(){ if(FLY.on&&FLY.t>=0.8) FLY.t=Math.max(FLY.t,FLY.D); }
 function flyStart(){
@@ -11959,7 +12053,7 @@ function flyEnd(quiet){
   ['keydown','pointerdown','touchstart'].forEach(function(n){ window.removeEventListener(n,flySkip,true); });
   camera.rotation.z=0; camLag=0; MA.roll=0;
   $('ui').hidden=false; try{ $('mpHud').hidden=false; }catch(e){}
-  if(!quiet){ mp.inv=tAcc+3; if(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm')) cutStart(); }   /* maps with the Pelican drop go straight into it */
+  if(!quiet){ mp.inv=tAcc+3; if(TM.isl||TM.snb||(TM.mom&&mp.mode==='dm')) cutStart(); else cinStart(); }   /* maps with the Pelican drop go straight into it */
 }
 /* kill-cam: after you are killed online you get a replay of your own death from the killer's point of view (the last ~3 seconds), then you respawn */
 function mpRecSample(dt){
@@ -12125,7 +12219,7 @@ function cutEnd(quiet){
   if(TM.rainObj) TM.rainObj.position.y=0;
   scene.fog.near=CUT.fn; scene.fog.far=CUT.ff;
   camera.rotation.z=0; p.pitch=0; camLag=0; MA.roll=0;
-  if(!quiet){ $('ui').hidden=false; try{ $('mpHud').hidden=false; }catch(e){} mp.inv=tAcc+3; }
+  if(!quiet){ $('ui').hidden=false; try{ $('mpHud').hidden=false; }catch(e){} mp.inv=tAcc+3; cinStart(); }
 }
 /* storm sky: two drifting layers of heavy dark cloud, lit up by every flash of lightning */
 function stormCloudTex(W,H,oct,c0,c1,a0,a1,alphaMode){
@@ -12376,7 +12470,7 @@ function tmExit(){ TM.oob=null; var ow=document.getElementById('oobW'); if(ow) o
   mgClear();
   covClear();
   if(FLY.on) flyEnd(true);
-  if(CUT.on) cutEnd(true); CUT.prep=null;
+  if(CUT.on) cutEnd(true); CUT.prep=null; if(CIN.on) cinEnd(true);
   CTF.on=false; KH.on=false; TM.wire=null; EM_STEP=4.4; if(TM.sky){ if(TM.arO) ARENA_R=TM.arO; jet.cf=null; jet.maxHp=450; jetGun.dmg=13; try{ jetModel('hornet'); }catch(e){} TM.spires=null; } TM.sky=false; TM.ship=false; TM.mom=false; TM.isl=false; TM.snb=false; TM.rcb=false; TM.storm=false; TM.clouds=null; TM.water=null; bgScenery.forEach(function(m){ m.visible=true; }); if(skyDome) skyDome.visible=true; trRainStop(); TM.rain=null; TM.lt=null;
   if(stars){ stars.visible=night>0.05; stars.material.opacity=Math.min(1,night*1.2); }
   teamPaint(fpMaterials(),-1); TP.rigId=null;
