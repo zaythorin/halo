@@ -1,5 +1,46 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}/* bigger HUD on large screens */
 </style></head><body>
+<script>
+(function(){
+  var css='#bootScr{position:fixed;inset:0;z-index:2147483000;background:radial-gradient(ellipse at 50% 38%,#10202c 0,#060b11 62%,#020407 100%);color:#e8f2fb;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-ui,"Rajdhani","Segoe UI",sans-serif);transition:opacity .7s;overflow:hidden}'
+  +'#bootScr.out{opacity:0;pointer-events:none}'
+  +'#bootScr:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px);pointer-events:none}'
+  +'#bootScr .bk{font-size:11px;letter-spacing:.5em;color:#6fd3ff;margin-bottom:10px;text-indent:.5em}'
+  +'#bootScr h1{margin:0;font-weight:700;font-size:clamp(26px,6vw,64px);letter-spacing:.22em;text-indent:.22em;text-transform:uppercase;text-shadow:0 0 28px rgba(111,211,255,.35)}'
+  +'#bootScr .bs{margin-top:8px;font-size:clamp(10px,1.5vw,13px);letter-spacing:.42em;color:#9fb6cc;text-indent:.42em}'
+  +'#bootScr .ring{position:relative;width:clamp(70px,12vh,110px);height:clamp(70px,12vh,110px);margin:clamp(22px,5vh,44px) 0 clamp(18px,4vh,34px)}'
+  +'#bootScr .ring i{position:absolute;inset:0;border:2px solid transparent;border-top-color:#6fd3ff;border-radius:50%;animation:bootSp 1.3s linear infinite}'
+  +'#bootScr .ring i:nth-child(2){inset:12%;border-top-color:transparent;border-bottom-color:rgba(255,255,255,.75);animation-duration:2s;animation-direction:reverse}'
+  +'#bootScr .ring i:nth-child(3){inset:28%;border-top-color:rgba(111,211,255,.5);animation-duration:.9s}'
+  +'#bootScr .bar{width:min(460px,76vw);height:4px;background:rgba(255,255,255,.14);overflow:hidden}'
+  +'#bootScr .bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#2a8fc0,#6fd3ff);box-shadow:0 0 12px #6fd3ff;transition:width .35s ease-out}'
+  +'#bootScr .row{width:min(460px,76vw);display:flex;justify-content:space-between;margin-top:9px;font-size:11px;letter-spacing:.24em;color:#a9bdd2}'
+  +'#bootScr .tip{position:absolute;left:0;right:0;bottom:clamp(24px,8vh,70px);text-align:center;padding:0 24px;font-size:clamp(11px,1.6vw,14px);letter-spacing:.14em;color:#c9d8e8;transition:opacity .4s}'
+  +'#bootScr .tip small{display:block;margin-bottom:6px;font-size:10px;letter-spacing:.4em;color:#6fd3ff}'
+  +'#bootScr .err{margin-top:18px;max-width:min(520px,84vw);text-align:center;color:#ff8a7a;font-size:13px;letter-spacing:.08em;line-height:1.5}'
+  +'@keyframes bootSp{to{transform:rotate(360deg)}}';
+  var st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
+  var TIPS=['Press 4 to use a first-aid kit when you are hurt. You only carry a few.','Supply crates drop weapons across the map. The longer one sits, the better the weapon inside.','When you die you drop your weapons. You respawn with the loadout you picked.','The minimap shows enemy territory in red. Press M to change its zoom.','Hits muffle your hearing. Get into cover and your ears recover.','Distant gunfire arrives late and echoes. Listen to work out how far away a fight is.','Pick your armour shape and colours under Customize. Other players see them online.','Your victory emote plays on the end-of-match podium. Choose it in Customize.','Low health makes you limp and your aim shake. Patch up before the next fight.'];
+  var el=null, tipI=Math.floor(Math.random()*TIPS.length), tipT=0, shown=0;
+  function mk(){
+    if(el&&el.parentNode) return el;
+    el=document.createElement('div'); el.id='bootScr';
+    el.innerHTML='<div class="bk">INITIALISING</div><h1>Halo Warzone</h1><div class="bs">ALPHA</div><div class="ring"><i></i><i></i><i></i></div><div class="bar"><b></b></div><div class="row"><span class="bl">STARTING</span><span class="bp">0%</span></div><div class="tip"><small>FIELD TIP</small><span></span></div>';
+    (document.body||document.documentElement).appendChild(el); tip(); clearInterval(tipT); tipT=setInterval(tip,4200); return el;
+  }
+  function tip(){ if(!el) return; var t=el.querySelector('.tip span'); if(!t) return; var p=t.parentNode; p.style.opacity=0; setTimeout(function(){ t.textContent=TIPS[tipI++%TIPS.length]; p.style.opacity=1; },300); }
+  window.__bootUI={
+    show:function(lbl){ mk(); el.classList.remove('out'); el.style.display='flex'; var b=el.querySelector('.bk'); if(b) b.textContent=lbl||'LOADING'; return el; },
+    set:function(f,lbl){ mk(); f=Math.max(0,Math.min(1,f)); if(f<shown&&lbl!==undefined&&this.reset!==1) f=Math.max(f,0); el.querySelector('b').style.width=(f*100).toFixed(1)+'%'; el.querySelector('.bp').textContent=Math.round(f*100)+'%'; if(lbl) el.querySelector('.bl').textContent=lbl; shown=f; },
+    hide:function(){ if(!el) return; var e=el; e.classList.add('out'); clearInterval(tipT); setTimeout(function(){ if(e.classList.contains('out')) e.style.display='none'; },750); },
+    err:function(msg){ mk(); var d=el.querySelector('.err'); if(!d){ d=document.createElement('div'); d.className='err'; el.insertBefore(d,el.querySelector('.tip')); } d.textContent=msg; el.querySelector('.bk').textContent='LOAD FAILED'; Array.prototype.forEach.call(el.querySelectorAll('.ring i'),function(i){ i.style.animationPlayState='paused'; }); }
+  };
+  var t0=Date.now();
+  window.__boot=function(f,l){ try{ __bootUI.set(f,l); }catch(e){} };
+  window.__bootDone=function(){ var w=Math.max(0,500-(Date.now()-t0)); setTimeout(function(){ try{ __bootUI.set(1,'READY'); setTimeout(function(){ __bootUI.hide(); },250); }catch(e){} },w); };
+  mk(); __bootUI.set(0.02,'LOADING ENGINE');
+})();
+</script>
 <title>Halo Warzone Alpha</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Rajdhani:wght@500;600;700&display=swap">
 <style>
@@ -1077,25 +1118,45 @@ window.addEventListener('error',function(e){ window.__showErr('ERROR: '+e.messag
 window.addEventListener('unhandledrejection',function(e){ window.__showErr('ERROR: '+(e.reason&&e.reason.message||e.reason)); });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(!window.THREE){ try{ __bootUI.err('Could not load the 3D engine (three.js from cdnjs). Check your internet connection, then refresh the page.'); }catch(e){} } else __boot(0.05,'LOADING ENGINE');</script>
 <script src="data/EMIT.js"></script>
+<script>__boot(0.069,'LOADING EFFECTS')</script>
 <script src="data/UTX.js"></script>
+<script>__boot(0.166,'LOADING TEXTURES')</script>
 <script src="data/TREEM.js"></script>
+<script>__boot(0.172,'LOADING FOLIAGE')</script>
 <script src="data/SND_SRC.js"></script>
+<script>__boot(0.217,'LOADING SOUNDS')</script>
 <script src="data/CHIEF.js"></script>
+<script>__boot(0.229,'LOADING SPARTAN')</script>
 <script src="data/MODELS.js"></script>
+<script>__boot(0.347,'LOADING WEAPON MODELS')</script>
 <script src="data/WPN.js"></script>
+<script>__boot(0.399,'LOADING WEAPONS')</script>
 <script src="data/NWM.js"></script>
+<script>__boot(0.495,'LOADING WEAPON MODELS')</script>
 <script src="data/COVM.js"></script>
+<script>__boot(0.598,'LOADING COVENANT ARMS')</script>
 <script src="data/DMRM.js"></script>
+<script>__boot(0.660,'LOADING WEAPON MODELS')</script>
 <script src="data/EMODELS.js"></script>
+<script>__boot(0.713,'LOADING ENEMIES')</script>
 <script src="data/FLOOD.js"></script>
+<script>__boot(0.727,'LOADING ENEMIES')</script>
 <script src="data/CRUISER.js"></script>
+<script>__boot(0.741,'LOADING VEHICLES')</script>
 <script src="data/SPIRIT.js"></script>
+<script>__boot(0.776,'LOADING VEHICLES')</script>
 <script src="data/WHN.js"></script>
+<script>__boot(0.796,'LOADING VEHICLES')</script>
 <script src="data/MGM.js"></script>
+<script>__boot(0.828,'LOADING TURRETS')</script>
 <script src="data/AIR.js"></script>
+<script>__boot(0.873,'LOADING AIRCRAFT')</script>
 <script src="data/CAC.js"></script>
-<script>
+<script>__boot(0.880,'LOADING FOLIAGE')</script>
+<script>try{ __boot(0.92,'BUILDING WORLD'); }catch(e){}
+
 (function(){
 'use strict';
 function $(id){return document.getElementById(id);}
@@ -9591,7 +9652,7 @@ function startTraining(){
   lockMouse();
 }
 /* map models load on demand: only the chosen map's data file is fetched before the match starts */
-var LZ={MIDM:function(){MIDM=__D.MIDM;},VISTM:function(){VISTM=__D.VISTM;},ISLM:function(){ISLM=__D.ISLM;},SNOWM:function(){SNOWM=__D.SNOWM;},RCBM:function(){RCBM=__D.RCBM;},VEHM:function(){VEHM=__D.VEHM;}}, LZ_BUSY=false;
+var LZD={MIDM:function(){MIDM=__D.MIDM;},VISTM:function(){VISTM=__D.VISTM;},ISLM:function(){ISLM=__D.ISLM;},SNOWM:function(){SNOWM=__D.SNOWM;},RCBM:function(){RCBM=__D.RCBM;},VEHM:function(){VEHM=__D.VEHM;}}, LZ_BUSY=false;
 function lzNeeds(){
   var n=[], m=(mp.on&&mp.opt)?mp.opt.map:0;
   if(mp.on){ if(m===1) n.push('RCBM'); else if(m===2) n.push('MIDM'); else if(m===3) n.push('VISTM'); else if(m!==4) n.push('SNOWM'); if(m!==4) n.push('VEHM'); }
@@ -9600,16 +9661,14 @@ function lzNeeds(){
 }
 function lzLoad(list,cb){
   if(!list.length){ cb(); return; }
-  var left=list.length, bad=false, ov=$('lzLoad');
-  if(!ov){ ov=document.createElement('div'); ov.id='lzLoad'; ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#05080cf0;color:#9fe8ff;display:flex;align-items:center;justify-content:center;font:700 18px Orbitron,Segoe UI,sans-serif;letter-spacing:.2em'; document.body.appendChild(ov); }
-  ov.textContent='LOADING MAP DATA\u2026'; ov.hidden=false;
+  var left=list.length, bad=false, tot=list.length, ov=null; try{ __bootUI.show('LOADING MAP'); __bootUI.set(0.04,'DOWNLOADING MAP DATA'); }catch(e){}
   list.forEach(function(k){
     var sc=document.createElement('script'); sc.src='data/'+k+'.js';
-    sc.onload=function(){ try{ LZ[k](); __D['_'+k]=1; }catch(e){ bad=true; } if(--left===0) done(); };
+    sc.onload=function(){ try{ LZD[k](); __D['_'+k]=1; }catch(e){ bad=true; } left--; try{ __bootUI.set(1-left/tot*0.96,'DOWNLOADING MAP DATA'); }catch(e){} if(left===0) done(); };
     sc.onerror=function(){ bad=true; if(--left===0) done(); };
     document.head.appendChild(sc);
   });
-  function done(){ ov.hidden=true; if(bad){ showToast('COULD NOT LOAD MAP DATA - CHECK CONNECTION'); return; } cb(); }
+  function done(){ try{ __bootUI.set(1,'READY'); __bootUI.hide(); }catch(e){} if(bad){ showToast('COULD NOT LOAD MAP DATA - CHECK CONNECTION'); return; } cb(); }
 }
 function startGame(){
   if(TRN.on){ startTraining(); return; }
@@ -14148,6 +14207,7 @@ cuRender();
 placeRover(); applyCamera(0);
 gfxApply(); gfxLabel();
 requestAnimationFrame(frame);
+try{ __bootDone(); }catch(e){}
 })();
 </script>
 
