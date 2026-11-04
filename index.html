@@ -4892,7 +4892,7 @@ function announce(t){
       return;
     }catch(e){}
   }
-  if(!ANN.on||!window.speechSynthesis||!window.SpeechSynthesisUtterance) return;
+  return;   /* robot text-to-speech removed: only the real announcer clips play */
   try{
     var u=new SpeechSynthesisUtterance(String(t).toLowerCase()); u.pitch=0.45; u.rate=0.9; u.volume=0.9;
     if(ANN.voice===undefined){ var vs=speechSynthesis.getVoices()||[]; ANN.voice=null; for(var i=0;i<vs.length;i++){ if(/^en/i.test(vs[i].lang)&&/male|daniel|alex|fred|david|arthur|oliver/i.test(vs[i].name)&&!/female/i.test(vs[i].name)){ ANN.voice=vs[i]; break; } } }
@@ -5059,7 +5059,7 @@ function radio(k,cd){
   try{ noise(0.1,0.14,'bandpass',2600,1700); }catch(e){}
   var e=$('radio'); if(e){ $('radioWho').textContent=who; $('radioTxt').textContent=t; e.classList.add('on'); clearTimeout(RAD.to); RAD.to=setTimeout(function(){ e.classList.remove('on'); try{ noise(0.07,0.1,'bandpass',2200,1500); }catch(x){} },2400); }
   try{
-    if(!window.speechSynthesis||!window.SpeechSynthesisUtterance) return;
+    return;   /* robot text-to-speech removed: radio chatter is text plus a squelch blip */
     var u=new SpeechSynthesisUtterance(t.toLowerCase().replace(/\.\.\./g,', ')); u.pitch=0.62; u.rate=1.18; u.volume=0.8;
     if(RAD.voice===undefined){ var vs=speechSynthesis.getVoices()||[]; RAD.voice=null; for(var i=0;i<vs.length;i++){ if(/^en/i.test(vs[i].lang)&&/male|daniel|alex|fred|david|arthur|oliver/i.test(vs[i].name)&&!/female/i.test(vs[i].name)){ RAD.voice=vs[i]; break; } } }
     if(RAD.voice) u.voice=RAD.voice;
