@@ -14123,11 +14123,20 @@ function cuPrevFrame(){
     if(w>0&&h>0){
       if(CU.w!==w||CU.h2!==h){ CU.w=w; CU.h2=h; CU.r.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); CU.r.setSize(w,h,false); CU.cam.aspect=w/h; CU.cam.updateProjectionMatrix(); }
       if(CU.rebuild||!CU.root) cuPrevBuild();
-      if(CU.drag===null) CU.spin+=0.012;
+      var nowT=performance.now(), dtc=Math.min(0.1,(nowT-(CU.lt||nowT))/1000); CU.lt=nowT;
+      if(CU.drag!==null) CU.dragT=nowT;
       if(CU.emo&&CU.rig){ var et=(performance.now()-CU.emo.t0)/1000; if(et>5){ CU.emo=null; CU.rebuild=true; } else{ CU.rig.built.root.position.y=0; if(CU.rig.pv) CU.rig.pv.visible=!!emoOk(CU.emo.k).w; try{ poseEmote(CU.rig,CU.emo.k,et,false); }catch(e){ CU.emo=null; CU.rebuild=true; } } }
-      CU.root.rotation.y=CU.spin;
-      var H=CU.h, dist=Math.max(H/2/Math.tan(CU.cam.fov*Math.PI/360),H/2/Math.tan(CU.cam.fov*Math.PI/360)/CU.cam.aspect*0.55)*1.05;
-      CU.cam.position.set(0,H*0.5,dist); CU.cam.lookAt(0,H*0.5,0);
+      if(!CU.emo&&CU.rig){ try{ CU.rig.built.root.position.y=0; if(CU.rig.pv) CU.rig.pv.visible=true; poseEmote(CU.rig,'high',1+nowT/1000,true); }catch(e){} }   /* the signature ready pose, rifle up */
+      /* camera: the whole Spartan, or a close-up of the part being edited (eased as you switch) */
+      var F={helmet:[0.9,0.3,0.35],visor:[0.9,0.2,0.0],chest:[0.7,0.46,0.5],arms:[0.68,0.5,0.95],gloves:[0.5,0.38,0.75],legs:[0.27,0.55,0.4]}, fc=(CU.tab==='pers')?[0.5,1.12,0.45]:(F[CU.slot]||[0.5,1.12,0.45]);
+      var Hc=CU.h/1.12, ke=1-Math.exp(-dtc*5);
+      if(CU.fy===undefined){ CU.fy=fc[0]; CU.fs=fc[1]; CU.ft=fc[2]; }
+      CU.fy+=(fc[0]-CU.fy)*ke; CU.fs+=(fc[1]-CU.fs)*ke; CU.ft+=(fc[2]-CU.ft)*ke;
+      if(CU.drag===null&&(nowT-(CU.dragT||0))>2500){ var dd=CU.spin-CU.ft; dd-=Math.round(dd/6.2832)*6.2832; CU.spin=CU.ft+dd; CU.spin+=(CU.ft-CU.spin)*Math.min(1,dtc*1.6); }
+      CU.root.rotation.y=CU.spin+(CU.drag===null?0.06*Math.sin(nowT/1400):0);
+      var tn=Math.tan(CU.cam.fov*Math.PI/360), vh=CU.fs*Hc, dist=Math.max(0.9,vh/2/tn, (vh*0.5)/tn/Math.max(0.5,CU.cam.aspect)*0.9);
+      var fyW=CU.fy*Hc;
+      CU.cam.position.set(0,fyW,dist); CU.cam.lookAt(0,fyW,0);
       CU.r.render(CU.sc,CU.cam);
     }
   }
