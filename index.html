@@ -692,6 +692,10 @@ html,body{overflow-x:hidden}
 #minimap{position:absolute;right:calc(18px + var(--sr));top:calc(92px + var(--st));width:190px;height:190px;border-radius:50%;pointer-events:none;filter:drop-shadow(0 0 6px rgba(0,0,0,.5))}
 @media (pointer:coarse){#minimap{width:118px;height:118px;top:calc(84px + var(--st))}}
 @media (min-width:900px) and (pointer:fine){#minimap{width:220px;height:220px}}
+
+.cuStT{font:700 12px var(--font-ui);letter-spacing:.2em;color:#cfe0f2;margin:12px 0 6px}
+.cuSt{grid-template-columns:repeat(2,1fr)}
+.cuSt .cuS{padding-left:12px}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
@@ -754,7 +758,7 @@ html,body{overflow-x:hidden}
       <div class="hmH">SPECIES AND CHARACTER</div>
       <div class="cuCard"><div class="cuChars" id="cuChars"></div><p class="frMsg" id="cuMsg"></p></div>
       <div class="hmH">ARMOUR</div>
-      <div class="cuCard"><div class="cuSlots" id="cuSlots"></div><div class="cuSw" id="cuSw"></div><div class="cuRow"><button type="button" class="frBtn dim" id="cuReset">RESET ALL</button></div><p class="cuNote">Pick a part, then a colour. Parts recolour the green armour; other armour colours (like the Arbiter's) stay as they are.</p></div>
+      <div class="cuCard"><div class="cuSlots" id="cuSlots"></div><div class="cuSw" id="cuSw"></div><div class="cuStT" id="cuStT">STYLE</div><div class="cuSw cuSt" id="cuSt"></div><div class="cuRow"><button type="button" class="frBtn dim" id="cuReset">RESET ALL</button></div><p class="cuNote">Pick a part, then a colour. Parts recolour the green armour; other armour colours (like the Arbiter's) stay as they are.</p></div>
     </div>
     <div id="cuPrevWrap"><canvas id="cuPrev"></canvas><div class="cuHint">DRAG TO TURN</div></div>
   </div>
@@ -2120,15 +2124,24 @@ CHIEF.id='chief'; CHIEF.eye=1; CHIEF.fps=1; CHIEF.rv=1; CHIEF.H=2.12; CHIEF.wfix
 var ARM_SLOTS=[{k:'helmet',n:'HELMET'},{k:'visor',n:'VISOR'},{k:'chest',n:'CHEST'},{k:'arms',n:'ARMS'},{k:'gloves',n:'GLOVES'},{k:'legs',n:'LEGS'}];
 var ARM_SET=[{k:'',n:'ORIGINAL',c:'#5b8c3a'},{k:'crimson',n:'CRIMSON',h:0.0,c:'#d23a32'},{k:'orange',n:'ORANGE',h:0.07,c:'#e8842a'},{k:'gold',n:'GOLD',h:0.12,c:'#d9b13a'},{k:'cobalt',n:'COBALT',h:0.61,c:'#2f6fe0'},{k:'violet',n:'VIOLET',h:0.76,c:'#8a4fd6'},{k:'rose',n:'ROSE',h:0.93,c:'#d6508a'},{k:'steel',n:'STEEL',h:0.6,sat:0.1,lm:1.2,c:'#8d99a8'},{k:'shadow',n:'SHADOW',h:0.6,sat:0.06,lm:0.4,c:'#2a2f36'}];
 var ARM_VIS=[{k:'',n:'ORIGINAL',c:'#d9a93a'},{k:'v_blue',n:'BLUE',h:0.58,any:1,c:'#3d7de8'},{k:'v_red',n:'RED',h:0.0,any:1,c:'#e0402e'},{k:'v_green',n:'GREEN',h:0.35,any:1,c:'#3fd070'},{k:'v_violet',n:'VIOLET',h:0.77,any:1,c:'#9a58e0'},{k:'v_silver',n:'SILVER',h:0.6,sat:0.08,lm:1.25,any:1,c:'#b9c3cf'},{k:'v_smoke',n:'SMOKE',h:0.6,sat:0.05,lm:0.45,any:1,c:'#30353c'}];
-var ARM={s:{helmet:'',visor:'',chest:'',arms:'',gloves:'',legs:''}}, armTex={}, armMatC={}, AV_CUSTOM=false;
+var ARM_STY={
+  helmet:[{k:'',n:'STANDARD'},{k:'dome',n:'BIG DOME'},{k:'slim',n:'SLIM'},{k:'crest',n:'CREST'},{k:'twin',n:'TWIN CREST'}],
+  chest:[{k:'',n:'STANDARD'},{k:'bulk',n:'BULKY'},{k:'slim',n:'SLIM'},{k:'broad',n:'BROAD'}],
+  arms:[{k:'',n:'STANDARD'},{k:'pauld',n:'PAULDRONS'},{k:'bigp',n:'BIG PAULDRONS'},{k:'thick',n:'THICK'},{k:'thin',n:'THIN'}],
+  gloves:[{k:'',n:'STANDARD'},{k:'big',n:'BIG GAUNTLETS'},{k:'small',n:'SMALL'}],
+  legs:[{k:'',n:'STANDARD'},{k:'bulk',n:'BULKY'},{k:'slim',n:'SLIM'}]
+};
+var ARM={s:{helmet:'',visor:'',chest:'',arms:'',gloves:'',legs:''},st:{helmet:'',chest:'',arms:'',gloves:'',legs:''}}, armTex={}, armMatC={}, AV_CUSTOM=false;
+try{ var _st=JSON.parse(localStorage.getItem('halo-arm3')||'null'); if(_st) Object.keys(ARM.st).forEach(function(k){ ARM.st[k]=_st[k]||''; }); }catch(e){}
+function armStyleOk(slot,k){ var L=ARM_STY[slot]; if(!L||!k) return ''; for(var i=0;i<L.length;i++) if(L[i].k===k) return k; return ''; }
 try{
   var _a2=JSON.parse(localStorage.getItem('halo-arm2')||'null');
   if(_a2){ ARM_SLOTS.forEach(function(sl){ ARM.s[sl.k]=_a2[sl.k]||''; }); }
   else{ var _ak=localStorage.getItem('halo-arm')||''; if(_ak) ['helmet','chest','arms','gloves','legs'].forEach(function(k){ ARM.s[k]=_ak; }); }
 }catch(e){}
 /* custom armour sent to other players: the six colour names in a short string ('' when nothing is changed) */
-function armCode(){ var a=ARM_SLOTS.map(function(sl){ return ARM.s[sl.k]||''; }); return a.join('')?a.join(','):''; }
-function armFromCode(c){ var o={}, a=String(c||'').slice(0,120).split(','); ARM_SLOTS.forEach(function(sl,i){ var k=a[i]||''; o[sl.k]=armPreset(sl.k,k)?k:''; }); return o; }
+function armCode(){ var a=ARM_SLOTS.map(function(sl){ return ARM.s[sl.k]||''; }).join(','), b=Object.keys(ARM_STY).map(function(k){ return ARM.st[k]||''; }).join(','); return (a.replace(/,/g,'')||b.replace(/,/g,''))?a+'~'+b:''; }
+function armFromCode(c){ var o={}, parts=String(c||'').slice(0,200).split('~'), a=(parts[0]||'').split(','), b=(parts[1]||'').split(','), st={}; ARM_SLOTS.forEach(function(sl,i){ var k=a[i]||''; o[sl.k]=armPreset(sl.k,k)?k:''; }); Object.keys(ARM_STY).forEach(function(k,i){ st[k]=armStyleOk(k,b[i]||''); }); return {s:o,st:st}; }
 function armPreset(slot,k){ var L=slot==='visor'?ARM_VIS:ARM_SET, o=null; if(k) L.forEach(function(a){ if(a.k===k) o=a; }); return o; }
 function armSlotOf(part,mi){
   if(part==='head') return mi===1?'visor':'helmet';
@@ -9246,6 +9259,43 @@ function chiefTexture(i){
   return C[ck];
 }
 var CH_SCALE=1.22;
+
+/* armour shapes: the chosen style of each part, done by resizing the part's meshes or adding pieces (crests, pauldrons) */
+function armShapes(groups,mats){
+  var S=ARM.st, R=CHIEF.rest;
+  function kids(n){ var g=groups[n]; return g?g.children.slice():[]; }
+  function uni(n,f){ kids(n).forEach(function(m){ m.scale.setScalar(f); }); }
+  function thick(n,f,a,b){ var d=[R[b][0]-R[a][0],R[b][1]-R[a][1],R[b][2]-R[a][2]], ix=0; if(Math.abs(d[1])>Math.abs(d[ix])) ix=1; if(Math.abs(d[2])>Math.abs(d[ix])) ix=2; var v=[f,f,f]; v[ix]=1; kids(n).forEach(function(m){ m.scale.set(v[0],v[1],v[2]); }); }
+  function colOf(slot){ var o=armPreset(slot,ARM.s[slot]); return new THREE.Color(o?o.c:'#5b8c3a'); }
+  function addMat(slot){ var m=new THREE.MeshLambertMaterial({color:colOf(slot)}); mats.push(m); return m; }
+  function bbox(n){ var b=null; kids(n).forEach(function(m){ if(!m.geometry) return; m.geometry.computeBoundingBox(); var q=m.geometry.boundingBox; if(!b) b=q.clone(); else b.union(q); }); return b; }
+  /* helmet */
+  var h=S.helmet;
+  if(h==='dome') uni('head',1.13); else if(h==='slim') uni('head',0.92);
+  else if(h==='crest'||h==='twin'){
+    var bb=bbox('head'); if(bb){
+      var w=bb.max.x-bb.min.x, ht=bb.max.y-bb.min.y, dp=bb.max.z-bb.min.z, cx=(bb.max.x+bb.min.x)/2, cz=(bb.max.z+bb.min.z)/2, mt=addMat('helmet');
+      var offs=h==='twin'?[-0.2,0.2]:[0];
+      offs.forEach(function(o){ var bw=w*(h==='twin'?0.07:0.11), m=new THREE.Mesh(new THREE.BoxGeometry(bw,ht*0.3,dp*0.85),mt); m.position.set(cx+o*w,bb.max.y-ht*0.02,cz); groups.head.add(m); });
+    }
+  }
+  /* chest */
+  var c=S.chest;
+  if(c==='bulk') uni('chest',1.12); else if(c==='slim') uni('chest',0.92);
+  else if(c==='broad') kids('chest').forEach(function(m){ m.scale.set(1.2,1,1.06); });
+  /* arms and shoulders */
+  var a=S.arms;
+  if(a==='thick'||a==='thin'){ var f=a==='thick'?1.25:0.8; thick('uaR',f,'sR','eR'); thick('faR',f,'eR','wR'); thick('uaL',f,'sL','eL'); thick('faL',f,'eL','wL'); }
+  else if(a==='pauld'||a==='bigp'){
+    var len=Math.hypot(R.eR[0]-R.sR[0],R.eR[1]-R.sR[1],R.eR[2]-R.sR[2]), r=len*(a==='bigp'?0.34:0.24), mt2=addMat('arms');
+    ['uaR','uaL'].forEach(function(n){ var m=new THREE.Mesh(new THREE.SphereGeometry(r,14,10),mt2); m.scale.set(1,0.8,1); m.position.set(0,r*0.25,0); groups[n].add(m); });
+  }
+  /* gloves */
+  if(S.gloves==='big') ['hR','hL'].forEach(function(n){ uni(n,1.2); }); else if(S.gloves==='small') ['hR','hL'].forEach(function(n){ uni(n,0.85); });
+  /* legs */
+  var l=S.legs;
+  if(l==='bulk'||l==='slim'){ var lf=l==='bulk'?1.18:0.85; thick('thR',lf,'hpR','kR'); thick('thL',lf,'hpL','kL'); thick('calfR',lf,'kR','aR'); thick('calfL',lf,'kL','aL'); uni('footR',l==='bulk'?1.08:0.94); uni('footL',l==='bulk'?1.08:0.94); }
+}
 function buildRagdoll(noCustom){
   var root=new THREE.Group(), mats=[], i, groups={};
   for(i=0;i<CHIEF.tex.length;i++) mats.push(spartanMat(i));
@@ -9265,6 +9315,7 @@ function buildRagdoll(noCustom){
     });
     g.scale.setScalar(CH_SCALE); root.add(g); groups[pd.n]=g;
   });
+  if(!noCustom||AV_CUSTOM){ try{ armShapes(groups,mats); }catch(e){} }
   return {root:root,groups:groups,mats:mats};
 }
 /* rope-and-stick physics: joints are points, bones are distance constraints */
@@ -12378,9 +12429,9 @@ function mpSetPeerChar(pe,k,ar){
   ar=ar||'';
   if(!k||(pe.ch===k&&(pe.ar||'')===ar)||!CHARS[k]&&!CHAR_FILE[k]) return;
   if(!CHARS[k]){ if(!pe.chL){ pe.chL=1; loadChar(k,function(ok){ pe.chL=0; if(ok) mpSetPeerChar(pe,k,ar); else pe.ch=k; }); } return; }
-  pe.ch=k; pe.ar=ar; var old=CHIEF, oav=pe.avatar, nav, oldArm=ARM.s;
+  pe.ch=k; pe.ar=ar; var old=CHIEF, oav=pe.avatar, nav, oldArm=ARM.s, oldSt=ARM.st;
   CHIEF=CHARS[k];
-  try{ if(ar){ ARM.s=armFromCode(ar); AV_CUSTOM=true; } nav=buildChiefAvatar(); if(mp.mode==='dm') tmTintAvatar(nav,pe.team); } finally{ CHIEF=old; ARM.s=oldArm; AV_CUSTOM=false; }
+  try{ if(ar){ var pc=armFromCode(ar); ARM.s=pc.s; ARM.st=pc.st; AV_CUSTOM=true; } nav=buildChiefAvatar(); if(mp.mode==='dm') tmTintAvatar(nav,pe.team); } finally{ CHIEF=old; ARM.s=oldArm; ARM.st=oldSt; AV_CUSTOM=false; }
   nav.visible=oav.visible; nav.position.copy(oav.position); nav.rotation.copy(oav.rotation);
   nav.userData.hit.forEach(function(m){ m.userData.pid=pe.id; });
   scene.remove(oav); scene.add(nav); pe.avatar=nav; if(mp.avatar===oav) mp.avatar=nav;
@@ -13271,7 +13322,7 @@ function cuApplyAll(){
   try{ HANDS.forEach(function(g){ for(var i=g.children.length-1;i>=0;i--) g.remove(g.children[i]); fillHand(g,g.userData.hk[0],g.userData.hk[1]); }); TP.rigId=null; }catch(e){}
   CU.rebuild=true; cuRender();
 }
-function cuSaveArm(){ try{ localStorage.setItem('halo-arm2',JSON.stringify(ARM.s)); }catch(e){} }
+function cuSaveArm(){ try{ localStorage.setItem('halo-arm2',JSON.stringify(ARM.s)); localStorage.setItem('halo-arm3',JSON.stringify(ARM.st)); }catch(e){} }
 function cuPick(k){
   if(k===curChar) return; frMsg('cuMsg','Loading '+CHAR_NAMES[k]+'...',true);
   loadChar(k,function(ok){
@@ -13280,6 +13331,7 @@ function cuPick(k){
   });
 }
 function cuSetColour(slot,k){ ARM.s[slot]=k; cuSaveArm(); cuApplyAll(); }
+function cuSetStyle(slot,k){ ARM.st[slot]=k; cuSaveArm(); cuApplyAll(); }
 function cuRender(){
   var c=$('cuChars'), w=$('cuSw'), sl=$('cuSlots'); if(!c||!w||!sl) return; c.textContent=''; w.textContent=''; sl.textContent='';
   CHAR_KEYS.forEach(function(k){
@@ -13292,13 +13344,15 @@ function cuRender(){
     var b=document.createElement('button'); b.type='button'; b.className='cuSl'+(st.k===CU.slot?' on':''); b.innerHTML='<i></i><span></span>'; b.querySelector('i').style.background=col; b.querySelector('span').textContent=st.n;
     b.onclick=function(){ CU.slot=st.k; cuRender(); }; sl.appendChild(b);
   });
+  var stw=$('cuSt'), stt=$('cuStT'); if(stw){ stw.textContent=''; var SL=ARM_STY[CU.slot]; stw.style.display=SL?'':'none'; if(stt) stt.style.display=SL?'':'none';
+    (SL||[]).forEach(function(a){ var b=document.createElement('button'); b.type='button'; b.className='cuS'+(a.k===(ARM.st[CU.slot]||'')?' on':''); b.innerHTML='<span></span>'; b.querySelector('span').textContent=a.n; b.onclick=function(){ cuSetStyle(CU.slot,a.k); }; stw.appendChild(b); }); }
   (CU.slot==='visor'?ARM_VIS:ARM_SET).forEach(function(a){
     var b=document.createElement('button'); b.type='button'; b.className='cuS'+(a.k===(ARM.s[CU.slot]||'')?' on':'');
     b.innerHTML='<i></i><span></span>'; b.querySelector('i').style.background=a.c; b.querySelector('span').textContent=a.n;
     b.onclick=function(){ cuSetColour(CU.slot,a.k); }; w.appendChild(b);
   });
 }
-$('cuReset').addEventListener('click',function(){ ARM_SLOTS.forEach(function(st){ ARM.s[st.k]=''; }); cuSaveArm(); cuApplyAll(); });
+$('cuReset').addEventListener('click',function(){ ARM_SLOTS.forEach(function(st){ ARM.s[st.k]=''; }); Object.keys(ARM.st).forEach(function(k){ ARM.st[k]=''; }); cuSaveArm(); cuApplyAll(); });
 /* the preview: its own small renderer, the character stood in its rest pose and slowly turning */
 function cuPrevInit(){
   if(CU.r) return true;
