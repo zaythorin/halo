@@ -2155,7 +2155,7 @@ var ARM_STY={
 };
 var ARM={s:{helmet:'',visor:'',chest:'',arms:'',gloves:'',legs:''},st:{helmet:'',chest:'',arms:'',gloves:'',legs:''}}, armTex={}, armMatC={}, AV_CUSTOM=false;
 try{ var _st=JSON.parse(localStorage.getItem('halo-arm3')||'null'); if(_st) Object.keys(ARM.st).forEach(function(k){ ARM.st[k]=_st[k]||''; }); }catch(e){}
-var EMOTES=[{k:'salute',n:'SALUTE'},{k:'flex',n:'FLEX'},{k:'cheer',n:'CHEER'},{k:'dance',n:'DANCE'},{k:'point',n:'POINT'},{k:'bow',n:'BOW'},{k:'raise',n:'RIFLE RAISE',w:1},{k:'spin',n:'GUN TWIRL',w:1}], EMO={k:'salute'};
+var EMOTES=[{k:'salute',n:'SALUTE'},{k:'attn',n:'AT ATTENTION'},{k:'rest',n:'PARADE REST'},{k:'halt',n:'HALT SIGNAL'},{k:'adv',n:'ADVANCE SIGNAL'},{k:'present',n:'PRESENT ARMS',w:1},{k:'high',n:'HIGH READY',w:1},{k:'low',n:'LOW READY',w:1},{k:'kneel',n:'KNEEL',w:1}], EMO={k:'salute'};
 try{ var _em=localStorage.getItem('halo-emote'); if(_em) EMO.k=_em; }catch(e){}
 function emoOk(k){ for(var i=0;i<EMOTES.length;i++) if(EMOTES[i].k===k) return EMOTES[i]; return EMOTES[0]; }
 function armStyleOk(slot,k){ var L=ARM_STY[slot]; if(!L||!k) return ''; for(var i=0;i<L.length;i++) if(L[i].k===k) return k; return ''; }
@@ -12660,21 +12660,30 @@ function poseEmote(u,id,t,armed){
     for(var q=0;q<3;q++){ var l=Math.hypot.apply(null,vSub(R[pts[q]],R[q===0?'s'+s:pts[q-1]])), dd=vNorm(ds[q]); P[pts[q]]=[prev[0]+dd[0]*l,prev[1]+dd[1]*l,prev[2]+dd[2]*l]; prev=P[pts[q]]; }
   }
   var hc=[0,(P.hpR[1]+P.hpL[1])/2,(P.hpR[2]+P.hpL[2])/2], UP=['spine','chest','neck','head','sR','sL','eR','eL','wR','wL','fR','fL'];
+  var ground=u.minY, br=Math.sin(t*1.4)*0.004;
   switch(id){
-    case 'salute': arm('R',[1,0.15,0.15],[-0.75,0.55,0.3],[-0.8,0.5,0.3]); lean=-0.03; break;
-    case 'flex': var fp=Math.sin(t*6); arm('R',[1,0.15,0.1],[0.1+0.14*fp,1,0.2],[0,1,0.3]); arm('L',[1,0.15,0.1],[0.1-0.14*fp,1,0.2],[0,1,0.3]); bounce=Math.abs(fp)*0.012; break;
-    case 'cheer': var cw=Math.sin(t*5); arm('R',[0.45+0.18*cw,1,0.05],[0.4+0.2*cw,1,0.05],[0.4+0.2*cw,1,0.05]); arm('L',[0.45-0.18*cw,1,0.05],[0.4-0.2*cw,1,0.05],[0.4-0.2*cw,1,0.05]); bounce=Math.abs(cw)*0.09; break;
-    case 'dance': var dp=Math.sin(t*4); arm('L',[0.6,0.25+0.7*dp,0.4],[0.3,0.5+0.9*dp,0.5],[0.3,0.5+0.9*dp,0.5]); arm('R',[0.6,0.25-0.7*dp,0.4],[0.3,0.5-0.9*dp,0.5],[0.3,0.5-0.9*dp,0.5]); sway=dp*0.18*e; bounce=Math.abs(dp)*0.04;
-      ['R','L'].forEach(function(s,i){ var a=Math.sin(t*4+(i?Math.PI:0))*0.35*e, hp=P['hp'+s]; ['k','a','t'].forEach(function(j){ P[j+s]=rotX(P[j+s],hp,a); }); }); break;
-    case 'point': arm('R',[-0.05,0.12+0.05*Math.sin(t*5),1],[-0.05,0.12+0.05*Math.sin(t*5),1],[-0.05,0.12+0.05*Math.sin(t*5),1]); arm('L',[0.75,-0.6,-0.1],[-0.7,-0.7,0.35],[-0.7,-0.7,0.35]); lean=0.08*e; break;
-    case 'bow': lean=0.75*Math.max(0,Math.sin(t*1.5))*e; break;
-    case 'raise': held('R'); held('L'); pa=-(1.25+0.2*Math.sin(t*4))*e; bounce=Math.abs(Math.sin(t*4))*0.05; break;
-    case 'spin': held('R'); arm('L',[0.75,-0.6,-0.1],[-0.7,-0.7,0.35],[-0.7,-0.7,0.35]); pa=-0.55*e; roll=t*9; break;
+    case 'salute': arm('R',[1,0.15,0.15],[-0.75,0.55,0.3],[-0.8,0.5,0.3]); lean=-0.03; bounce=br; break;
+    case 'attn': lean=-0.02; bounce=br; break;
+    case 'rest':
+      arm('R',[0.1,-1,-0.25],[-0.85,-0.2,-0.6],[-0.9,-0.1,-0.6]); arm('L',[0.1,-1,-0.25],[-0.85,-0.2,-0.6],[-0.9,-0.1,-0.6]);
+      ['R','L'].forEach(function(s2){ var sg=s2==='R'?-1:1, hp=P['hp'+s2]; ['k','a','t'].forEach(function(j){ P[j+s2]=rotZ(P[j+s2],hp,sg*0.14*e); }); });
+      lean=-0.02; bounce=br; break;
+    case 'halt': arm('R',[0.9,-0.1,0.2],[0.05,1,0.2],[0,1,0.2]); lean=-0.02; bounce=br; break;
+    case 'adv': arm('R',[-0.05,0.12,1],[-0.05,0.12,1],[-0.05,0.12,1]); arm('L',[0.12,-1,0.05],[0.12,-1,0.05],[0.12,-1,0.05]); lean=0.06*e; bounce=br; break;
+    case 'present': held('R'); held('L'); pa=-1.35*e; bounce=br; break;
+    case 'high': held('R'); held('L'); pa=-0.42*e; bounce=br; break;
+    case 'low': held('R'); held('L'); pa=0.55*e; bounce=br; break;
+    case 'kneel': held('R'); held('L'); pa=-0.25*e;
+      (function(){ var a1=1.45*e, k1=1.45*e, a2=0.1*e, k2=1.55*e, hpL=P.hpL, hpR=P.hpR;
+        P.kL=rotX(P.kL,hpL,a1); P.aL=rotX(P.aL,hpL,a1); P.tL=rotX(P.tL,hpL,a1); P.aL=rotX(P.aL,P.kL,-k1); P.tL=rotX(P.tL,P.kL,-k1);
+        P.kR=rotX(P.kR,hpR,a2); P.aR=rotX(P.aR,hpR,a2); P.tR=rotX(P.tR,hpR,a2); P.aR=rotX(P.aR,P.kR,-k2); P.tR=rotX(P.tR,P.kR,-k2);
+        var mn=1e9; ['kL','aL','tL','kR','aR','tR'].forEach(function(n){ if(P[n][1]<mn) mn=P[n][1]; }); ground=u.minY+(mn-u.minY)*e;
+      })(); lean=0.1*e; break;
   }
-  if(pa){ ['R','L'].forEach(function(s){ var sh=P['s'+s]; if(id==='spin'&&s==='L') return; ['e','w','f'].forEach(function(j){ P[j+s]=rotX(P[j+s],sh,pa); }); }); }
+  if(pa){ ['R','L'].forEach(function(s){ var sh=P['s'+s]; ['e','w','f'].forEach(function(j){ P[j+s]=rotX(P[j+s],sh,pa); }); }); }
   if(lean) UP.forEach(function(n){ P[n]=rotX(P[n],hc,lean); });
   if(sway) UP.forEach(function(n){ P[n]=rotZ(P[n],hc,sway); });
-  CH_NAMES.forEach(function(n){ P[n]=[P[n][0],P[n][1]-u.minY+bounce,P[n][2]]; });
+  CH_NAMES.forEach(function(n){ P[n]=[P[n][0],P[n][1]-ground+bounce,P[n][2]]; });
   CH_PARTS.forEach(function(cd){
     var g=u.built.groups[cd.n]; if(!g) return;
     var r=chPose(cd,P,R); g.position.set(r[0][0],r[0][1],r[0][2]); g.quaternion.set(r[1][0],r[1][1],r[1][2],r[1][3]);
@@ -12717,9 +12726,7 @@ function podStart(wt,done){
     var lb=trLabel((i===0?'MVP  ':'')+r.n.toUpperCase(),3.2,0.5,i===0?'#ffd24a':'#ffffff'); lb.position.set(sp[0],sp[1]+2.75+(i===0?0.1:0),sp[2]+0.2); g.add(lb);
     POD.av.push({av:av,em:em.k,ph:i*0.7});
   });
-  /* confetti */
-  var cm=[0xff4a6a,0xffd24a,0x4ad0ff,0x7aff7a,0xc07aff,0xffffff].map(function(c){ return new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide}); }), cg=new THREE.PlaneGeometry(0.12,0.07);
-  POD.conf=[]; for(var i=0;i<70;i++){ var m=new THREE.Mesh(cg,cm[i%6]); m.position.set((Math.random()-0.5)*10,Math.random()*9,(Math.random()-0.5)*8); m.userData.v=[(Math.random()-0.5)*0.6,-(1+Math.random()*1.4),Math.random()*6]; g.add(m); POD.conf.push(m); }
+  POD.conf=[];
   scene.add(g); POD.g=g; POD.on=true; POD.t=0; POD.cb=done; POD.cx=cx; POD.cy=cy; POD.cz=cz;
   /* title banner */
   var tt=$('podTitle'); if(!tt){ tt=document.createElement('div'); tt.id='podTitle'; document.body.appendChild(tt); }
@@ -12730,8 +12737,7 @@ function podStart(wt,done){
 }
 function podTick(dt){
   POD.t+=dt; var t=POD.t, i;
-  for(i=0;i<POD.av.length;i++){ var a=POD.av[i]; poseEmote(a.av.userData,a.em,Math.max(0,t-0.3-a.ph*0.25),false); a.av.rotation.y=Math.sin(t*0.7+i)*0.08; }
-  for(i=0;i<POD.conf.length;i++){ var m=POD.conf[i], v=m.userData.v; m.position.x+=v[0]*dt; m.position.y+=v[1]*dt; m.rotation.x+=v[2]*dt; m.rotation.y+=v[2]*dt*0.7; if(m.position.y<-0.5){ m.position.y=9; m.position.x=(Math.random()-0.5)*10; } }
+  for(i=0;i<POD.av.length;i++){ var a=POD.av[i]; poseEmote(a.av.userData,a.em,Math.max(0,t-0.3-a.ph*0.25),false); a.av.rotation.y=0; }
   var ang=Math.sin(t*0.35)*0.35, rad=8.2-Math.min(1,t/2)*1.2;
   camera.position.set(POD.cx+Math.sin(ang)*rad,POD.cy+1.9+Math.sin(t*0.4)*0.15,POD.cz+Math.cos(ang)*rad); camera.lookAt(POD.cx,POD.cy+1.35,POD.cz+0.2);
   if(t>11) podEnd();
