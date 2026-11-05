@@ -290,6 +290,10 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 #scope .bar{height:4px;top:calc(50% - 2px);background:rgba(0,0,0,.8)}
 #scope .bar.a{left:calc(50% - var(--w) * 0.18);width:calc(var(--w) * 0.055)}
 #scope .bar.b{left:calc(50% + var(--w) * 0.125);width:calc(var(--w) * 0.055)}
+/* sniper scope: a round lens with everything outside it blacked out */
+#scope:not([data-k]){--w:min(88vh,88vw);--h:var(--w)}
+#scope:not([data-k]) .win{border-radius:50%;border:4px solid #000;box-shadow:0 0 0 100vmax rgba(0,0,0,.94),inset 0 0 0 2px rgba(255,255,255,.08),inset 0 0 40px 6px rgba(0,0,0,.55)}
+#scope:not([data-k]) .bl,#scope:not([data-k]) .sc,#scope:not([data-k]) .ar{display:none}
 #scope .ring{left:calc(50% - 6px);top:calc(50% - 6px);width:12px;height:12px;border:1.5px solid var(--c);border-radius:50%;box-sizing:border-box}
 #scope .z{left:calc(50% + var(--w) / 2 - 78px);top:calc(50% + var(--h) / 2 - 52px);font:900 28px/1 var(--font-ui);color:var(--c);letter-spacing:.02em}
 
