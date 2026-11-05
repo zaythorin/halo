@@ -3958,9 +3958,11 @@ function spawnGroup(site,gid){
   }
 }
 function spawnGarrison(){
+  return;   /* no Covenant garrisons any more */
   if(mp.on) return; garrSites=garrPick(); garrSites.forEach(function(s,i){ spawnGroup(s,i); });
 }
 function repopGarrison(){
+  return;
   if(mp.on||wave.fl) return;
   for(var g=0;g<garrSites.length;g++){
     var s=garrSites[g], live=false;
@@ -4135,6 +4137,7 @@ function allySpot(){
   return {x:p.x+2,z:p.z+2};
 }
 function ensureAllies(){
+  return;   /* no AI marines any more */
   if(mp.on) return; var n=0, i, made=false;
   for(i=0;i<allies.length;i++) if(!allies[i].dead) n++;
   while(n<2){ var s=allySpot(); makeAlly(s.x,s.z); n++; made=true; }
