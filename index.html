@@ -2299,8 +2299,8 @@ function sampleKeys(keys,pr){
   return keys[n-1].slice(1);
 }
 var weapons=[
-  {id:'magnum',name:'DESERT EAGLE',auto:false,dmg:46,head:2.2,rate:0.30,mag:12,magSize:12,reserve:72,maxRes:96,reload:1.5,reloadDur:1.5,spread:0.0025,bloomAdd:0,bloomMax:0,kick:0.035,vmKick:0.07,sfx:'magnum',slideKick:0},
-  {id:'ar',name:'M762',auto:true,dmg:11,head:1.8,rate:0.085,mag:32,magSize:32,reserve:192,maxRes:288,reload:2.3,reloadDur:2.3,spread:0.012,bloomAdd:0.004,bloomMax:0.035,kick:0.008,vmKick:0.025,sfx:'ar',slideKick:0},
+  {id:'magnum',name:'DESERT EAGLE',auto:false,dmg:46,head:2.2,rate:0.30,mag:12,magSize:12,reserve:72,maxRes:96,reload:1.5,reloadDur:1.5,spread:0.0025,bloomAdd:0,bloomMax:0,kick:0.075,vmKick:0.13,sfx:'magnum',slideKick:0},
+  {id:'ar',name:'M762',auto:true,dmg:11,head:1.8,rate:0.085,mag:32,magSize:32,reserve:192,maxRes:288,reload:2.3,reloadDur:2.3,spread:0.012,bloomAdd:0.004,bloomMax:0.035,kick:0.016,vmKick:0.045,sfx:'ar',slideKick:0},
   {id:'sniper',name:'SNIPER RIFLE',auto:false,dmg:110,head:2.5,rate:1.05,mag:4,magSize:4,reserve:24,maxRes:36,reload:2.9,reloadDur:2.9,spread:0.02,zoomMul:0.03,scope:true,zoomFov:14,kickDecay:0.12,flashSize:1.8,bloomAdd:0,bloomMax:0,kick:0.17,vmKick:0.32,sfx:'sniper',slideKick:0},
   {id:'rocket',name:'ROCKET LAUNCHER',auto:false,rocket:true,scope:true,noEject:true,dmg:0,head:1,rate:1.0,mag:2,magSize:2,reserve:6,maxRes:12,reload:3.4,reloadDur:3.4,spread:0.004,bloomAdd:0,bloomMax:0,kick:0.04,vmKick:0.12,flashSize:2.2,sfx:'rocket',slideKick:0},
   {id:'shotgun',name:'SHOTGUN',auto:false,shells:true,noEject:true,pellets:10,dmg:15,head:1.5,rate:0.95,mag:6,magSize:6,reserve:30,maxRes:48,reload:2.0,reloadDur:2.0,spread:0.05,bloomAdd:0,bloomMax:0,kick:0.11,vmKick:0.2,flashSize:2.4,fullRange:9,maxRange:45,sfx:'shotgun',slideKick:0,tilt:0,pumpT:-1,pumpDelay:0,shPh:'',shT:0},
@@ -3167,14 +3167,14 @@ function buildLaser(){
   return g;
 }
 function buildSniper(){
-  /* sniper rifle (model supplied for this project, see data/NG.js): the bolt is its own mesh and slides on every shot */
-  var g=new THREE.Group(), mp=nwmParts('sniper'), M=SN_MAG;
-  g.add(mp.body);
-  var mag=new THREE.Group(); mp.mag.position.set(-M[0],-M[1],-M[2]); mag.add(mp.mag); mag.position.set(M[0],M[1],M[2]); g.add(mag);
-  var bolt=mp.bolt; g.add(bolt);
-  var mz=new THREE.Object3D(); mz.position.set(0,0.0054,-0.75); g.add(mz);
+  /* sniper rifle (model supplied for this project, see data/NG.js): the bolt is its own mesh and slides on every shot. The gun parts sit in a scaled group so the rifle reads full size while the hands keep theirs */
+  var g=new THREE.Group(), mp=nwmParts('sniper'), M=SN_MAG, SS=1.45, gun=new THREE.Group(); gun.scale.setScalar(SS); g.add(gun);
+  gun.add(mp.body);
+  var mag=new THREE.Group(); mp.mag.position.set(-M[0],-M[1],-M[2]); mag.add(mp.mag); mag.position.set(M[0],M[1],M[2]); gun.add(mag);
+  var bolt=mp.bolt; gun.add(bolt);
+  var mz=new THREE.Object3D(); mz.position.set(0,0.0054,-0.75); gun.add(mz);
   var lh=makeHand(true), rh=makeHand(false); lh.rotation.set(0.55,-0.35,0);
-  g.add(lh); rh.position.set(0.0,-0.1,0.085); rh.rotation.set(0.6,0.3,0); g.add(rh);
+  g.add(lh); rh.position.set(0.0,-0.1*SS,0.085*SS); rh.rotation.set(0.6,0.3,0); g.add(rh);
   g.userData={muzzle:mz,mag:mag,mover:bolt,moverBase:0,leftHand:lh,rightHand:rh};
   return g;
 }
@@ -3278,7 +3278,7 @@ var SN_ROT=[[0,0,0,0],[0.12,0.12,0.1,-0.4],[0.3,0.14,0.1,-0.45],[0.55,0.14,0.1,-
 weapons[0].anim=reloadAnim([-0.07,-0.19,0.054],weapons[0].group.userData.magCentre,[0.03,0.05,-0.05],MG_ROT,false);
 weapons[0].anim.base=[0,0.06,0];
 weapons[1].anim=reloadAnim([-0.02,-0.12,-0.48],M762_MAG,[0.035,0.03,0],AR_ROT,false);
-weapons[2].anim=reloadAnim([-0.03,-0.08,-0.3],SN_MAG,[0.04,0.03,0.07],SN_ROT,true);
+weapons[2].anim=reloadAnim([-0.03,-0.1,-0.45],SN_MAG,[0.04,0.03,0.07],SN_ROT,true);
 weapons[3].anim=reloadAnim([0.0725,0.1663,-0.4998],[0,0.14*2.6,-0.36*2.6],[0,0.06,0],AR_ROT,false);
 weapons[3].anim.base=[0.3,-0.36,-0.22]; weapons[3].anim.baseRot=[0.1,0.1,-0.1]; weapons[3].group.scale.setScalar(1.3);
 vm.add(weapons[0].group); vm.add(weapons[1].group); vm.add(weapons[2].group); vm.add(weapons[3].group);
@@ -3411,7 +3411,7 @@ function setFlash(w){
 }
 /* spring recoil: [back, rise, roll, side impulses, stiffness, damping] per weapon, so every gun kicks and settles differently */
 var rc={z:0,vz:0,r:0,vr:0,x:0,vx:0,l:0,vl:0}, climb=0, lastShot=-9, swayIn={x:0,y:0}, sway={x:0,y:0,l:0};
-var RCT={laser:[0.9,1.7,0.3,0.08,24,0.5],magnum:[0.58,1.6,0.5,0.12,34,0.55],ar:[0.19,0.23,0.12,0.04,90,0.6],sniper:[0.82,2.06,0.4,0.1,22,0.5],rocket:[0.77,1.8,0.3,0.1,26,0.5],shotgun:[1.02,2.4,0.8,0.15,40,0.5]};
+var RCT={laser:[0.9,1.7,0.3,0.08,24,0.5],magnum:[0.95,2.7,0.7,0.16,30,0.5],ar:[0.34,0.45,0.22,0.08,75,0.55],sniper:[1.1,2.8,0.5,0.14,20,0.45],rocket:[0.77,1.8,0.3,0.1,26,0.5],shotgun:[1.02,2.4,0.8,0.15,40,0.5]};
 var HKS={x:0,y:0,z:0,r:0,vx:0,vy:0,vz:0,vr:0}, BK=0;   /* HKS: the hands' own spring, softer than the gun's, so they are shoved back and then lag behind it as it settles; BK: how long the trigger has been held down */
 function recoilKick(w){
   var t=RCT[w.id]; if(!t) return; var zk=zoomed?0.4:1, bf=1+0.4*BK;
@@ -3421,7 +3421,7 @@ function recoilKick(w){
   climb+=w.kick*zk; lastShot=tAcc;
   var wf=WFLICK[w.id]; if(wf){ MA.jx+=wf[0]*zk; MA.jy+=(Math.random()-0.5)*wf[1]*zk; MA.jz+=(Math.random()-0.5)*wf[2]*zk; }   /* the wrist cocks up a little on every round, a different way each time */
 }
-var WFLICK={magnum:[0.05,0.03,0.05],ar:[0.007,0.01,0.012],smg:[0.006,0.012,0.014],br:[0.022,0.012,0.02],salt:[0.016,0.016,0.03],shotgun:[0.08,0.03,0.07],sniper:[0.07,0.02,0.03],rocket:[0.06,0.02,0.04],laser:[0.07,0.04,0.06]};
+var WFLICK={magnum:[0.09,0.05,0.08],ar:[0.012,0.016,0.018],smg:[0.006,0.012,0.014],br:[0.022,0.012,0.02],salt:[0.016,0.016,0.03],shotgun:[0.08,0.03,0.07],sniper:[0.07,0.02,0.03],rocket:[0.06,0.02,0.04],laser:[0.07,0.04,0.06]};
 var WRIST={magnum:[0.012,0.010,0.008,1.1],ar:[0.004,0.004,0.003,0.9],smg:[0.005,0.005,0.004,1.2],br:[0.003,0.004,0.003,0.8],salt:[0.006,0.006,0.004,0.6],shotgun:[0.005,0.006,0.005,0.7],sniper:[0.003,0.005,0.003,0.7],rocket:[0.005,0.006,0.004,0.55],laser:[0.004,0.005,0.004,0.6]};
 var HVK={salt:0.4,rocket:0.5,laser:0.55,sniper:0.7}, HLAND={salt:1.7,rocket:1.6,laser:1.5};   /* how heavy each gun feels: sway lag, landing and jump dip */
 var AIMK=0;   /* 0 hip .. 1 fully aimed */
@@ -8281,10 +8281,10 @@ function fireWeapon(w,muzzleObj,inVeh){
   p.yaw+=(Math.random()-0.5)*w.kick*0.6*zk;
   /* each gun has its own recoil habit on top of the random kick */
   w.rcN=(w.rcN||0)+1; if(tAcc-(w.rcT||0)>0.6) w.rcN=1; w.rcT=tAcc;
-  if(w.id==='ar'){ p.yaw+=w.kick*0.35*zk*Math.min(1,w.rcN/10); p.pitch+=w.kick*0.25*zk*Math.min(1,w.rcN/8); }       /* climbs and drifts right the longer you hold */
+  if(w.id==='ar'){ p.yaw+=(w.rcN%14<7?1:-0.6)*w.kick*0.7*zk*Math.min(1,w.rcN/8); p.pitch+=w.kick*0.6*zk*Math.min(1,w.rcN/6); }       /* climbs and drifts right the longer you hold */
   else if(w.id==='smg'){ p.yaw+=Math.sin(w.rcN*1.3)*w.kick*0.7*zk; }                                         /* snakes side to side */
   else if(w.id==='br'){ p.pitch+=w.kick*0.3*zk*(w.rcN%3===1?1.4:0.5); }                                        /* a steady climb per burst */
-  else if(w.id==='magnum'){ p.pitch+=w.kick*0.5*zk; }                                                          /* one big snap up */
+  else if(w.id==='magnum'){ p.pitch+=w.kick*0.7*zk; p.yaw+=(Math.random()-0.5)*w.kick*0.4*zk; }                                                          /* one big snap up */
   vmKick=Math.min(w.scope?0.34:0.12,vmKick+w.vmKick);
   if(w.scope){ shakeAmp=Math.max(shakeAmp,0.03); shakeT=0.45; p.vx+=Math.sin(p.yaw)*1.5; p.vz+=Math.cos(p.yaw)*1.5; }
   if(w.anim.slideOnFire) w.slideKick=w.scope?0.09:0.07;
