@@ -9675,7 +9675,7 @@ function startGame0(){
   devApplyNuke();
   if(mp.on) CAMP.on=false;
   if(CAMP.on) campSetup(); else campClear();
-  if(!FLY.on&&!CUT.on) cinStart();
+  if(mp.on) mp.inv=tAcc+3;   /* a few seconds of spawn protection instead of the intro */
   if(mp.on&&!mp.host){ if(mp.late){ showToast('JOINED MATCH IN PROGRESS'); } try{ mpSend({t:'rdy'}); }catch(e){} }
   mp.late=false;
 }
@@ -11966,6 +11966,7 @@ function cinTitle(){
 function cinCast(a,b,t){ return a+(b-a)*t; }
 function cinSmooth(t){ t=Math.max(0,Math.min(1,t)); return t*t*(3-2*t); }
 function cinStart(){
+  return;   /* cutscenes removed */
   if(CIN.on||FLY.on||CUT.on||TRN.on||state!=='play'||p.inVeh||p.air||mp.late) return;
   try{
     var wi=(slots[sel]===17?8:slots[sel])|0, av=podAvatar(curChar,armCode(),true,mp.team,wi);
@@ -12049,6 +12050,7 @@ function cinEnd(quiet){
 function flyDiv(css){ var e=document.createElement('div'); e.style.cssText=css; document.body.appendChild(e); FLY.el.push(e); return e; }
 function flySkip(){ if(FLY.on&&FLY.t>=0.8) FLY.t=Math.max(FLY.t,FLY.D); }
 function flyStart(){
+  return;   /* cutscenes removed */
   if(FLY.on||CUT.on||!TM.on||mp.late) return;
   var te=1-mp.team, E=ctfHome(te), M=ctfHome(mp.team);
   function gy(h){ return h.y!==undefined?h.y:groundH(h.x,h.z); }
@@ -12159,6 +12161,7 @@ function kcClear(){
   try{ var kl=$('kcLabel'); if(kl) kl.style.display='none'; }catch(e){}
 }
 function cutStart(){
+  return;   /* cutscenes removed */
   var P=CUT.prep; if(!P||!(TM.mom||TM.isl||TM.snb)||CUT.on||mp.late) return;
   var sx=p.x, sy=p.y, sz=p.z, hl=Math.hypot(sx,sz), H=hl>30?{x:sx/hl,z:sz/hl}:{x:0,z:1}, V=38, D=V*CUT_FT/2;
   CUT.on=true; CUT.t=0; CUT.H=H; CUT.V=V; CUT.sp=[sx,sy,sz]; CUT.im=0; CUT.st=0; CUT.hb=0; CUT.ring=0;
