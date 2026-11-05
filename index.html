@@ -13519,6 +13519,7 @@ function mpSnapshot(){
   return a;
 }
 function mpApplySnap(a){
+  return;   /* no enemy snapshots any more: an older host build may still send them, and the enemy models are gone */
   var seen={}, i;
   for(i=0;i<a.length;i++){
     var s=a[i], id=s[0], e=mp.map[id]; seen[id]=1;
