@@ -10632,7 +10632,7 @@ function frame(now){
     updateWeapon(dt); updateThrow(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
     if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ updateShips(dt); updateWaves(dt); if(CAMP.on) campTick(dt); } for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on&&!TRN.on) updateAllies(dt);
-    updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); try{ crateTick(dt); }catch(e){} if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
+    updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); try{ crateTick(dt); }catch(e){} if(ISR.on){ ISR.t-=dt; if(ISR.t<=0){ ISR.t=0.6; try{ flagApply(); }catch(e){} } } if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
   }else if(state==='menu'){
     updateMenu(dt); if(!menuVidOn) renderer.render(menuScene,menuCam); return;
   }
@@ -13261,6 +13261,13 @@ function poseEmote(u,id,t,armed){
     case 'present': held('R'); held('L'); pa=-1.35*e; bounce=br; break;
     case 'high': held('R'); held('L'); pa=-0.42*e; bounce=br; break;
     case 'low': held('R'); held('L'); pa=0.55*e; bounce=br; break;
+    case 'sig':   /* the Master Chief key-art stance: rifle slung low across the body, weight on the back leg, torso leaned back, front knee bent */
+      held('R'); held('L'); pa=0.8*e; lean=-0.07*e; sway=0.05*e; roll=-0.3*e; bounce=br;
+      (function(){ var hpL=P.hpL, hpR=P.hpR, a1=0.38*e, k1=0.3*e, a2=-0.16*e, k2=0.12*e;
+        P.kL=rotX(P.kL,hpL,a1); P.aL=rotX(P.aL,hpL,a1); P.tL=rotX(P.tL,hpL,a1); P.aL=rotX(P.aL,P.kL,-k1); P.tL=rotX(P.tL,P.kL,-k1);
+        P.kR=rotX(P.kR,hpR,a2); P.aR=rotX(P.aR,hpR,a2); P.tR=rotX(P.tR,hpR,a2); P.aR=rotX(P.aR,P.kR,-k2); P.tR=rotX(P.tR,P.kR,-k2);
+        var mn=1e9; ['kL','aL','tL','kR','aR','tR'].forEach(function(n){ if(P[n][1]<mn) mn=P[n][1]; }); ground=u.minY+(mn-u.minY)*e;
+      })(); break;
     case 'kneel': held('R'); held('L'); pa=-0.25*e;
       (function(){ var a1=1.45*e, k1=1.45*e, a2=0.1*e, k2=1.55*e, hpL=P.hpL, hpR=P.hpR;
         P.kL=rotX(P.kL,hpL,a1); P.aL=rotX(P.aL,hpL,a1); P.tL=rotX(P.tL,hpL,a1); P.aL=rotX(P.aL,P.kL,-k1); P.tL=rotX(P.tL,P.kL,-k1);
@@ -13865,14 +13872,48 @@ function devApplyNuke(){
   if(slots.indexOf(17)<0) slots[1-sel]=17;
   sel=slots.indexOf(17); pendingW=null; swapT=0; if(zoomed) zoomOff(); setWeapon(17);
 }
+/* dev code "Israel": every textured, opaque surface in the 3D world (and the weapon in your hands) is re-skinned with the Israeli flag; enter the code again to switch it off */
+var ISR={on:false,t:0,tex:null,list:[],seen:null};
+function flagTex(){
+  if(ISR.tex) return ISR.tex;
+  var W=660,H=480,u=H/160,c=document.createElement('canvas'); c.width=W; c.height=H; var x=c.getContext('2d');
+  x.fillStyle='#ffffff'; x.fillRect(0,0,W,H); x.fillStyle='#0038b8';
+  x.fillRect(0,15*u,W,25*u); x.fillRect(0,120*u,W,25*u);
+  x.strokeStyle='#0038b8'; x.lineWidth=5.5*u; x.lineJoin='miter'; x.miterLimit=10;
+  var cx=W/2, cy=H/2, r=30*u;
+  [[-90,30,150],[90,210,330]].forEach(function(T){ x.beginPath(); T.forEach(function(a,i){ var q=a*Math.PI/180, px=cx+Math.cos(q)*r, py=cy+Math.sin(q)*r; if(i) x.lineTo(px,py); else x.moveTo(px,py); }); x.closePath(); x.stroke(); });
+  var t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; ISR.tex=t; return t;
+}
+function flagApply(){
+  var tex=flagTex(); ISR.seen=ISR.seen||new Set();
+  function doMat(m){
+    if(!m||ISR.seen.has(m)||m.isShaderMaterial||m.transparent||m.blending===THREE.AdditiveBlending||m.isSpriteMaterial||m.isPointsMaterial||m.isLineBasicMaterial) return;
+    if(m.type.indexOf('Mesh')!==0) return;
+    ISR.seen.add(m); ISR.list.push({m:m,map:m.map,color:m.color?m.color.getHex():null});
+    m.map=tex; if(m.color) m.color.setHex(0xffffff); m.needsUpdate=true;
+  }
+  function visit(o){
+    if(o.isMesh&&o.geometry&&o.geometry.attributes&&o.geometry.attributes.uv&&!o.userData.noFlag){ var mm=o.material; if(Array.isArray(mm)) mm.forEach(doMat); else doMat(mm); }
+  }
+  scene.traverse(visit); camera.traverse(visit);
+}
+function flagOff(){
+  ISR.list.forEach(function(r){ try{ r.m.map=r.map; if(r.color!==null&&r.m.color) r.m.color.setHex(r.color); r.m.needsUpdate=true; }catch(e){} });
+  ISR.list=[]; ISR.seen=null;
+}
 function devCode(c){
   c=String(c||'').trim();
+  if(c.toLowerCase()==='israel'){
+    ISR.on=!ISR.on;
+    if(ISR.on){ if(state==='play'||state==='paused'){ try{ flagApply(); }catch(e){} } return 'ISRAEL MODE ON - ALL TEXTURES NOW SHOW THE FLAG (ENTER THE CODE AGAIN TO TURN IT OFF)'; }
+    flagOff(); return 'ISRAEL MODE OFF';
+  }
   if(c==='117'){ DEV.nuke=true; if(state==='play'||state==='paused'){ devApplyNuke(); return 'NUKE LASER EQUIPPED'; } return 'NUKE LASER UNLOCKED - STARTS WITH YOUR NEXT GAME'; }
   return 'UNKNOWN CODE';
 }
 document.querySelectorAll('.devCodeGo').forEach(function(b){
   var inp=b.parentNode.querySelector('.devCode'), msg=b.parentNode.querySelector('.devMsg');
-  function go(){ var r=devCode(inp.value); msg.textContent=r; inp.value=''; if(r.indexOf('NUKE')===0) showToast('NUKE LASER'); }
+  function go(){ var r=devCode(inp.value); msg.textContent=r; inp.value=''; if(r.indexOf('NUKE')===0) showToast('NUKE LASER'); else if(r.indexOf('ISRAEL')===0) showToast(r); }
   b.addEventListener('click',go);
   ['keydown','keyup','keypress'].forEach(function(ev){ inp.addEventListener(ev,function(e){ e.stopPropagation(); if(ev==='keydown'&&e.key==='Enter'){ e.preventDefault(); go(); } }); });
 });
@@ -14233,7 +14274,7 @@ function cuPrevFrame(){
       var nowT=performance.now(), dtc=Math.min(0.1,(nowT-(CU.lt||nowT))/1000); CU.lt=nowT;
       if(CU.drag!==null) CU.dragT=nowT;
       if(CU.emo&&CU.rig){ var et=(performance.now()-CU.emo.t0)/1000; if(et>5){ CU.emo=null; CU.rebuild=true; } else{ CU.rig.built.root.position.y=0; if(CU.rig.pv) CU.rig.pv.visible=!!emoOk(CU.emo.k).w; try{ poseEmote(CU.rig,CU.emo.k,et,false); }catch(e){ CU.emo=null; CU.rebuild=true; } } }
-      if(!CU.emo&&CU.rig){ try{ CU.rig.built.root.position.y=0; if(CU.rig.pv) CU.rig.pv.visible=true; poseEmote(CU.rig,'high',1+nowT/1000,true); }catch(e){} }   /* the signature ready pose, rifle up */
+      if(!CU.emo&&CU.rig){ try{ CU.rig.built.root.position.y=0; if(CU.rig.pv) CU.rig.pv.visible=true; poseEmote(CU.rig,'sig',1+nowT/1000,true); }catch(e){} }   /* the signature ready pose, rifle up */
       /* camera: the whole Spartan, or a close-up of the part being edited (eased as you switch) */
       var F={helmet:[0.9,0.3,0.35],visor:[0.9,0.2,0.0],chest:[0.7,0.46,0.5],arms:[0.68,0.5,0.95],gloves:[0.5,0.38,0.75],legs:[0.27,0.55,0.4]}, fc=(CU.tab==='pers')?[0.5,1.12,0.45]:(F[CU.slot]||[0.5,1.12,0.45]);
       var Hc=CU.h/1.12, ke=1-Math.exp(-dtc*5);
