@@ -1125,13 +1125,9 @@ window.addEventListener('unhandledrejection',function(e){ window.__showErr('ERRO
 <script>__boot(0.598,'LOADING ARMS')</script>
 <script src="data/DMRM.js"></script>
 <script>__boot(0.660,'LOADING WEAPON MODELS')</script>
-<script src="data/EMODELS.js"></script>
 <script>__boot(0.713,'LOADING ENEMIES')</script>
-<script src="data/FLOOD.js"></script>
 <script>__boot(0.727,'LOADING ENEMIES')</script>
-<script src="data/CRUISER.js"></script>
 <script>__boot(0.741,'LOADING VEHICLES')</script>
-<script src="data/SPIRIT.js"></script>
 <script>__boot(0.776,'LOADING VEHICLES')</script>
 <script src="data/WHN.js"></script>
 <script>__boot(0.796,'LOADING VEHICLES')</script>
@@ -4341,7 +4337,7 @@ var gBody=new THREE.CylinderGeometry(0.32,0.38,0.95,10), gHead=new THREE.SphereG
 var gLeg=new THREE.BoxGeometry(0.16,0.7,0.2), gArm=new THREE.BoxGeometry(0.12,0.12,0.5);
 var gVisor=new THREE.BoxGeometry(0.28,0.07,0.1), gShell=new THREE.SphereGeometry(1,14,10);
 /* the user's own Halo Elite and Grunt models, split into limbs so they can walk, aim and run */
-var EMODELS=__D.EMODELS;
+var EMODELS={tex:[]};
 var emGeo={}, emTex={}, emTexLoader=new THREE.TextureLoader(), emHitMat=new THREE.MeshBasicMaterial({visible:false});
 function emBuf(s,C){ var bin=atob(s), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new C(u.buffer); }
 function emTexture(kind,i){
@@ -4461,7 +4457,7 @@ function updateHBeams(dt){
     b.core.material.opacity=w; b.out.material.opacity=0.8*w;
   }
 }
-var FLOOD=__D.FLOOD;
+var FLOOD={tex:[]};
 /* ---------- the Flood: night falls from wave 5, the Covenant run, and the Flood rise out of the blue blood ---------- */
 var FK={
   finf:{f:'inf',hp:10,speed:7.4,rad:0.3,sc:0.5,pts:25,melee:6,meleeCd:0.7,leapV:5.2,leapMin:2.2,leapMax:8,leapCd:1.8,h:0.5},
@@ -4666,7 +4662,7 @@ function applyNight(k){
 }
 
 /* ---------- CCS Class Battlecruiser (CC-BY, Admiral Tributon) ---------- */
-var CRUISER=__D.CRUISER;
+var CRUISER={L:1,m:[],tb:'',te:'',tex:[]};
 var cruiserG=null;
 safe(function(){
   function b2a(s,T){ var bs=atob(s), u=new Uint8Array(bs.length); for(var i=0;i<bs.length;i++) u[i]=bs.charCodeAt(i); return new T(u.buffer); }
@@ -4834,7 +4830,7 @@ function pickSpawn(){
 }
 
 /* ---------- Covenant dropships: raiders jump out of the sides at random spots, then it flies off ---------- */
-var SPIRIT=__D.SPIRIT;
+var SPIRIT={tex:[]};
 var ships=[], pendingDrop=0, spiritMats=null, spiritGeo={}, spiritLoader=new THREE.TextureLoader();
 function spiritMaterials(){
   if(!spiritMats){
