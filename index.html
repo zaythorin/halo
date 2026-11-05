@@ -891,7 +891,6 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
   <div id="menuShade"></div>
   <div id="hmTabs"><i class="hk">Q</i>
     <button type="button" class="hmTab on" data-tab="play">PLAY</button>
-    <button type="button" class="hmTab" data-tab="custom">CUSTOMIZE</button>
     <button type="button" class="hmTab" data-tab="friends">FRIENDS<b id="hmReqDot" hidden></b></button>
     <button type="button" class="hmTab" data-tab="settings">SETTINGS</button><i class="hk">E</i></div>
   <div id="hmNet"><span id="hmNetDot"></span><span id="hmNetTxt">OFFLINE</span></div>
@@ -10595,7 +10594,7 @@ function frame(now){
   if(state==='play'){
     aimFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
     updateWeapon(dt); updateThrow(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
-    if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ updateShips(dt); updateWaves(dt); if(CAMP.on) campTick(dt); } for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
+    if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ if(CAMP.on) campTick(dt); }   /* no PvE waves any more: matches are player against player */ for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on&&!TRN.on) updateAllies(dt);
     updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); try{ crateTick(dt); }catch(e){} if(ISR.on){ ISR.t-=dt; if(ISR.t<=0){ ISR.t=0.6; try{ flagApply(); }catch(e){} } } if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
   }else if(state==='menu'){
@@ -13402,7 +13401,7 @@ function mpCheckEnd(){
     $('oTitle').textContent=win?'VICTORY':'DEFEAT'; medalPanel();
     $('oWave').textContent=mp.score[0]+' - '+mp.score[1]; $('oKills').textContent=TEAMS[wt].n+' TEAM WINS'; $('oHeads').textContent=''; $('oScore').textContent=''; $('oBest').textContent='';
     var fin=function(){ $('redeploy').hidden=true; $('over').hidden=false; sbShow(false); sbFill($('sbEnd')); };
-    try{ podStart(wt,fin); }catch(err){ POD.on=false; fin(); }
+    fin();   /* no victory stage or emotes any more: straight to the results */
   }
 }
 function mpTeamOf(id){ return id===mp.id?mp.team:(mp.peers[id]?mp.peers[id].team:undefined); }
@@ -13907,8 +13906,8 @@ document.addEventListener('keydown',function(ev){
   if(state!=='menu'||$('menu').hidden||ev.repeat) return;
   var tg=ev.target&&ev.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA') return;
   if(document.querySelectorAll('.overlay:not(#menu):not([hidden])').length) return;
-  var order=['play','custom','friends','settings'], i=order.indexOf(HM.tab);
-  if(ev.code==='KeyQ') hmTab(order[(i+3)%4]); else if(ev.code==='KeyE') hmTab(order[(i+1)%4]);
+  var order=['play','friends','settings'], i=Math.max(0,order.indexOf(HM.tab));
+  if(ev.code==='KeyQ') hmTab(order[(i+2)%3]); else if(ev.code==='KeyE') hmTab(order[(i+1)%3]);
 });
 $('hmNews').innerHTML='<h3>WARZONE ALPHA UPDATE</h3><div class="dt">5 NOVEMBER 2026</div>'+
   '<h4>NEW DIRECTION</h4><ul><li>The game is now Warzone Alpha</li><li>All sci-fi weapons and plasma grenades are removed. Fresh gun models are on the way</li></ul>'+
