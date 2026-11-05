@@ -897,11 +897,10 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
   <div id="hmNet"><span id="hmNetDot"></span><span id="hmNetTxt">OFFLINE</span></div>
   <div class="hmPane on" id="hmPlay">
     <div class="hmList" id="hmPlayList">
-      <button type="button" class="hmItem sel" id="campBtn" data-d="Hold the ring against the Covenant and Flood across the campaign, mission by mission.">CAMPAIGN</button>
-      <button type="button" class="hmItem" id="mpBtn" data-d="Play online with friends: deathmatch, team modes, capture the flag and king of the hill. Share a room code or invite a friend.">MULTIPLAYER</button>
+      <button type="button" class="hmItem sel" id="mpBtn" data-d="Play online with friends: deathmatch, team modes, capture the flag and king of the hill. Share a room code or invite a friend.">MULTIPLAYER</button>
       <button type="button" class="hmItem" id="trainBtn" data-d="The shooting range: try every weapon and vehicle against targets, no pressure. Press K in there for the field tablet.">SHOOTING RANGE</button>
       <button type="button" class="hmItem" id="tabBtn" data-d="Your field tablet: pick weapons, attachments and a perk, check your rank and service record, and jump into any mode.">FIELD TABLET</button>
-      <p class="hmDesc" id="hmDesc">Hold the ring against the Covenant and Flood across the campaign, mission by mission.</p>
+      <p class="hmDesc" id="hmDesc">Play online with friends: deathmatch, team modes, capture the flag and king of the hill. Share a room code or invite a friend.</p>
     </div>
     <div class="hmBanner"><div id="menuLogoBox"><img id="menuLogo" alt="WARZONE ALPHA" hidden><h1 class="logo" id="menuLogoTxt">WARZONE</h1><div id="menuSub">ALPHA</div></div><div class="tag" id="tagLine">HOLD THE LINE</div></div>
     <div class="hmNewsWrap"><div class="hmH">LATEST UPDATE</div>
@@ -1056,7 +1055,7 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
 <div class="overlay" id="mp" hidden>
   <div class="card mpCard">
     <h2>PLAY ONLINE</h2>
-    <div class="mpModes"><button type="button" class="go alt on" id="mpFF">FIREFIGHT CO-OP</button><button type="button" class="go alt" id="mpDM">TEAM BATTLE 1v1 - 2v2</button><button type="button" class="go alt" id="mpCTF">CAPTURE THE FLAG</button><button type="button" class="go alt" id="mpKOTH">KING OF THE HILL</button></div>
+    <div class="mpModes"><button type="button" class="go alt on" id="mpDM">TEAM BATTLE 1v1 - 2v2</button><button type="button" class="go alt" id="mpCTF">CAPTURE THE FLAG</button><button type="button" class="go alt" id="mpKOTH">KING OF THE HILL</button></div>
     <p class="dim" id="mpDesc"></p>
     <div class="mpRow"><input id="mpName" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false"></div>
     <div class="mpOpts" id="mpOpts">
@@ -1065,7 +1064,7 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
       <div id="mpOptTM">
         <div class="mpOptT">YOUR TEAM</div><div class="mpChips" id="mpTeamPick"></div><div class="dim" id="mpTeamNow" style="font-size:12px;letter-spacing:.14em"></div>
         <div class="mpOptT">VEHICLES AND MAP</div><div class="mpChips" id="mpOptV"></div>
-        <div class="mpOptT">MAP <select id="mpMap"><option value="0">SNOWBOUND</option><option value="1" selected>RECON</option><option value="2">COVENANT SHIP</option><option value="3">NEW MOMBASA</option><option value="4">SKYBREAK (AIR DUEL)</option></select></div>
+        <div class="mpOptT">MAP <select id="mpMap"><option value="0">SNOWBOUND</option><option value="1" selected>RECON</option><option value="3">NEW MOMBASA</option></select></div>
         <div class="mpOptT">SCORE LIMIT <select id="mpLim"></select></div>
       </div>
     </div>
@@ -1077,29 +1076,6 @@ body.hurt2 #gl{filter:saturate(.3) contrast(1.12)}
   </div>
 </div>
 
-<div class="overlay" id="camp" hidden>
-  <div class="card">
-    <h2 id="campTitle">CAMPAIGN</h2>
-    <div id="campList"></div>
-    <div id="campBrief"></div>
-    <div class="pbtns"><button type="button" class="go" id="campGo" hidden>START MISSION</button><button type="button" class="go alt" id="campBack">BACK</button></div>
-  </div>
-</div>
-<div class="overlay" id="campCard" hidden>
-  <div class="card">
-    <h2 id="ccTitle"></h2>
-    <div id="ccText"></div>
-    <div class="pbtns"><button type="button" class="go" id="ccBtn">BEGIN</button></div>
-  </div>
-</div>
-<div class="overlay" id="campDone" hidden>
-  <div class="card">
-    <h2 id="cdTitle">MISSION COMPLETE</h2>
-    <div id="cdText"></div>
-    <div class="stats"><div>KILLS<b id="cdKills">0</b></div><div>HEADSHOTS<b id="cdHeads">0</b></div><div>SCORE<b id="cdScore">0</b></div><div>TIME<b id="cdTime">0</b></div></div>
-    <div class="pbtns"><button type="button" class="go" id="cdNext">NEXT MISSION</button><button type="button" class="go alt" id="cdMenu">MAIN MENU</button></div>
-  </div>
-</div>
 <div class="overlay" id="over" hidden>
   <div class="card">
     <h2 id="oTitle">ELIMINATED</h2>
@@ -1138,7 +1114,7 @@ window.addEventListener('unhandledrejection',function(e){ window.__showErr('ERRO
 <script src="data/SND_SRC.js"></script>
 <script>__boot(0.217,'LOADING SOUNDS')</script>
 <script src="data/CHIEF.js"></script>
-<script>__boot(0.229,'LOADING SPARTAN')</script>
+<script>__boot(0.229,'LOADING SOLDIER')</script>
 <script src="data/MODELS.js"></script>
 <script>__boot(0.347,'LOADING WEAPON MODELS')</script>
 <script src="data/WPN.js"></script>
@@ -1146,7 +1122,7 @@ window.addEventListener('unhandledrejection',function(e){ window.__showErr('ERRO
 <script src="data/NWM.js"></script>
 <script>__boot(0.495,'LOADING WEAPON MODELS')</script>
 <script src="data/COVM.js"></script>
-<script>__boot(0.598,'LOADING COVENANT ARMS')</script>
+<script>__boot(0.598,'LOADING ARMS')</script>
 <script src="data/DMRM.js"></script>
 <script>__boot(0.660,'LOADING WEAPON MODELS')</script>
 <script src="data/EMODELS.js"></script>
@@ -2420,7 +2396,7 @@ function armSlotMat(slot,t,base){
   var ck=CHIEF.id+'|'+t+'|'+k; if(!armMatC[ck]){ var m=base.clone(), tx=armTexture(t,o); m.map=tx; m.emissiveMap=tx; m.needsUpdate=true; armMatC[ck]=m; }
   return armMatC[ck];
 }
-var CHARS={chief:CHIEF}, CHAR_KEYS=['chief','arbiter','noble'], CHAR_NAMES={chief:'MASTER CHIEF',arbiter:'THE ARBITER',noble:'NOBLE SIX'}, CHAR_FILE={arbiter:'char_arbiter.json',noble:'char_noble.json'}, charPend={}, curChar='chief', HANDS=[], HREG=true, fpMatsBy={};
+var CHARS={chief:CHIEF}, CHAR_KEYS=['chief','arbiter','noble'], CHAR_NAMES={chief:'SOLDIER',arbiter:'SOLDIER 2',noble:'SOLDIER 3'}, CHAR_FILE={arbiter:'char_arbiter.json',noble:'char_noble.json'}, charPend={}, curChar='chief', HANDS=[], HREG=true, fpMatsBy={};
 function loadChar(k,cb){
   if(CHARS[k]){ cb(true); return; }
   if(charPend[k]){ charPend[k].push(cb); return; }
@@ -4982,7 +4958,7 @@ function kamiBlast(e){
 }
 /* ---------- medals: Halo-style multi-kill and spree medals with an announcer-style chime ---------- */
 var MD={last:-99,multi:0,spree:0,el:null,t:0,gap:-1};
-var MD_MULTI={2:'DOUBLE KILL',3:'TRIPLE KILL',4:'OVERKILL',5:'KILLTACULAR',6:'KILLTROCITY',7:'KILLIMANJARO'};
+var MD_MULTI={2:'DOUBLE KILL',3:'TRIPLE KILL',4:'OVERKILL',5:'QUINTUPLE KILL',6:'SIXFOLD KILL',7:'SEVENFOLD KILL'};
 var MD_SPREE={5:'KILLING SPREE',10:'KILLING FRENZY',15:'RUNNING RIOT',20:'RAMPAGE',25:'UNTOUCHABLE'};
 function medalShow(txt,sub,col){
   try{
@@ -6748,7 +6724,7 @@ function enterRover(){
   p.inVeh=true; reloading=false; swapT=0; pendingW=null; fireEdgeT=0; zoomed=false; zoomLvl=1; $('bZoom').classList.remove('on');
   vm.visible=false; ctrl.jump=false;
   p.yaw=veh.h; p.pitch=-0.16; p.x=veh.x; p.z=veh.z; p.y=veh.y; p.vx=0; p.vz=0; p.vy=0;
-  startEngine('wh'); showToast('WARTHOG'); tmClaim('r',1);
+  startEngine('wh'); showToast('JEEP'); tmClaim('r',1);
 }
 function exitRover(){
   if(!p.inVeh) return;
@@ -10189,24 +10165,10 @@ var CAMP_M=[
   {n:'COMING SOON',sub:'The story continues',story:'',locked:true}
 ];
 function campProg(){ return 0; }
-function campOpen(){ $('menu').hidden=true; $('camp').hidden=false; campRender(0); }
-function campRender(sel){
-  var L=$('campList'); L.innerHTML=''; CAMP.sel=sel;
-  CAMP_M.forEach(function(m,i){
-    var b=document.createElement('button'); b.type='button'; b.className='cm'+(i===sel?' sel':''); b.disabled=!!m.locked;
-    b.innerHTML='<span>'+(i+1)+'  '+m.n+'<br><small>'+m.sub+'</small></span><small>'+(m.locked?'LOCKED':'READY')+'</small>';
-    b.addEventListener('click',function(){ campRender(i); });
-    L.appendChild(b);
-  });
-  var m=CAMP_M[sel]; $('campBrief').textContent=m?m.story:''; $('campGo').hidden=!m||!!m.locked;
-}
-function campCard(title,text,btn,cb){
-  $('ccTitle').textContent=title; $('ccText').textContent=text; $('ccBtn').textContent=btn; CAMP.ccCb=cb; $('campCard').hidden=false;
-}
-function campStart(i){
-  CAMP.m=i; CAMP.cp=0; $('camp').hidden=true; $('campDone').hidden=true;
-  campCard('MISSION 1  -  '+CAMP_M[i].n,CAMP_M[i].intro,'BEGIN',function(){ CAMP.on=true; CAMP.isl=!!CAMP_M[i].isl; startGame(); });
-}
+function campOpen(){}
+function campRender(){}
+function campCard(){}
+function campStart(){}
 function campClear(){
   if(CAMP.beacon){ scene.remove(CAMP.beacon); CAMP.beacon=null; } if(CAMP.tower){ scene.remove(CAMP.tower); CAMP.tower=null; }
   if(CAMP.el) CAMP.el.style.display='none'; if(CAMP.subEl) CAMP.subEl.style.display='none'; CAMP.subs=[]; CAMP.sub=null; if($('match')) $('match').style.display='';
@@ -10375,12 +10337,6 @@ function campComplete(){
   $('cdNext').textContent='REPLAY MISSION'; $('cdNext').dataset.last='1';
   campClear(); $('campDone').hidden=false;
 }
-$('ccBtn').addEventListener('click',function(){ $('campCard').hidden=true; if(CAMP.ccCb) CAMP.ccCb(); });
-$('campBtn').addEventListener('click',campOpen);
-$('campBack').addEventListener('click',function(){ $('camp').hidden=true; $('menu').hidden=false; });
-$('campGo').addEventListener('click',function(){ if(CAMP.sel>=0) campStart(CAMP.sel); });
-$('cdNext').addEventListener('click',function(){ CAMP.cp=0; CAMP.on=false; campStart(CAMP.m); });
-$('cdMenu').addEventListener('click',function(){ $('campDone').hidden=true; toMenu(); });
 
 $('redeploy').addEventListener('click',startGame);
 $('restart').addEventListener('click',startGame);
@@ -12026,7 +11982,7 @@ function cinStart(){
     cinDiv('position:fixed;inset:0;z-index:7;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.6) 100%),linear-gradient(180deg,rgba(20,60,80,.12),rgba(80,40,10,.1));mix-blend-mode:multiply');
     CIN.card=cinDiv('position:fixed;left:clamp(24px,7vw,110px);bottom:19vh;z-index:10;pointer-events:none;opacity:0;transition:opacity .9s;color:#fff;font-family:var(--font-ui,sans-serif)');
     CIN.card.innerHTML='<div style="font:700 11px var(--font-ui,sans-serif);letter-spacing:.42em;color:#6fd3ff;margin-bottom:8px">WARZONE ALPHA</div><div id="cinT" style="font:700 clamp(26px,5.4vw,58px) var(--font-ui,sans-serif);letter-spacing:.16em;line-height:1.05;text-shadow:0 2px 18px rgba(0,0,0,.7)"></div><div style="height:2px;width:min(280px,40vw);background:#6fd3ff;margin:12px 0 10px;box-shadow:0 0 10px #6fd3ff"></div><div id="cinS" style="font:600 clamp(11px,1.6vw,15px) var(--font-ui,sans-serif);letter-spacing:.3em;color:#d6e6f5"></div>';
-    CIN.card.querySelector('#cinT').textContent=tt[0]; CIN.card.querySelector('#cinS').textContent=String(tt[1]).toUpperCase()+'  •  '+(myName()||'SPARTAN').toUpperCase();
+    CIN.card.querySelector('#cinT').textContent=tt[0]; CIN.card.querySelector('#cinS').textContent=String(tt[1]).toUpperCase()+'  •  '+(myName()||'SOLDIER').toUpperCase();
     cinDiv('position:fixed;right:14px;bottom:calc(11vh + 8px);z-index:10;pointer-events:none;font:700 11px monospace;letter-spacing:.14em;color:rgba(255,255,255,.55)').textContent='PRESS ANY KEY OR TAP TO SKIP';
     ['keydown','pointerdown','touchstart'].forEach(function(n){ window.addEventListener(n,cinSkip,true); });
     if(ac){ try{ tone(55,110,2.4,'sawtooth',0.1); noise(2.2,0.05,'lowpass',200,1400); }catch(e){} }
@@ -12808,7 +12764,7 @@ function tmTintAvatar(av,team){
 /* ================= ONLINE PLAY: up to four players over WebRTC (PeerJS) =================
    Deathmatch: each player simulates themselves; the shooter decides hits and tells the victim.
    Firefight: the host runs the waves and enemy AI, the guest shows the enemies from snapshots and reports damage. */
-var mp={on:false,mode:'ff',host:false,peer:null,conn:null,code:'',sendT:0,enT:0,hudT:0,hudDisp:0,me:0,opp:0,target:10,over:false,inv:0,avatar:null,left:0,
+var mp={on:false,mode:'dm',host:false,peer:null,conn:null,code:'',sendT:0,enT:0,hudT:0,hudDisp:0,me:0,opp:0,target:10,over:false,inv:0,avatar:null,left:0,
   rem:{x:0,y:0,z:0,yaw:0,tx:0,ty:0,tz:0,tyaw:0,al:true,hp:200,has:false},map:{},eid:0,spawns:null,pending:null};
 var mpProxyP={isPl:false,isRemote:true,x:0,z:0,y:0,vy:0,vx:0,vz:0,yaw:0,pitch:0,shield:100,health:100,lastHit:-10,onGround:true,inVeh:false};
 function r2(v){ return Math.round(v*100)/100; }
@@ -13737,11 +13693,12 @@ function mpChip(parent,label,get,set){
 }
 function mpBuildOpts(){
   var W=$('mpOptW'), V=$('mpOptV'); W.innerHTML=''; V.innerHTML='';
-  ['MAGNUM','ASSAULT RIFLE','SNIPER','ROCKETS','SHOTGUN','ENERGY SWORD','SMG','BATTLE RIFLE','SPARTAN LASER','SAW','MOUNTED TURRET'].forEach(function(n,i){
+  ['DESERT EAGLE','M762 RIFLE','SNIPER RIFLE','ROCKETS','SHOTGUN','ENERGY SWORD','SMG','BATTLE RIFLE','SPARTAN LASER','SAW','MOUNTED TURRET'].forEach(function(n,i){
+    if(WBAN[i]) return;
     mpChip(W,n,function(){ return MPO.w[i]; },function(v){ MPO.w[i]=v; });
   });
-  mpChip(V,'WARTHOG (RECON)',function(){ return MPO.vr; },function(v){ MPO.vr=v; });
-  mpChip(V,'HORNET',function(){ return MPO.vj; },function(v){ MPO.vj=v; });
+  mpChip(V,'JEEP (RECON)',function(){ return MPO.vr; },function(v){ MPO.vr=v; });
+  mpChip(V,'HELICOPTER',function(){ return MPO.vj; },function(v){ MPO.vj=v; });
   mpChip(V,'TRENCHES',function(){ return MPO.tr; },function(v){ MPO.tr=v; });
   $('mpLim').addEventListener('change',function(){ MPO.lim=+$('mpLim').value||0; });
   $('mpMap').addEventListener('change',function(){ MPO.map=+$('mpMap').value||0; mpTeamUI(); });
@@ -13760,20 +13717,19 @@ function mpLoadout(){
   if(!al.length) return;
   if(!wAllowed(slots[0])||!wAllowed(slots[1])){ slots=[al[0],al[1]!==undefined?al[1]:al[0]]; sel=0; pendingW=null; swapT=0; setWeapon(slots[0]); }
 }
-var mpMode='ff';
+var mpMode='dm';
 function mpSetMode0(m){
-  mpMode=m; mp.mode=m; $('mpFF').classList.toggle('on',m==='ff'); $('mpDM').classList.toggle('on',m==='dm');
+  m='dm'; mpMode=m; mp.mode=m; $('mpDM').classList.toggle('on',true);
   $('mpDesc').textContent=m==='ff'?'Two players against the waves. The host runs the match; enemies hunt whichever of you is closer.':'Red against blue on a two-base map, 1v1 up to 2v2. You are placed on a team and spawn at your base, and every base has a Warthog and a Hornet. Weapons lie on the racks. First team to the score limit wins.';
 }
 var mpCtf=false, mpKoth=false;
 function mpSetMode(m,ctf,koth){
-  mpSetMode0(m); mpKoth=!!koth&&m==='dm'; mp.koth=mpKoth; mpCtf=!!ctf&&m==='dm'&&!mpKoth; mp.ctf=mpCtf; mpOptRefresh(m,mpCtf,mpKoth);
+  m='dm'; mpSetMode0(m); mpKoth=!!koth&&m==='dm'; mp.koth=mpKoth; mpCtf=!!ctf&&m==='dm'&&!mpKoth; mp.ctf=mpCtf; mpOptRefresh(m,mpCtf,mpKoth);
   $('mpDM').classList.toggle('on',m==='dm'&&!mpCtf&&!mpKoth); $('mpCTF').classList.toggle('on',mpCtf); $('mpKOTH').classList.toggle('on',mpKoth);
   if(mpKoth) $('mpDesc').textContent='Red against blue, 1v1 up to 2v2. A glowing circle sits in the middle of the map. Stand in it with no enemy inside and your team scores a point every second; if both teams are in it, nobody scores. First to 100 points wins (the host can change the limit); kills do not score.';
   if(mpCtf) $('mpDesc').textContent='Red against blue, 1v1 up to 2v2. Take the enemy flag from the hall in front of their base and carry it to your own flag. Your flag has to be home to score. Flags drop when the carrier is killed and return after 30 seconds. First to 3 captures wins; kills do not score.';
 }
 $('mpBtn').addEventListener('click',function(){ mpSetMode('ff'); mpStatus(''); $('mp').hidden=false; });
-$('mpFF').addEventListener('click',function(){ mpSetMode('ff'); });
 $('mpDM').addEventListener('click',function(){ mpSetMode('dm'); });
 $('mpCTF').addEventListener('click',function(){ mpSetMode('dm',true); });
 $('mpKOTH').addEventListener('click',function(){ mpSetMode('dm',false,true); });
@@ -14145,7 +14101,7 @@ function tbRender(){
   if(TB.tab==='ops'){
     b.appendChild(E('div','tbH','OPERATIONS'));
     var g=E('div','tbGrid');
-    [['SHOOTING RANGE','Every weapon and vehicle against targets. Open this tablet in there with K.','trainBtn'],['CAMPAIGN','Hold the ring mission by mission.','campBtn'],['ONLINE MULTIPLAYER','Co-op, team battle, capture the flag, king of the hill.','mpBtn']].forEach(function(o){
+    [['SHOOTING RANGE','Every weapon and vehicle against targets. Open this tablet in there with K.','trainBtn'],['ONLINE MULTIPLAYER','Team battle, capture the flag, king of the hill.','mpBtn']].forEach(function(o){
       g.appendChild(btn(o[0],o[1],false,false,function(){ tabletClose(true); if(state!=='menu') toMenu(); try{ $(o[2]).click(); }catch(e){} }));
     });
     b.appendChild(g); b.appendChild(E('div','tbFoot','Starting a mode from here leaves what you are playing now.'));
@@ -14200,7 +14156,7 @@ $('pRadio').addEventListener('click',function(){ RAD.on=!RAD.on; try{ localStora
 $('pRadio').textContent='RADIO CHATTER: '+(RAD.on?'ON':'OFF');
 
 /* ---- customize: species / character, armour colour part by part, and a turning 3D preview ---- */
-var CU_SPECIES={chief:'SPARTAN',noble:'SPARTAN',arbiter:'SANGHEILI'}, CU={tab:'armor',slot:'helmet',r:null,sc:null,cam:null,root:null,spin:0,drag:null,raf:0,rebuild:true};
+var CU_SPECIES={chief:'SOLDIER',noble:'SOLDIER',arbiter:'SOLDIER'}, CU={tab:'armor',slot:'helmet',r:null,sc:null,cam:null,root:null,spin:0,drag:null,raf:0,rebuild:true};
 function cuApplyAll(){
   try{ HANDS.forEach(function(g){ for(var i=g.children.length-1;i>=0;i--) g.remove(g.children[i]); fillHand(g,g.userData.hk[0],g.userData.hk[1]); }); TP.rigId=null; }catch(e){}
   CU.rebuild=true; cuRender();
@@ -14220,7 +14176,7 @@ function cuRender(){
   var slotN=''; ARM_SLOTS.forEach(function(q){ if(q.k===CU.slot) slotN=q.n; });
   ['armor','pers','col'].forEach(function(t){ var pn=$('cuP_'+t); if(pn) pn.hidden=(t!==CU.tab); });
   Array.prototype.forEach.call(document.querySelectorAll('.cuTab'),function(tb){ tb.classList.toggle('on',tb.dataset.t===CU.tab); });
-  $('cuHd').textContent=CU.tab==='armor'?slotN:CU.tab==='col'?slotN+' COLOUR':'SPARTAN';
+  $('cuHd').textContent=CU.tab==='armor'?slotN:CU.tab==='col'?slotN+' COLOUR':'SOLDIER';
   CHAR_KEYS.forEach(function(k){
     var b=document.createElement('button'); b.type='button'; b.className='cuCh'+(k===curChar?' on':'');
     b.innerHTML='<b></b><small></small>'; b.querySelector('b').textContent=CHAR_NAMES[k]; b.querySelector('small').textContent=CU_SPECIES[k]||'';
