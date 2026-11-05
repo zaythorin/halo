@@ -376,6 +376,14 @@ body.gp button:focus{outline:2px solid var(--amber);outline-offset:3px}
 @keyframes xhb{50%{opacity:.3}}
 .cross.low i{animation:xhb .55s infinite}
 .cross.zin{--c:#cfe8ff}
+/* slimmer crosshair: 1px strokes, short arms, a pin-point centre, so the target stays visible */
+.cross i{opacity:1;box-shadow:0 0 1.5px rgba(0,0,0,.95)}
+.cross .t{left:-.5px;width:1px;height:6px;top:calc(-6px - var(--g))}
+.cross .b{left:-.5px;width:1px;height:6px;top:var(--g)}
+.cross .l{top:-.5px;height:1px;width:6px;left:calc(-6px - var(--g))}
+.cross .r{top:-.5px;height:1px;width:6px;left:var(--g)}
+.cross .d{left:-.5px;top:-.5px;width:1px;height:1px}
+.cross.foe:not(.hit):not(.head):not(.kill) i{box-shadow:0 0 2px rgba(0,0,0,.95)}
 #vig{background:radial-gradient(ellipse at center,transparent 50%,rgba(140,34,24,.75) 100%)}
 .btn{background:rgba(18,24,20,.5);border-color:rgba(200,210,185,.35);color:#dfe2d2}
 #bFrag{border-color:#8d9b62;color:#b5c086}
@@ -3717,10 +3725,10 @@ function hud(){
   if(hudCache.gz1!==gz1){ hudCache.gz1=gz1; els.gPlasma.classList.toggle('gz',gz1); }
   var emp=!w.inf&&w.mag===0; if(hudCache.emp!==emp){ hudCache.emp=emp; els.info.classList.toggle('empty',emp); }
   var px=Math.tan(currentSpread())*window.innerHeight/(2*Math.tan(camera.fov*Math.PI/360));
-  var gap0=5+px;
+  var gap0=3+px*0.85;
   /* the gap eases to its size instead of snapping: it kicks open on every shot and loosens for a moment when you zoom in or out, then settles */
   if(zoomed!==XH.zw){ XH.zw=zoomed; XH.zt=tAcc; }
-  gap0+=7*Math.exp(-(tAcc-lastShot)*11)*(tAcc-lastShot<0.5?1:0)+9*Math.sin(Math.min(1,(tAcc-XH.zt)/0.35)*Math.PI)*((tAcc-XH.zt)<0.35?1:0);
+  gap0+=4*Math.exp(-(tAcc-lastShot)*11)*(tAcc-lastShot<0.5?1:0)+9*Math.sin(Math.min(1,(tAcc-XH.zt)/0.35)*Math.PI)*((tAcc-XH.zt)<0.35?1:0);
   XH.g+=(gap0-XH.g)*Math.min(1,frameDt*(gap0>XH.g?45:11));
   var gap=Math.round(XH.g*2)/2;
   if(hudCache.gap!==gap){ hudCache.gap=gap; els.cross.style.setProperty('--g',gap+'px'); }
