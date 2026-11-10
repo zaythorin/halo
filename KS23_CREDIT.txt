@@ -1,0 +1,11 @@
+Model Information:
+* title:	ks-23
+* source:	https://sketchfab.com/3d-models/ks-23-fbd1bbdc583e45cf92421eb38eef8c23
+* author:	MR_Fisher (https://sketchfab.com/jereminasopek)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "ks-23" (https://sketchfab.com/3d-models/ks-23-fbd1bbdc583e45cf92421eb38eef8c23) by MR_Fisher (https://sketchfab.com/jereminasopek) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
