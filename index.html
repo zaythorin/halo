@@ -3897,6 +3897,7 @@ function dmrDraw(ud,n,mx,rl){
   var k, tw=(w-24)/mx; g.shadowBlur=6; for(k=0;k<mx;k++){ if(k<n&&!rl) g.fillRect(12+k*tw+1,h-34,Math.max(2,tw-3),18); else { g.globalAlpha=0.22; g.fillRect(12+k*tw+1,h-34,Math.max(2,tw-3),18); g.globalAlpha=1; } }
   ud.scT.needsUpdate=true;
 }
+var DMRC=null;
 function buildDMR(){
   if(!DMRC){
     /* Low-Poly SVCh 308 by TastyTony: flat vertex colours, no textures */
