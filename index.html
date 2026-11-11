@@ -12010,11 +12010,11 @@ function tmRackSpot(bx,by,bz,avoid){
   }
   return fallback;
 }
-var RACK_UNSC=[2,1,4,0,7,19,6,8,9], RACK_COV=[11,12,14,15,13,16,18];
+var RACK_UNSC=[2,1,4,0,7,19,6,(weapons[20]&&weapons[20].id==='bayonet')?20:8,9], RACK_COV=[11,12,14,15,13,16,18];
 /* free-standing weapon rack: a board on two posts with the guns hanging upright on it, like the wall racks in the other maps. Look at one and press E */
 function tmMomRack(cx,gy,cz,dz,t,wl){
   /* weapon racks are UNSC weapon crates: a row of green lockers, three weapons in each, open towards the player */
-  var ws=wl||[2,1,4,0,7,6,8,9], i, tc=TEAMS[t].c, CW=2.4, per=3, nC=Math.ceil(ws.length/per), ci;
+  var ws=wl||[2,1,4,0,7,6,(weapons[20]&&weapons[20].id==='bayonet')?20:8,9], i, tc=TEAMS[t].c, CW=2.4, per=3, nC=Math.ceil(ws.length/per), ci;
   for(ci=0;ci<nC;ci++){
     var ccx=cx+(ci-(nC-1)/2)*(CW+0.05), cr=buildUnscCrate(tc,true);
     cr.position.set(ccx,gy,cz); cr.rotation.y=dz>0?0:Math.PI; scene.add(cr);
@@ -12389,7 +12389,7 @@ function tmLooseWeapon(x,z,wi,fy,fall){
 
 /* weapons hang upright on the inner back wall of each hall, like a gun rack: look at one and press E */
 function tmWallRack(Z,dz,t){
-  var ws=[2,1,4,0,7,6,8,9], xs=[-18,-14,-10,-6,6,10,14,18], zz=Z+dz*28.45+dz*0.42, i, tc=TEAMS[t].c;
+  var ws=[2,1,4,0,7,6,(weapons[20]&&weapons[20].id==='bayonet')?20:8,9], xs=[-18,-14,-10,-6,6,10,14,18], zz=Z+dz*28.45+dz*0.42, i, tc=TEAMS[t].c;
   for(i=0;i<ws.length;i++){
     if(crateMode()||!wAllowed(ws[i])) continue;
     var sz=rackTpl[ws[i]].userData.sz||new V3(1,0.3,0.15), L=Math.max(0.6,sz.x), g=new THREE.Group(), inner=rackTpl[ws[i]].clone();
