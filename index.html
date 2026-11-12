@@ -4179,6 +4179,7 @@ function buildDMR(){
 /* ---------- M9 BAYONET (model: "M9 bayonet" by Foxx Assets, CC-BY-4.0, see BAYONET_CREDIT.txt) ----------
    a knife with its own moves. Attacking hooks you onto the enemy in front of you and stabs; the zoom key throws it, once:
    it flies, lands on the floor, and stays there until you walk over it. */
+var BAYS=1.8, BAYP=[0,0,0], BAYH={p:[0,0,-0.1],r:[0,0,0],s:0.8};   /* knife scale, the wrist pivot, and where the hand sits on the handle */
 var BAY={wi:-1,thrown:false,thT:0,thDone:true,hook:null,line:null,proj:null,idleT:0,twirlT:0,spr:null}, BAYC=null, BGRAV=14, BTHROW=0.38;
 var BAY_COMBO=[
   [[0.20,0.0,0.10,0.15,-0.7,-0.5],[-0.28,-0.04,-0.24,-0.05,0.95,0.55]],     /* quick slash, right to left */
@@ -4198,19 +4199,19 @@ function buildBayonet(){
     geo.setIndex(new THREE.BufferAttribute(new Uint16Array(decodeB64(d.i)),1));
     BAYC={geo:geo,mat:new THREE.MeshPhongMaterial({map:ld(d.tex),normalMap:ld(d.nrm),color:0xffffff,shininess:70,specular:0x888c92,side:THREE.DoubleSide})};
   }
-  var g=new THREE.Group(), inner=new THREE.Group(); inner.add(new THREE.Mesh(BAYC.geo,BAYC.mat)); g.add(inner);
+  var g=new THREE.Group(), arm=new THREE.Group(), kn=new THREE.Group(), inner=new THREE.Group(); inner.add(new THREE.Mesh(BAYC.geo,BAYC.mat)); kn.add(inner);
   var mag=new THREE.Group(); mag.visible=false; g.add(mag);
-  var mz=new THREE.Object3D(); mz.position.set(0,0,-0.27); g.add(mz);
+  var mz=new THREE.Object3D(); mz.position.set(0,0,-0.27); kn.add(mz);
   var lh=new THREE.Group(); lh.visible=false; g.add(lh);
-  var rh=makeHand(false); rh.position.set(0.0,-0.006,0.012); rh.rotation.set(0.6,0.3,0); g.add(rh);
-  g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh,spin:inner};
+  var rh=makeHand(false); rh.position.set(BAYH.p[0],BAYH.p[1],BAYH.p[2]); rh.rotation.set(BAYH.r[0],BAYH.r[1],BAYH.r[2]); rh.scale.setScalar(BAYH.s); kn.add(rh);
+  arm.position.set(BAYP[0],BAYP[1],BAYP[2]); kn.position.set(-BAYP[0],-BAYP[1],-BAYP[2]); arm.add(kn); g.add(arm); g.userData={muzzle:mz,mag:mag,mover:null,moverBase:0,leftHand:lh,rightHand:rh,spin:inner,arm:arm,kn:kn};
   return g;
 }
 (function(){
   if(!__D.BAYM) return;   /* its model file is missing: no bayonet weapon, the rest of the game still loads */
   var w=Object.assign({},weapons[5],{id:'bayonet',name:'M9 BAYONET',bayo:true,rate:0.42});
   delete w.group2; w.slideKick=0; w.group=buildBayonet();
-  var an=Object.assign({},weapons[5].anim); an.base=[0.09,-0.13,0.02]; an.baseRot=[0.25,0.05,0.5]; w.anim=an;
+  var an=Object.assign({},weapons[5].anim); an.base=[-0.07,-0.01,0.05]; an.baseRot=[0.769,0.5252,-0.4518]; w.anim=an; w.group.scale.setScalar(BAYS);   /* held up in front, blade pointing up and left, in a fist */
   BAY.wi=weapons.length; weapons.push(w); AMMO_PK.push(0); AMMO_WAVE.push(0); vm.add(w.group); w.group.visible=false;
 })();
 /* ---- the hook: find someone in front of you, then pull yourself onto them ---- */
@@ -4276,6 +4277,7 @@ function bayoThrow(){
   BAY.thT=BTHROW; BAY.thDone=false; reloading=false; fireEdgeT=0; if(zoomed) zoomOff(); gsfx.swish();
 }
 function bayoThrowPose(){
+  return [0,0,0,0,0,0];
   var u=1-BAY.thT/BTHROW, W=[0.12,0.20,0.22,0.9,-0.2,0.5], R=[-0.04,-0.02,-0.45,-0.7,0.1,-0.2], o=[], i, k;
   for(i=0;i<6;i++){
     if(u<0.4){ k=ss(u/0.4); o.push(W[i]*k); }
@@ -4358,6 +4360,35 @@ function bayoFlight(pr,dt){
     pr.m.userData.spin.rotation.x-=dt*26;   /* end over end */
   }else pr.m.rotation.x+=dt*6;
 }
+/* knife poses. p = how far the hand moves from its resting place, in view units (x right, y up, z towards you), d = where the tip points,
+   up = which way the spine faces, u = time through the move, e = how it eases into the next key */
+var BAYI={p:[-0.07,-0.01,0.05],d:[-0.5,0.6,-0.62],up:[0,1,0]}, Z3=[0,0,0];
+function bKey(u,p,d,up,e){ return {u:u,p:p,d:d,up:up||[0,1,0],e:e||'ss'}; }
+var BAYK=[
+  /* slash, upper right down to lower left, edge leading */
+  [bKey(0,Z3,BAYI.d),bKey(0.2,[0.06,0.06,0.0],[0.3,0.8,-0.5],[0.25,1,0],'in'),bKey(0.4,[-0.2,0.02,-0.22],[-0.5,0.2,-0.84],[0.5,0.85,0],'out'),bKey(0.58,[-0.4,-0.08,-0.06],[-0.92,-0.2,-0.34],[0.4,1,0]),bKey(1,Z3,BAYI.d)],
+  /* backhand, from the left back across */
+  [bKey(0,Z3,BAYI.d),bKey(0.2,[-0.26,0.04,0.0],[-0.95,0.2,-0.2],[-0.3,1,0],'in'),bKey(0.4,[0.0,-0.02,-0.22],[0.35,0.2,-0.9],[-0.5,0.85,0],'out'),bKey(0.58,[0.12,-0.08,-0.04],[0.92,-0.1,-0.38],[-0.4,1,0]),bKey(1,Z3,BAYI.d)],
+  /* overhead chop */
+  [bKey(0,Z3,BAYI.d),bKey(0.2,[0.0,0.14,0.0],[-0.25,0.95,0.15],[0,0.1,1],'in'),bKey(0.4,[-0.12,-0.05,-0.22],[-0.4,-0.15,-0.9],[0,1,0.1],'out'),bKey(0.58,[-0.12,-0.16,-0.12],[-0.45,-0.7,-0.5],[0,1,0.2]),bKey(1,Z3,BAYI.d)],
+  /* thrust */
+  [bKey(0,Z3,BAYI.d),bKey(0.2,[0.02,-0.04,0.04],[-0.55,0.25,-0.8],[0,1,0],'in'),bKey(0.4,[-0.12,0.0,-0.42],[-0.6,0.2,-0.77],[0,1,0],'out'),bKey(0.58,[-0.12,0.0,-0.38],[-0.62,0.2,-0.75],[0,1,0]),bKey(1,Z3,BAYI.d)],
+  /* the hook stab: a long lunge */
+  [bKey(0,Z3,BAYI.d),bKey(0.16,[0.02,-0.05,0.04],[-0.55,0.22,-0.8],[0,1,0],'in'),bKey(0.38,[-0.18,0.02,-0.7],[-0.5,0.18,-0.85],[0,1,0],'out'),bKey(0.6,[-0.18,0.0,-0.6],[-0.52,0.18,-0.83],[0,1,0]),bKey(1,Z3,BAYI.d)]
+];
+var BAYT=[bKey(0,Z3,BAYI.d),bKey(0.4,[0.06,0.14,0.0],[-0.1,0.95,0.3],[0,0.1,1],'in'),bKey(0.55,[-0.12,0.05,-0.42],[-0.5,0.2,-0.84],[0,1,0],'out'),bKey(1,[-0.12,0.0,-0.36],[-0.5,0.2,-0.84])];
+var _bpq=new THREE.Quaternion(), _bpd=new V3(), _bpu=new V3(), _bpx=new V3(), _bpy=new V3(), _bpz=new V3(), _bpm=new THREE.Matrix4();
+function bayoPose(g,keys,u){
+  var i=0; while(i<keys.length-2&&u>=keys[i+1].u) i++;
+  var a=keys[i], b=keys[i+1], t=clamp01((u-a.u)/Math.max(1e-4,b.u-a.u)), e=a.e==='in'?t*t:(a.e==='out'?1-(1-t)*(1-t):t*t*(3-2*t));
+  var vs=Math.max(1,vm.scale.x);
+  g.position.set(BAYI.p[0]+(a.p[0]+(b.p[0]-a.p[0])*e)/vs,BAYI.p[1]+(a.p[1]+(b.p[1]-a.p[1])*e)/vs,BAYI.p[2]+(a.p[2]+(b.p[2]-a.p[2])*e)/vs);
+  _bpd.set(a.d[0]+(b.d[0]-a.d[0])*e,a.d[1]+(b.d[1]-a.d[1])*e,a.d[2]+(b.d[2]-a.d[2])*e).normalize();
+  _bpu.set(a.up[0]+(b.up[0]-a.up[0])*e,a.up[1]+(b.up[1]-a.up[1])*e,a.up[2]+(b.up[2]-a.up[2])*e).normalize();
+  _bpz.copy(_bpd).multiplyScalar(-1); _bpx.crossVectors(_bpu,_bpz); if(_bpx.lengthSq()<1e-6) _bpx.set(1,0,0); _bpx.normalize(); _bpy.crossVectors(_bpz,_bpx);
+  _bpm.makeBasis(_bpx,_bpy,_bpz); g.quaternion.setFromRotationMatrix(_bpm);
+}
+function clamp01(x){ return x<0?0:(x>1?1:x); }
 function bayoUpdate(dt){
   var w=weapons[cur];
   /* the throw in the hand: wind up, let go at the top of the swing, then switch to the other weapon */
@@ -4375,13 +4406,21 @@ function bayoUpdate(dt){
       if(state==='play'&&!p.inVeh&&Math.hypot(pr.pos.x-p.x,pr.pos.z-p.z)<1.6&&Math.abs(pr.pos.y-p.y)<2.2) bayoRecover(false);
     }
   }
-  /* idle: now and then the knife is twirled around the hand */
+  var gp0=(w&&w.bayo)?w.group:null;
+  if(gp0&&gp0.userData.spin.visible){
+    /* the moves: a slash, a backhand, a chop or a thrust while you attack; the wind-up and the snap while you throw */
+    if(BAY.thT>0) bayoPose(gp0,BAYT,1-BAY.thT/BTHROW);
+    else if(meleeT>0) bayoPose(gp0,BAYK[Math.min(swCombo,BAYK.length-1)],1-meleeT/MELEE_DUR);
+  }
+  /* the knife is flipped around the hand as it comes up, and twirled now and then when you stand still */
+  if(cur!==BAY.lastCur){ if(cur===BAY.wi) BAY.drawT=0.6; BAY.lastCur=cur; }
   var spin=(w&&w.bayo)?w.group.userData.spin:null;
   if(spin&&spin.visible){
-    var idle=!ctrl.fire&&meleeT<=0&&swapT<=0&&BAY.thT<=0&&!BAY.hook&&moveFrac<0.15&&!zoomed;
+    var idle=!ctrl.fire&&meleeT<=0&&swapT<=0&&BAY.thT<=0&&!BAY.hook&&moveFrac<0.15&&!zoomed, ang=0;
     if(idle){ BAY.idleT+=dt; if(BAY.idleT>5.5&&BAY.twirlT<=0){ BAY.twirlT=1.0; BAY.idleT=0; } } else BAY.idleT=0;
-    if(BAY.twirlT>0){ BAY.twirlT=Math.max(0,BAY.twirlT-dt); if(!idle){ BAY.twirlT=0; } var tu=1-BAY.twirlT/1.0; spin.rotation.x=-6.2832*2*ss(tu); spin.rotation.z=Math.sin(tu*Math.PI)*0.5; }
-    else if(swapT<=0&&BAY.thT<=0){ spin.rotation.x=0; spin.rotation.z=0; }
+    if(BAY.twirlT>0){ BAY.twirlT=Math.max(0,BAY.twirlT-dt); if(!idle) BAY.twirlT=0; ang-=6.2832*2*ss(1-BAY.twirlT/1.0); }
+    if(BAY.drawT>0){ BAY.drawT=Math.max(0,BAY.drawT-dt); ang-=6.2832*ss(1-BAY.drawT/0.6); }
+    spin.rotation.x=ang; spin.rotation.z=0;
   }
 }
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
@@ -4976,7 +5015,7 @@ function floodGun(k,big){
   /* the human weapons themselves: the arm points along local -y when aimed, so the model is turned muzzle-down with its top facing up */
   if(!floodGunTpl[k]){
     var m=(k==='ar'?buildAR:k==='shotgun'?buildShotgun:buildMagnum)();
-    m.remove(m.userData.leftHand); m.remove(m.userData.rightHand); m.userData={};
+    [m.userData.leftHand,m.userData.rightHand].forEach(function(h){ if(h&&h.parent) h.parent.remove(h); }); m.userData={};
     var a=new THREE.Group(); a.rotation.x=-Math.PI/2; a.add(m);
     var b=new THREE.Group(); b.rotation.y=Math.PI; b.add(a); floodGunTpl[k]=b;
   }
@@ -7904,7 +7943,7 @@ function buildRackTpl(){
   rackTpl=[];
   var bs=[buildMagnum,buildAR,buildSniper,buildRocket,buildShotgun,buildSword,buildSMG,buildBR,buildLaser,buildSalt,buildMMG,buildPlasmaPistol,buildPlasmaRifle,buildBeamRifle,buildNeedler,buildCarbine,buildFuelRod,buildLaser,buildSpiker,buildDMR,buildBayonet], sc=[1.3,1.25,1.1,1.0,1.45,1.5,1.5,1.25,1.0,0.95,0.9,1.5,1.5,1.1,1.5,1.25,1.0,1.0,1.35,1.15,1.7];
   for(var i=0;i<bs.length;i++){
-    var m=bs[i](); m.remove(m.userData.leftHand); m.remove(m.userData.rightHand);
+    var m=bs[i](); [m.userData.leftHand,m.userData.rightHand].forEach(function(h){ if(h&&h.parent) h.parent.remove(h); });
     m.rotation.set(0,Math.PI/2,0); m.scale.setScalar(sc[i]); m.userData={};
     var h=new THREE.Group(); h.add(m); h.updateMatrixWorld(true);
     var bb=new THREE.Box3().setFromObject(h), c=bb.getCenter(new V3()); m.position.sub(c); h.userData.sz=bb.getSize(new V3());
@@ -8269,7 +8308,7 @@ function swapFlourish(id,k){
     case 'shotgun': return [0.1*k,0,-0.3*k];
     case 'rocket': return [0.4*k,0,0.06*k];
     case 'sword': return [0.1*k,0.3*k,-0.5*k];
-    case 'bayonet': return [-6.2832*k,0.15*k,-0.4*k];   /* the knife is flipped end over end as it comes up */
+    case 'bayonet': return [0,0,0];   /* its flip happens in the hand, see bayoUpdate */
   }
   return [0,0,0];
 }
@@ -8309,6 +8348,7 @@ function meleeFist(t){
   fistG.position.set(o[0],o[1],o[2]); fistG.rotation.set(0,0.08*(1-u),0); fistG.visible=true;
 }
 function meleePose(t){
+  if(weapons[cur].bayo) return NO_MELEE;   /* the knife is animated on its own, see bayoUpdate */
   var o=meleePose0(t); if(t<0||(ONEH[weapons[cur].id]&&meleeStyle===0)) return o;
   var v=MELV[meleeVar]||MELV[0]; if(meleeVar===0) return o;
   var b=Math.sin(Math.min(1,t)*Math.PI), st=weapons[cur].sword?0.6:1, r=[], i;
@@ -9833,7 +9873,7 @@ function trWeaponModel(wi){
   var oh=HREG; HREG=false;
   var bs=[buildMagnum,buildAR,buildSniper,buildRocket,buildShotgun,buildSword,buildSMG,buildBR,buildLaser,buildSalt,buildMMG,buildPlasmaPistol,buildPlasmaRifle,buildBeamRifle,buildNeedler,buildCarbine,buildFuelRod,buildLaser,buildSpiker,buildDMR,buildBayonet], sc=[1.3,1.25,1.1,1.0,1.45,1.5,1.5,1.25,1.0,0.95,0.9,1.5,1.5,1.1,1.5,1.25,1.0,1.0,1.35,1.15,1.7];
   var m=bs[wi](); HREG=oh;
-  m.remove(m.userData.leftHand); m.remove(m.userData.rightHand);
+  [m.userData.leftHand,m.userData.rightHand].forEach(function(h){ if(h&&h.parent) h.parent.remove(h); });
   m.rotation.set(0,Math.PI/2,0); m.scale.setScalar(sc[wi]); m.userData={};
   var h=new THREE.Group(); h.add(m); h.updateMatrixWorld(true);
   var bb=new THREE.Box3().setFromObject(h), c=bb.getCenter(new V3()); m.position.sub(c); h.userData.sz=bb.getSize(new V3());
