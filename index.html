@@ -1046,6 +1046,7 @@ svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:current
     <div class="pbtns pGrp" data-g="acc">
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
       <button type="button" class="go alt" id="pAuto">AUTOSHOOT: OFF</button>
+      <button type="button" class="go alt" id="pStyle">SHOT STYLES: ON</button>
       <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
       <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
     </div>
@@ -4554,6 +4555,30 @@ function dwdScenery(rnd,pick,clear){
   scatter(new THREE.CylinderGeometry(0.3,0.3,0.9,9),new THREE.MeshLambertMaterial({color:0x5a2f22,flatShading:true}),barrels.length,function(k,d){ var t=barrels[k]; d.position.set(t.x,t.y+0.43,t.z); d.rotation.set(0,rnd()*6,(k%4===0)?1.45:0); });
   barrels.forEach(function(t){ boxes.push({minx:t.x-0.32,maxx:t.x+0.32,minz:t.z-0.32,maxz:t.z+0.32,h:t.y+0.9}); });
 }
+/* ---------- firing styles: the gun is held tilted, on its side, or across the body while it fires, and a new style is picked for each burst ---------- */
+var SHV=[
+  {w:4,r:[0,0,0],p:[0,0,0]},                          /* straight */
+  {w:2,r:[0.02,0.06,0.42],p:[-0.025,0.01,0]},         /* tilted */
+  {w:1.4,r:[0,0.1,1.1],p:[-0.1,0.04,0.01],f:1},        /* on its side (always rolled the same way, it looks wrong the other way) */
+  {w:1.4,r:[-0.1,-0.32,0.55],p:[-0.12,0,0.01]},       /* across the body, angled in */
+  {w:1,r:[0.14,0,-0.35],p:[0.03,0.02,0]}              /* tipped forward and leaning out */
+], shV={i:0,amt:0,last:-9,sgn:1,on:true};
+try{ if(localStorage.getItem('halo-shotstyle')==='0') shV.on=false; }catch(e){}
+function shotStyleKick(){
+  if(!shV.on) return;
+  if(tAcc-shV.last>0.55){ shV.i=rndVar(SHV); shV.sgn=SHV[shV.i].f||(Math.random()<0.5?-1:1); }
+  shV.last=tAcc;
+}
+function shotStyleUpdate(dt){
+  var w=weapons[cur], tgt=(shV.on&&tAcc-shV.last<0.28)?1:0;
+  shV.amt+=(tgt-shV.amt)*Math.min(1,dt*(tgt?16:7));
+  if(shV.amt<0.003||!w||w.sword||w.bayo||zoomed||p.inVeh||swapT>0||reloading) return;
+  var v=SHV[shV.i], a=shV.amt, g=w.group, sg=shV.sgn;
+  g.rotation.x+=v.r[0]*a; g.rotation.y+=v.r[1]*sg*a; g.rotation.z+=v.r[2]*sg*a;
+  g.position.x+=v.p[0]*sg*a; g.position.y+=v.p[1]*a; g.position.z+=v.p[2]*a;
+}
+function shotStyleLabel(){ var b=$('pStyle'); if(b) b.textContent='SHOT STYLES: '+(shV.on?'ON':'OFF'); }
+shotStyleLabel(); $('pStyle').addEventListener('click',function(){ shV.on=!shV.on; try{ localStorage.setItem('halo-shotstyle',shV.on?'1':'0'); }catch(e){} shotStyleLabel(); try{ sfx.click(); showToast('SHOT STYLES '+(shV.on?'ON':'OFF')); }catch(e){} });
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
 /* a straight line against the solid boxes (tree trunks, racks, walls) so they hide things like the terrain does */
 function segBox(from,to){
@@ -8713,7 +8738,7 @@ function fireShotgun(w,muzzleObj){
     }
   }
   if(anyKill) marker('kill'); else if(anyHead){ marker('head'); sfx.head(); } else if(anyHit){ marker('hit'); sfx.hit(); }
-  sfx.shotgun(); weaponLayer(w); recoilKick(w); rumble(240,1,0.5);
+  sfx.shotgun(); weaponLayer(w); recoilKick(w); rumble(240,1,0.5); shotStyleKick();
   var zk=zoomed?0.6:1;
   p.pitch+=w.kick*zk*(0.8+Math.random()*0.4); p.yaw+=(Math.random()-0.5)*w.kick*0.5*zk;
   p.vx+=back.x*4; p.vz+=back.z*4;
@@ -8941,7 +8966,7 @@ function laserTick(w,dt){
   }else{ LZ.aim.visible=false; LZ.dot.visible=false; }
 }
 function fireWeapon(w,muzzleObj,inVeh){
-  noiseT=tAcc; noiseR=NOISE[w.id]||50;
+  noiseT=tAcc; noiseR=NOISE[w.id]||50; shotStyleKick();
   if(!w.laser&&!w.sword&&!w.cov) echoTail(w.rocket?30:w.scope?45:10,w.rocket||w.scope?1.3:0.8);
   if(!w.inf) w.mag--;
   if(!w.inf&&!w.cov&&!w.laser&&w.mag>0&&w.mag<=Math.max(2,Math.ceil(w.magSize*0.2))) tone(2600+(w.magSize-w.mag)*0,2300,0.05,'triangle',0.035);   /* the last few rounds ring a warning ping */
@@ -11349,7 +11374,7 @@ function frame(now){
   if(CIN.on&&state==='play'){ cinFrame(dt); renderer.render(scene,camera); return; }
   if(state==='play'){
     aimFrame(dt); autoFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
-    updateWeapon(dt); updateThrow(dt); bayoUpdate(dt); dwdUpdate(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
+    updateWeapon(dt); updateThrow(dt); bayoUpdate(dt); shotStyleUpdate(dt); dwdUpdate(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
     if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ if(CAMP.on) campTick(dt); }   /* no PvE waves any more: matches are player against player */ for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on&&!TRN.on) updateAllies(dt);
     updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); try{ crateTick(dt); }catch(e){} if(ISR.on){ ISR.t-=dt; if(ISR.t<=0){ ISR.t=0.6; try{ flagApply(); }catch(e){} } } if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
