@@ -4460,6 +4460,14 @@ function bayoUpdate(dt){
   }
 }
 /* ---------- DEAD WOOD: night trenches in an abandoned forest. Almost no light: you have a torch on your gun (H switches it). ---------- */
+/* Dead Wood has no buildings: just open spawn areas at each end of the valley */
+function dwdBases(){
+  TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.spawns=[[],[]];
+  [0,1].forEach(function(t){ var s=t===0?-1:1, Z=s*TM.BZ, dz=-s, q;
+    for(q=0;q<4;q++) TM.spawns[t].push({x:-10.5+7*q,z:Z+dz*38});
+    TM.home[t]={r:{x:-33,z:Z+dz*42,h:t===0?Math.PI:0},j:{x:33,z:Z+dz*42,yaw:t===0?Math.PI:0}};
+  });
+}
 var DWD={spot:null,tgt:null,on:true,hint:0,base:4.2,flick:0,nextFlick:14,btn:null,tOld:null,hid:[],lines:[]};
 function dwdAtmosphere(){
   scene.background.setHex(0x010203); scene.fog.color.setHex(0x050709); scene.fog.near=4; scene.fog.far=82;
@@ -12603,10 +12611,20 @@ function tmWallRack(Z,dz,t){
     wpicks.push({wi:ws[i],g:g,m:inner,hl:hl,x:xs[i],y:y,z:zz,t:Math.random()*6,taken:false,rt:0,wall:true});
   }
 }
+/* Dead Wood: the same loose weapons as the old valley, but no wall racks and no turrets: nothing built, only guns lying on the ground */
+function dwdLoose(){
+  if(!rackTpl) buildRackTpl();
+  TUR.list=[];
+  var S0=[[-18,-84,6],[18,-84,7],[-30,-44,7],[30,-44,6],[-6,-62,6],[-30,-80,1],[26,-70,4],[-12,-52,2],[40,-30,0],[-40,-20,5],[10,-14,1],[-22,-96,4],[22,-100,2],[14,-26,3],[-56,-52,3]], i;
+  S0.forEach(function(a){ if(a[2]===3){ if(a[0]===14) tmLooseWeapon(a[0],a[1],a[2]); return; } tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); }); /* only ONE rocket launcher lies on the whole map */
+  [0,1].forEach(function(t){ var Z=(t===0?-1:1)*TM.BZ, dz=t===0?1:-1; [11,12,13,14,15,16,5].forEach(function(cw,ci){ tmLooseWeapon(-9+ci*3,Z+dz*30,cw); }); });
+  [[-16,-84,11],[16,-84,12],[-28,-44,14],[28,-44,15],[-4,-62,13]].forEach(function(a){ tmLooseWeapon(a[0],a[1],a[2]); tmLooseWeapon(-a[0],-a[1],a[2]); }); tmLooseWeapon(-14,26,16);
+}
 function tmLoose(){
   if(!rackTpl) buildRackTpl();
   TUR.list=[];
   if(TM.sky) return;
+  if(TM.dwd){ dwdLoose(); return; }
   if(TM.ship){ tmShipLoose(); return; }
   if(TM.isl){ tmIslLoose(); return; }
   if(TM.snb){ tmSnowLoose(); return; }
@@ -13200,7 +13218,7 @@ function tmEnter(team){
         if(ws){ wav.push(ws); TM.home[t].r={x:ws[0],z:ws[2],y:ws[1],h:Math.atan2(ws[0],ws[2])}; }
       });
     }
-  }else{ tmBase(0); tmBase(1); tmFinishBases(); TM.sn=EM_NAV; EM_NAV=null; packSpots.push([40,0,60],[-40,0,-60]); }
+  }else{ if(TM.dwd) dwdBases(); else{ tmBase(0); tmBase(1); tmFinishBases(); } TM.sn=EM_NAV; EM_NAV=null; packSpots.push([40,0,60],[-40,0,-60]); }
   spawnPacks(); tmLoose();
   TM.mesh=(TM.ship||TM.mom||TM.isl||TM.snb||TM.sky)?new THREE.Group():tmBuildTerrain(); scene.add(TM.mesh);
   if(TM.ship) tmShip(); else if(TM.mom) tmMombasa(); else if(TM.isl) tmIsland(); else if(TM.sky) skyWorld(); else if(TM.snb){ if(!TM.rcb) tmSnowInit(); } else{ tmScatter(); tmSnowInit(); if(TM.dwd){ try{ tmWire(); }catch(e){ console.error('wire',e); } } }
