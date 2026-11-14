@@ -599,9 +599,9 @@ body{letter-spacing:.02em}
   <div id="dmgDir"><i></i></div>
   <div class="panel status" id="status">
     <svg id="chIcon" viewBox="0 0 44 44"><path class="f" d="M9 32V19C9 11 15 5 22 5C29 5 35 11 35 19V32L29 38H15Z"/><path d="M9 32V19C9 11 15 5 22 5C29 5 35 11 35 19V32L29 38H15Z"/><path d="M13 20H31V26H13Z"/><path d="M22 6V20"/></svg>
-    <div class="row"><span class="lab">SHIELD</span><div class="bar"><i id="shieldFill"></i></div></div>
-    <div class="row"><span class="lab">HEALTH</span><div class="bar"><i id="healthFill"></i></div></div>
-    <div class="row" id="rvBarRow" hidden><span class="lab">ROVER</span><div class="bar"><i id="rvFill"></i></div></div>
+    <div class="row"><span class="lab"><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Shield"><title>Shield</title><path d='M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z'/></svg></span><div class="bar"><i id="shieldFill"></i></div></div>
+    <div class="row"><span class="lab"><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Health"><title>Health</title><path d='M12 5v14M5 12h14'/></svg></span><div class="bar"><i id="healthFill"></i></div></div>
+    <div class="row" id="rvBarRow" hidden><span class="lab"><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Rover"><title>Rover</title><path d='M3 15l2-6h10l4 4v2'/><circle cx='7' cy='17' r='2'/><circle cx='16' cy='17' r='2'/></svg></span><div class="bar"><i id="rvFill"></i></div></div>
   </div>
 
   <div class="panel info" id="info">
@@ -609,7 +609,7 @@ body{letter-spacing:.02em}
     <div class="magbar" id="magBar"></div>
     <div class="kv gren"><span>GRENADES</span><b><svg class="gi fg" viewBox="0 0 20 22"><path d="M8 1h4v3h-4z"/><path d="M10 4C5 4 2 8 2 13s3 8 8 8 8-3 8-8-3-9-8-9zm0 3c3 0 5 2.4 5 6s-2 5-5 5-5-1.4-5-5 2-6 5-6z" fill-rule="evenodd"/></svg><u id="gFrag">3</u></b><b style="display:none"><u id="gPlasma">0</u></b></div>
   </div>
-  <div id="match"><span>WAVE<b id="wave">1</b></span><span>HOSTILES<b id="left">0</b></span><span>SCORE<b id="score">0</b></span><span>ROVER<b id="rv">--</b></span></div>
+  <div id="match"><span><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Wave"><title>Wave</title><path d='M2 9c3-3 5-3 8 0s5 3 8 0M2 16c3-3 5-3 8 0s5 3 8 0'/></svg><b id="wave">1</b></span><span><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Hostiles"><title>Hostiles</title><path d='M5 12a7 7 0 1 1 14 0v4h-3v3h-2v-2h-4v2H8v-3H5z'/><circle cx='9.5' cy='12' r='1.4'/><circle cx='14.5' cy='12' r='1.4'/></svg><b id="left">0</b></span><span><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Score"><title>Score</title><path d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'/></svg><b id="score">0</b></span><span><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Rover"><title>Rover</title><path d='M3 15l2-6h10l4 4v2'/><circle cx='7' cy='17' r='2'/><circle cx='16' cy='17' r='2'/></svg><b id="rv">--</b></span></div>
   <canvas id="tracker" width="176" height="176"></canvas><div id="trLabel"></div>
   <canvas id="minimap" width="240" height="240"></canvas>
 
@@ -855,6 +855,40 @@ body.hurt2 #dmgFeed b{animation:dfBl 1s steps(1) infinite}
 #aidHud u{display:block;height:100%;width:0;background:#7dff9a}
 #bAid{display:none;right:calc(110px + var(--sr));bottom:calc(250px + var(--sb));width:64px;height:40px;font-size:11px}
 @media (pointer:coarse){#bAid{display:grid}}
+/* ---- symbols instead of words on the touch buttons ---- */
+.btn.ico{font-size:0 !important;letter-spacing:0 !important}
+.btn.ico::before{content:"";position:absolute;inset:0;margin:auto;height:62%;width:auto;aspect-ratio:1/1;max-height:46px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+#bFire.ico::before{height:50%;max-height:66px}
+#bFire{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%276%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%271.5%27%20fill%3D%27black%27/%3E%3Cpath%20d%3D%27M12%201.5v4.5M12%2018v4.5M1.5%2012H6M18%2012h4.5%27/%3E%3C/svg%3E")}
+#bJump{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%2019V5M6%2011l6-6%206%206M6%2022h12%27/%3E%3C/svg%3E")}
+#bReload{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M20%2012a8%208%200%201%201-2.6-5.9%27/%3E%3Cpath%20d%3D%27M20%203.5v5h-5%27/%3E%3C/svg%3E")}
+#bSwap{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M4%208h15M15%204l4%204-4%204M20%2016H5M9%2012l-4%204%204%204%27/%3E%3C/svg%3E")}
+#bInspect{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M2%2012s4-7%2010-7%2010%207%2010%207-4%207-10%207S2%2012%202%2012z%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%273%27/%3E%3C/svg%3E")}
+#bLeanL{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M18%2018L6%206M6%2015V6h9%27/%3E%3C/svg%3E")}
+#bLeanR{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M6%2018L18%206M9%206h9v9%27/%3E%3C/svg%3E")}
+#bBreath{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M10%208v8M14%208v8%27/%3E%3C/svg%3E")}
+#bZoom{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2710%27%20cy%3D%2710%27%20r%3D%276.5%27/%3E%3Cpath%20d%3D%27M15%2015l6%206M10%207v6M7%2010h6%27/%3E%3C/svg%3E")}
+#bSprint{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%206l6%206-6%206M13%206l6%206-6%206%27/%3E%3C/svg%3E")}
+#bCrouch{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M6%208l6%206%206-6M6%2019h12%27/%3E%3C/svg%3E")}
+#bDual{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%203v12M7%2010l5%205%205-5M5%2021h14%27/%3E%3C/svg%3E")}
+#bPing{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%2022s7-6.5%207-12a7%207%200%201%200-14%200c0%205.5%207%2012%207%2012z%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2710%27%20r%3D%272.5%27/%3E%3C/svg%3E")}
+#bBubble{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M7%2012a5%205%200%200%201%205-5%27/%3E%3C/svg%3E")}
+#bMelee{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M20%204L10%2014M7%2011l6%206M10%2014l-6%206%27/%3E%3C/svg%3E")}
+#bMsl{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%202c3%203%204%208%204%2012H8c0-4%201-9%204-12zM8%2014l-3%204h14l-3-4M12%2018v4%27/%3E%3C/svg%3E")}
+#bFrag{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2714.5%27%20r%3D%276.5%27/%3E%3Cpath%20d%3D%27M9.5%208h5l1-4.5h-3%27/%3E%3C/svg%3E")}
+#bPlasma{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%273.5%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3C/svg%3E")}
+#bAid{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%204v16M4%2012h16%27%20stroke-width%3D%273.4%27/%3E%3C/svg%3E")}
+#bUse{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%272%27/%3E%3Cpath%20d%3D%27M3%2012h7M14%2012h7M12%2014v7%27/%3E%3C/svg%3E")}
+#bRip{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M9%204L4%209l5%205M15%2020l5-5-5-5M4%209h9M20%2015h-9%27/%3E%3C/svg%3E")}
+#bHook{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%203v10a4%204%200%201%201-8%200M9%203h6%27/%3E%3C/svg%3E")}
+#bScore{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%2020V10M12%2020V4M19%2020v-7%27/%3E%3C/svg%3E")}
+#bAuto{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%278%27/%3E%3Cpath%20d%3D%27M13.2%205.5l-4.4%207h4.2l-2%206%205.6-8.5h-4.2z%27%20fill%3D%27black%27%20stroke-width%3D%271.2%27/%3E%3C/svg%3E")}
+#bAuto{right:calc(122px + var(--sr));bottom:calc(140px + var(--sb));width:52px;height:52px;border-radius:50%;display:none}
+@media (pointer:coarse){#bAuto{display:grid}}
+#bAuto.on{border-color:#ff7a4d;color:#ff7a4d;background:rgba(255,122,77,.18)}
+#autoRing{position:fixed;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border:2px solid #ff5a3c;border-radius:50%;box-shadow:0 0 10px rgba(255,90,60,.7);pointer-events:none;z-index:8;display:none;animation:autoPulse .5s ease-in-out infinite alternate}
+@keyframes autoPulse{from{transform:scale(1)}to{transform:scale(.82)}}
+svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
@@ -862,30 +896,31 @@ body.hurt2 #dmgFeed b{animation:dfBl 1s steps(1) infinite}
   <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
 
   <div id="kfeed"></div>
-  <button type="button" class="btn" id="bFire">FIRE</button>
-  <button type="button" class="btn" id="bJump">JUMP</button>
-  <button type="button" class="btn" id="bReload">RELOAD</button>
-  <button type="button" class="btn" id="bAid">AID</button>
-  <button type="button" class="btn" id="bSwap">SWAP</button>
-  <button type="button" class="btn" id="bInspect">INSPECT</button>
-  <button type="button" class="btn" id="bLeanL">LEAN L</button>
-  <button type="button" class="btn" id="bLeanR">LEAN R</button>
-  <button type="button" class="btn" id="bBreath">HOLD BREATH</button>
-  <button type="button" class="btn" id="bZoom">ZOOM</button>
-  <button type="button" class="btn" id="bSprint">SPRINT</button>
-  <button type="button" class="btn" id="bCrouch">CROUCH</button>
-  <button type="button" class="btn" id="bDual">DROP 1</button>
-  <button type="button" class="btn" id="bPing" hidden>PING</button>
-  <button type="button" class="btn" id="bBubble" hidden>BUBBLE</button>
-  <button type="button" class="btn" id="bMelee">MELEE</button>
-  <button type="button" class="btn" id="bMsl">MISSILE</button>
-  <button type="button" class="btn" id="bFrag">FRAG</button>
-  <button type="button" class="btn" id="bPlasma">PLASMA</button>
+  <button type="button" class="btn ico" id="bFire">FIRE</button>
+  <button type="button" class="btn ico" id="bAuto" aria-label="Autoshoot">AUTO</button>
+  <button type="button" class="btn ico" id="bJump">JUMP</button>
+  <button type="button" class="btn ico" id="bReload">RELOAD</button>
+  <button type="button" class="btn ico" id="bAid">AID</button>
+  <button type="button" class="btn ico" id="bSwap">SWAP</button>
+  <button type="button" class="btn ico" id="bInspect">INSPECT</button>
+  <button type="button" class="btn ico" id="bLeanL">LEAN L</button>
+  <button type="button" class="btn ico" id="bLeanR">LEAN R</button>
+  <button type="button" class="btn ico" id="bBreath">HOLD BREATH</button>
+  <button type="button" class="btn ico" id="bZoom">ZOOM</button>
+  <button type="button" class="btn ico" id="bSprint">SPRINT</button>
+  <button type="button" class="btn ico" id="bCrouch">CROUCH</button>
+  <button type="button" class="btn ico" id="bDual">DROP 1</button>
+  <button type="button" class="btn ico" id="bPing" hidden>PING</button>
+  <button type="button" class="btn ico" id="bBubble" hidden>BUBBLE</button>
+  <button type="button" class="btn ico" id="bMelee">MELEE</button>
+  <button type="button" class="btn ico" id="bMsl">MISSILE</button>
+  <button type="button" class="btn ico" id="bFrag">FRAG</button>
+  <button type="button" class="btn ico" id="bPlasma">PLASMA</button>
   <button type="button" class="btn" id="bPause" aria-label="Pause">II</button>
-  <button type="button" class="btn" id="bUse" hidden>DRIVE</button>
-  <button type="button" class="btn" id="bRip" hidden>RIP OFF</button>
-  <button type="button" class="btn" id="bHook" hidden>HOOK</button>
-  <button type="button" class="btn" id="bScore" hidden>SCORES</button>
+  <button type="button" class="btn ico" id="bUse" hidden>DRIVE</button>
+  <button type="button" class="btn ico" id="bRip" hidden>RIP OFF</button>
+  <button type="button" class="btn ico" id="bHook" hidden>HOOK</button>
+  <button type="button" class="btn ico" id="bScore" hidden>SCORES</button>
 </div>
 
 <div class="overlay" id="menu">
@@ -1010,6 +1045,7 @@ body.hurt2 #dmgFeed b{animation:dfBl 1s steps(1) infinite}
     </div>
     <div class="pbtns pGrp" data-g="acc">
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
+      <button type="button" class="go alt" id="pAuto">AUTOSHOOT: OFF</button>
       <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
       <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
     </div>
@@ -4424,10 +4460,10 @@ function bayoUpdate(dt){
   }
 }
 /* ---------- DEAD WOOD: night trenches in an abandoned forest. Almost no light: you have a torch on your gun (H switches it). ---------- */
-var DWD={spot:null,tgt:null,on:true,hint:0,base:3.1,flick:0,nextFlick:14,btn:null,tOld:null,hid:[],lines:[]};
+var DWD={spot:null,tgt:null,on:true,hint:0,base:4.2,flick:0,nextFlick:14,btn:null,tOld:null,hid:[],lines:[]};
 function dwdAtmosphere(){
-  scene.background.setHex(0x010203); scene.fog.color.setHex(0x030405); scene.fog.near=3; scene.fog.far=58;
-  hemi.intensity=0.09; hemi.color.setHex(0x343b36); hemi.groundColor.setHex(0x0b0d0a); sun.intensity=0.035; sun.color.setHex(0x8a96a0);
+  scene.background.setHex(0x010203); scene.fog.color.setHex(0x050709); scene.fog.near=4; scene.fog.far=82;
+  hemi.intensity=0.22; hemi.color.setHex(0x4a544e); hemi.groundColor.setHex(0x14170f); sun.intensity=0.1; sun.color.setHex(0x8a96a0);
   if(skyDome) skyDome.visible=false; if(stars) stars.visible=false;
   bgScenery.forEach(function(m){ m.visible=false; });
   if(TM.snow) TM.snow.visible=true;
@@ -4438,12 +4474,12 @@ function dwdAtmosphere(){
   scene.traverse(function(o){ if(o.isLineSegments&&o.material&&o.material.color&&seen.indexOf(o.material)<0){ seen.push(o.material); DWD.lines.push([o.material,o.material.color.getHex()]); o.material.color.multiplyScalar(0.16); } });
   /* the torch: a spot light on the weapon (it sways with the gun), plus a faint fill so you can see the gun itself */
   if(!DWD.spot){
-    var s=new THREE.SpotLight(0xffefd0,DWD.base,66,0.43,0.6,1.5), tg=new THREE.Object3D();
+    var s=new THREE.SpotLight(0xffefd0,DWD.base,85,0.5,0.6,1.3), tg=new THREE.Object3D();
     s.position.set(0.02,0.09,-0.3); tg.position.set(0,0.05,-8); vm.add(s); vm.add(tg); s.target=tg; DWD.spot=s; DWD.tgt=tg;
   }
   DWD.on=true; DWD.spot.visible=true; DWD.spot.intensity=DWD.base; DWD.flick=0; DWD.nextFlick=tAcc+14;
   DWD.tOld={c:torch.color.getHex(),d:torch.distance,dc:torch.decay,i:torch.intensity};
-  torch.color.setHex(0xffe3bd); torch.distance=3.4; torch.decay=2; torch.intensity=0.45;
+  torch.color.setHex(0xffe3bd); torch.distance=3.6; torch.decay=2; torch.intensity=0.6;
   DWD.hint=10; dwdUI(true);
 }
 function dwdToggle2(){
@@ -4455,7 +4491,7 @@ function dwdUI(on){
   if(on&&!h){ h=document.createElement('div'); h.id='dwdHint'; h.style.cssText='position:fixed;left:50%;bottom:19%;transform:translateX(-50%);z-index:90;pointer-events:none;color:#e6e0d2;font:600 14px var(--font-ui,sans-serif);letter-spacing:.22em;text-shadow:0 0 8px #000;opacity:0;transition:opacity .6s'; h.textContent='H  -  TORCH ON / OFF'; document.body.appendChild(h); }
   if(h&&!on) h.style.opacity='0';
   var b=document.getElementById('dwdBtn');
-  if(on&&!b&&window.matchMedia&&matchMedia('(pointer:coarse)').matches){ b=document.createElement('button'); b.id='dwdBtn'; b.type='button'; b.textContent='TORCH'; b.style.cssText='position:fixed;right:14px;top:44%;z-index:96;width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,235,200,.7);background:rgba(20,20,18,.55);color:#f2e8d0;font:700 11px var(--font-ui,sans-serif);letter-spacing:.08em;touch-action:manipulation'; b.addEventListener('pointerdown',function(e){ e.preventDefault(); dwdToggle2(); }); document.body.appendChild(b); }
+  if(on&&!b&&window.matchMedia&&matchMedia('(pointer:coarse)').matches){ b=document.createElement('button'); b.id='dwdBtn'; b.type='button'; b.className='btn ico'; b.setAttribute('aria-label','Torch'); b.style.cssText='position:fixed;right:14px;top:44%;z-index:96;width:60px;height:60px;border-radius:50%;color:#f2e8d0;border-color:rgba(255,235,200,.7)'; b.style.setProperty('--ic','url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M7%203h10l-1%206H8zM9%209v11h6V9M12%2012v3%27/%3E%3C/svg%3E")'); b.addEventListener('pointerdown',function(e){ e.preventDefault(); dwdToggle2(); }); document.body.appendChild(b); }
   if(b) b.style.display=on?'block':'none';
 }
 function dwdAvatarTorch(av){
@@ -4473,7 +4509,7 @@ function dwdUpdate(dt){
   if(t>DWD.nextFlick){ DWD.flick=0.32; DWD.nextFlick=t+14+Math.random()*26; }
   if(DWD.flick>0){ DWD.flick-=dt; f*=(Math.sin(DWD.flick*70)>0.2?0.3:0.75); }
   if(DWD.spot) DWD.spot.intensity=DWD.base*k*f;
-  torch.intensity=0.45*(0.45+0.55*k);
+  torch.intensity=0.6*(0.45+0.55*k);
   var h=document.getElementById('dwdHint');
   if(h){ if(DWD.hint>0){ DWD.hint-=dt; h.style.opacity=(state==='play')?'0.85':'0'; } else h.style.opacity='0'; }
   if(mp.on){ for(var id in mp.peers){ var pe=mp.peers[id]; if(pe&&pe.avatar){ var g=dwdAvatarTorch(pe.avatar); g.visible=true; } } }
@@ -11072,14 +11108,48 @@ function aimEnd(){ AIMS.id=null; AIMS.dx=0; AIMS.dy=0; var b=$('aimBase'); if(b)
 function aimTarget(){
   var cx=camera.position.x, cy=camera.position.y, cz=camera.position.z, cp=Math.cos(p.pitch);
   var fx=-Math.sin(p.yaw)*cp, fy=Math.sin(p.pitch), fz=-Math.cos(p.yaw)*cp, cone=AIM_CONE*camera.fov/62, best=null, ba=cone, i;
-  function test(x,y,z){
+  function test(x,y,z,ref){
     var dx=x-cx, dy=y-cy, dz=z-cz, L=Math.hypot(dx,dy,dz); if(L<2||L>85) return;
-    var a=Math.acos(Math.max(-1,Math.min(1,(dx*fx+dy*fy+dz*fz)/L))); if(a<ba){ ba=a; best={x:dx,y:dy,z:dz,L:L,a:a}; }
+    var a=Math.acos(Math.max(-1,Math.min(1,(dx*fx+dy*fy+dz*fz)/L))); if(a<ba){ ba=a; best={x:dx,y:dy,z:dz,L:L,a:a,ref:ref}; }
   }
-  for(i=0;i<enemies.length;i++){ var e=enemies[i]; if(e.dead||e.air||e.refugee||e.drop) continue; test(e.x,(e.fy!==undefined?e.fy:groundH(e.x,e.z))+1.45,e.z); }
-  if(mp.on&&mp.mode==='dm') for(var id in mp.peers){ var pe=mp.peers[id], R=pe.rem; if(pe.team!==mp.team&&R&&R.has&&R.al) test(R.x,R.y+1.3,R.z); }
+  for(i=0;i<enemies.length;i++){ var e=enemies[i]; if(e.dead||e.air||e.refugee||e.drop) continue; test(e.x,(e.fy!==undefined?e.fy:groundH(e.x,e.z))+1.45,e.z,e); }
+  if(mp.on&&mp.mode==='dm') for(var id in mp.peers){ var pe=mp.peers[id], R=pe.rem; if(pe.team!==mp.team&&R&&R.has&&R.al) test(R.x,R.y+1.3,R.z,pe); }
   if(best) best.cone=cone;
   return best;
+}
+/* ---------- autoshoot: when your crosshair is locked onto someone, the gun fires by itself ---------- */
+var AUTO={on:coarsePtr,real:false,fire:false,t:0,lock:false,ref:null,ring:null}, _aa=new V3(), _ab=new V3();
+try{ var _af=localStorage.getItem('halo-auto'); if(_af!==null) AUTO.on=_af==='1'; }catch(e){}
+Object.defineProperty(ctrl,'fire',{configurable:true,get:function(){ return AUTO.real||(AUTO.fire&&state==='play'); },set:function(v){ AUTO.real=!!v; }});
+function autoLabels(){ var a=$('pAuto'); if(a) a.textContent='AUTOSHOOT: '+(AUTO.on?'ON':'OFF'); var b=$('bAuto'); if(b) b.classList.toggle('on',AUTO.on); }
+function autoToggle(){ AUTO.on=!AUTO.on; try{ localStorage.setItem('halo-auto',AUTO.on?'1':'0'); }catch(e){} autoLabels(); if(!AUTO.on){ AUTO.fire=false; AUTO.lock=false; AUTO.t=0; if(AUTO.ring) AUTO.ring.style.display='none'; } try{ sfx.click(); showToast('AUTOSHOOT '+(AUTO.on?'ON':'OFF')); }catch(e){} }
+autoLabels(); $('pAuto').addEventListener('click',autoToggle); $('bAuto').addEventListener('click',autoToggle);
+AUTO.ring=document.createElement('div'); AUTO.ring.id='autoRing'; document.body.appendChild(AUTO.ring);
+function autoTrack(ref){   /* where the locked target is now, as a vector from the camera */
+  var x,y,z; if(!ref) return null;
+  if(ref.rem){ var R=ref.rem; if(!(R&&R.has&&R.al)) return null; x=R.x; y=R.y+1.3; z=R.z; }
+  else{ if(ref.dead) return null; x=ref.x; y=(ref.fy!==undefined?ref.fy:groundH(ref.x,ref.z))+1.45; z=ref.z; }
+  var dx=x-camera.position.x, dy=y-camera.position.y, dz=z-camera.position.z, L=Math.hypot(dx,dy,dz); if(L<1.5||L>90) return null;
+  var cp=Math.cos(p.pitch), fx=-Math.sin(p.yaw)*cp, fy=Math.sin(p.pitch), fz=-Math.cos(p.yaw)*cp;
+  return {x:dx,y:dy,z:dz,L:L,a:Math.acos(Math.max(-1,Math.min(1,(dx*fx+dy*fy+dz*fz)/L))),ref:ref};
+}
+function autoFrame(dt){
+  var w=weapons[cur], ok=AUTO.on&&state==='play'&&!p.dead&&!p.inVeh&&w&&!w.sword&&!w.bayo&&!reloading&&swapT<=0&&meleeT<=0&&throwT<=0&&!p.air;
+  var t=null, lock=false;
+  if(ok){
+    if(AUTO.lock&&AUTO.ref){ t=autoTrack(AUTO.ref); if(t&&t.a>0.5) t=null; }   /* a lock on someone sticks, even through recoil */
+    if(!t){ var f=aimTarget(); if(f&&f.a<f.cone*0.45) t=f; }
+  }
+  if(t){ _aa.copy(camera.position); _ab.set(camera.position.x+t.x,camera.position.y+t.y,camera.position.z+t.z); lock=lockSeen(_aa,_ab); }
+  AUTO.t=lock?AUTO.t+dt:0; AUTO.ref=lock?t.ref:null;
+  var go=lock&&(AUTO.lock||AUTO.t>=0.12); AUTO.lock=go; AUTO.fire=go;
+  if(go){
+    /* locked on: the view is held on them, so the gun keeps hitting while it fires */
+    var ty=Math.atan2(-t.x,-t.z), tp=Math.asin(Math.max(-1,Math.min(1,t.y/t.L))), g=Math.min(1,dt*8)*(AIMS.id!==null?0.25:0.6);
+    p.yaw+=angDiff(ty-p.yaw)*g; p.pitch+=(tp-p.pitch)*g;
+    if(!w.auto&&fireCool<=0&&fireEdgeT<=0) fireEdgeT=0.12;   /* a semi-auto gun gets a fresh trigger pull each time it is ready */
+  }
+  AUTO.ring.style.display=(lock&&AUTO.on)?'block':'none';
 }
 function aimFrame(dt){
   if(AIMS.id!==null){
@@ -11270,7 +11340,7 @@ function frame(now){
   if(CUT.on&&state==='play'){ cutFrame(dt); renderer.render(scene,camera); return; }
   if(CIN.on&&state==='play'){ cinFrame(dt); renderer.render(scene,camera); return; }
   if(state==='play'){
-    aimFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
+    aimFrame(dt); autoFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
     updateWeapon(dt); updateThrow(dt); bayoUpdate(dt); dwdUpdate(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
     if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ if(CAMP.on) campTick(dt); }   /* no PvE waves any more: matches are player against player */ for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on&&!TRN.on) updateAllies(dt);
