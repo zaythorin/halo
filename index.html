@@ -597,6 +597,7 @@ body{letter-spacing:.02em}
   <svg id="visor" viewBox="0 0 728 406" preserveAspectRatio="none"><path d="M0 98L128 90L170 52H558L600 90L728 98"/><path d="M0 270L50 274L110 322L300 332H428L618 322L678 274L728 270"/></svg>
   <div id="svig"></div>
   <div id="dmgDir"><i></i></div>
+  <div id="shud"><svg viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg><div class="sbar"><i id="shFill"></i></div><b id="shNum">100</b></div>
   <div class="panel status" id="status">
     <svg id="chIcon" viewBox="0 0 44 44"><path class="f" d="M9 32V19C9 11 15 5 22 5C29 5 35 11 35 19V32L29 38H15Z"/><path d="M9 32V19C9 11 15 5 22 5C29 5 35 11 35 19V32L29 38H15Z"/><path d="M13 20H31V26H13Z"/><path d="M22 6V20"/></svg>
     <div class="row"><span class="lab"><svg class="ico" viewBox="0 0 24 24" role="img" aria-label="Shield"><title>Shield</title><path d='M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z'/></svg></span><div class="bar"><i id="shieldFill"></i></div></div>
@@ -605,7 +606,7 @@ body{letter-spacing:.02em}
   </div>
 
   <div class="panel info" id="info">
-    <div class="ammo"><div id="wname">MAGNUM</div><span id="mag">12</span><span class="x">/</span><span id="res">72</span></div>
+    <div id="wtxt"></div><div class="ammo"><div id="wname">MAGNUM</div><span id="mag">12</span><span class="x">/</span><span id="res">72</span></div>
     <div class="magbar" id="magBar"></div>
     <div class="kv gren"><span>GRENADES</span><b><svg class="gi fg" viewBox="0 0 20 22"><path d="M8 1h4v3h-4z"/><path d="M10 4C5 4 2 8 2 13s3 8 8 8 8-3 8-8-3-9-8-9zm0 3c3 0 5 2.4 5 6s-2 5-5 5-5-1.4-5-5 2-6 5-6z" fill-rule="evenodd"/></svg><u id="gFrag">3</u></b><b style="display:none"><u id="gPlasma">0</u></b></div>
   </div>
@@ -889,6 +890,39 @@ body.hurt2 #dmgFeed b{animation:dfBl 1s steps(1) infinite}
 #autoRing{position:fixed;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border:2px solid #ff5a3c;border-radius:50%;box-shadow:0 0 10px rgba(255,90,60,.7);pointer-events:none;z-index:8;display:none;animation:autoPulse .5s ease-in-out infinite alternate}
 @keyframes autoPulse{from{transform:scale(1)}to{transform:scale(.82)}}
 svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+/* ---- simple HUD: a plain white health bar, a plain ammo count, no sci-fi frame or glow (the CLASSIC setting brings the old one back) ---- */
+#shud{position:absolute;left:calc(24px + var(--sl));bottom:calc(24px + var(--sb));display:none;align-items:center;gap:10px;pointer-events:none;z-index:6}
+#ui.simple #shud{display:flex}
+#shud svg{width:26px;height:26px;fill:#f2f2f2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+#shud .sbar{position:relative;width:min(250px,34vw);height:11px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.4);overflow:hidden}
+#shud .sbar i{display:block;height:100%;width:100%;background:#f1f1f1;transform-origin:left center;transition:transform .12s linear,background .2s}
+#shud .sbar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),rgba(0,0,0,.65) calc(25% - 1px),rgba(0,0,0,.65) 25%)}
+#shud b{font:700 28px/1 var(--font-ui);color:#fff;min-width:2.3ch;text-shadow:0 2px 4px rgba(0,0,0,.8);font-variant-numeric:tabular-nums}
+#shud.low .sbar i{background:#e04a30} #shud.low b{color:#ff6c52}
+#shud.crit .sbar{animation:sflash .5s steps(2) infinite}
+#shud.hit .sbar{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+#ui.simple #visor,#ui.simple #svig,#ui.simple #chIcon,#ui.simple #tracker,#ui.simple #trLabel,#ui.simple #status,#ui.simple #magBar,#ui.simple #wname{display:none!important}
+#ui.simple #info{position:absolute;left:auto;right:calc(26px + var(--sr));top:auto;bottom:calc(24px + var(--sb));width:auto;min-width:0;background:none!important;border:0!important;padding:0;text-align:right;align-items:flex-end;gap:2px;clip-path:none}
+#ui.simple #wtxt{display:block;font:700 12px var(--font-ui);letter-spacing:.24em;color:#bcbcbc;text-transform:uppercase;text-shadow:0 1px 3px #000}
+#ui.simple .ammo{justify-content:flex-end;border:0;padding:0;gap:8px;background:none}
+#ui.simple #mag{font:700 48px/1 var(--font-ui);color:#fff;text-shadow:0 2px 5px rgba(0,0,0,.8)!important}
+#ui.simple .ammo .x{display:none}
+#ui.simple #res{font:600 22px/1 var(--font-ui);color:#a9a9a9;text-shadow:0 1px 3px #000}
+#ui.simple #res::before{content:"|";margin-right:8px;color:#777}
+#ui.simple .info.lowAmmo #mag{color:#f0b840;text-shadow:0 2px 5px rgba(0,0,0,.8)!important}
+#ui.simple .info.empty #mag{color:#e04a30}
+#ui.simple .info .kv.gren{position:static!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;transform:none!important;background:none!important;border:0!important;padding:0!important;margin:2px 0 0!important;justify-content:flex-end;display:flex}
+#ui.simple .gren b{font:700 18px/1 var(--font-ui);color:#e8e8e8;text-shadow:0 1px 3px #000}
+#ui.simple .gren b .gi{filter:none}
+#ui.simple #match{font-size:11px;letter-spacing:.14em;color:#d6d6d6;text-shadow:0 1px 3px #000}
+#ui.simple #minimap{border:2px solid rgba(255,255,255,.35)!important;box-shadow:none!important;background:rgba(10,10,10,.5)!important;filter:none!important}
+@media (pointer:coarse){
+  #ui.simple #shud{left:calc(16px + var(--sl));top:calc(10px + var(--st));bottom:auto}
+  #ui.simple #shud b{font-size:22px} #ui.simple #shud svg{width:20px;height:20px} #ui.simple #shud .sbar{height:9px;width:min(190px,30vw)}
+  #ui.simple #info{top:calc(12px + var(--st));bottom:auto;right:calc(18px + var(--sr))}
+  #ui.simple #mag{font-size:38px}
+  #ui.simple #minimap{transform:translateY(22px)}
+}
 </style>
   <div id="killMsg"><b></b><span></span><i></i></div>
   <div id="sb" hidden></div>
@@ -1048,6 +1082,7 @@ svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:current
       <button type="button" class="go alt" id="pAuto">AUTOSHOOT: OFF</button>
       <button type="button" class="go alt" id="pStyle">SHOT STYLES: ON</button>
       <button type="button" class="go alt" id="pReal">REALISTIC DAMAGE: ON</button>
+      <button type="button" class="go alt" id="pHud">HUD: SIMPLE</button>
       <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
       <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
     </div>
@@ -4611,6 +4646,19 @@ function rangeFall(w,dist){
 realApply();
 function realLabel(){ var b=$('pReal'); if(b) b.textContent='REALISTIC DAMAGE: '+(REAL.on?'ON':'OFF'); }
 realLabel(); $('pReal').addEventListener('click',function(){ REAL.on=!REAL.on; try{ localStorage.setItem('halo-real',REAL.on?'1':'0'); }catch(e){} realApply(); realLabel(); try{ sfx.click(); showToast('REALISTIC DAMAGE '+(REAL.on?'ON':'OFF')); }catch(e){} });
+/* ---------- the simple HUD: one white health bar with a number, a plain ammo count ---------- */
+var HUDS={on:true,hp:200,hitT:0};
+try{ if(localStorage.getItem('halo-hud')==='classic') HUDS.on=false; }catch(e){}
+function hudsApply(){ var u=$('ui'); if(u) u.classList.toggle('simple',HUDS.on); var b=$('pHud'); if(b) b.textContent='HUD: '+(HUDS.on?'SIMPLE':'CLASSIC'); }
+hudsApply(); $('pHud').addEventListener('click',function(){ HUDS.on=!HUDS.on; try{ localStorage.setItem('halo-hud',HUDS.on?'simple':'classic'); }catch(e){} hudsApply(); try{ sfx.click(); }catch(e){} });
+function hudsUpdate(dt){
+  if(!HUDS.on||state!=='play') return;
+  var tot=Math.max(0,Math.min(200,p.health+p.shield)), f=tot/200, el=$('shud');
+  if(tot<HUDS.hp-0.5) HUDS.hitT=0.25; HUDS.hp=tot; HUDS.hitT=Math.max(0,HUDS.hitT-dt);
+  $('shFill').style.transform='scaleX('+f.toFixed(3)+')'; $('shNum').textContent=String(Math.ceil(tot/2));
+  el.classList.toggle('low',f<0.35); el.classList.toggle('crit',f<0.2); el.classList.toggle('hit',HUDS.hitT>0);
+  var w=weapons[cur]; if(w&&HUDS.wn!==w){ HUDS.wn=w; $('wtxt').textContent=w.name; }
+}
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
 /* a straight line against the solid boxes (tree trunks, racks, walls) so they hide things like the terrain does */
 function segBox(from,to){
@@ -11406,7 +11454,7 @@ function frame(now){
   if(CIN.on&&state==='play'){ cinFrame(dt); renderer.render(scene,camera); return; }
   if(state==='play'){
     aimFrame(dt); autoFrame(dt); covTick(dt); updateRover(dt); mgUpdate(dt); updateJet(dt); if(p.air) updateFlight(dt); else if(p.inVeh){ if(MG.seat===1) mgDriving(dt); else updateDriving(dt); } else{ updatePlayer(dt); updateTurret(dt); updateGrapple(dt); }
-    updateWeapon(dt); updateThrow(dt); bayoUpdate(dt); shotStyleUpdate(dt); dwdUpdate(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
+    updateWeapon(dt); updateThrow(dt); bayoUpdate(dt); shotStyleUpdate(dt); hudsUpdate(dt); dwdUpdate(dt); updateGrenades(dt); updateRockets(dt); updateMissiles(dt); updateLock(dt);
     if(mp.on&&!mp.host) mpGuestEnemies(dt); else{ if(!TRN.on){ if(CAMP.on) campTick(dt); }   /* no PvE waves any more: matches are player against player */ for(var i=enemies.length-1;i>=0;i--) updateEnemyMP(enemies[i],dt); }
     if(!mp.on&&!TRN.on) updateAllies(dt);
     updateBolts(dt); updateHBeams(dt); updatePickups(dt); updateWpicks(dt); try{ crateTick(dt); }catch(e){} if(ISR.on){ ISR.t-=dt; if(ISR.t<=0){ ISR.t=0.6; try{ flagApply(); }catch(e){} } } if(TRN.on) trTick(dt); updateEmitter(dt); updateNav(dt); hud(); if(mp.on){ mpTick(dt); ctfTick(dt); khTick(dt); }
