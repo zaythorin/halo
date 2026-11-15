@@ -1047,6 +1047,7 @@ svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:current
       <button type="button" class="go alt" id="pAssist">AIM ASSIST: OFF</button>
       <button type="button" class="go alt" id="pAuto">AUTOSHOOT: OFF</button>
       <button type="button" class="go alt" id="pStyle">SHOT STYLES: ON</button>
+      <button type="button" class="go alt" id="pReal">REALISTIC DAMAGE: ON</button>
       <button type="button" class="go alt" id="pSens">LOOK SPEED: 100%</button>
       <button type="button" class="go alt" id="pLayout">EDIT BUTTON LAYOUT</button>
     </div>
@@ -4579,6 +4580,37 @@ function shotStyleUpdate(dt){
 }
 function shotStyleLabel(){ var b=$('pStyle'); if(b) b.textContent='SHOT STYLES: '+(shV.on?'ON':'OFF'); }
 shotStyleLabel(); $('pStyle').addEventListener('click',function(){ shV.on=!shV.on; try{ localStorage.setItem('halo-shotstyle',shV.on?'1':'0'); }catch(e){} shotStyleLabel(); try{ sfx.click(); showToast('SHOT STYLES '+(shV.on?'ON':'OFF')); }catch(e){} });
+/* ---------- realistic damage: a body shot that would really hurt does, a head shot from a rifle kills, and rounds lose power with range ---------- */
+/* d = damage per bullet (a player has 100 shield + 100 health), h = head multiplier, f/m = range where the fall-off starts and ends, n = the least a round keeps */
+var REAL={on:true,orig:{},tab:{
+  magnum:{d:75,h:3,f:25,m:110,n:0.45},     /* .50 AE: three to the body */
+  ar:{d:36,h:6,f:40,m:190,n:0.5},          /* 7.62x39: six to the body */
+  smg:{d:26,h:3.5,f:20,m:95,n:0.4},        /* 9mm: eight to the body */
+  br:{d:80,h:3,f:60,m:260,n:0.55},         /* battle rifle: three to the body */
+  dmr:{d:105,h:2.5,f:100,m:350,n:0.65},    /* marksman rifle: two to the body */
+  sniper:{d:215,h:1.5,f:250,m:900,n:0.93}, /* one to the body at any range */
+  salt:{d:34,h:4,f:50,m:220,n:0.5},        /* light machine gun: six to the body */
+  mmg:{d:48,h:4.5,f:70,m:260,n:0.55},      /* mounted machine gun: five to the body */
+  shotgun:{d:22,h:1.3}                      /* ten pellets, 220 at point blank (its range fall-off was already there) */
+}};
+try{ if(localStorage.getItem('halo-real')==='0') REAL.on=false; }catch(e){}
+function realApply(){
+  weapons.forEach(function(w){
+    var t=REAL.tab[w.id]; if(!t) return;
+    if(!REAL.orig[w.id]) REAL.orig[w.id]={dmg:w.dmg,head:w.head,fullRange:w.fullRange,maxRange:w.maxRange,minFall:w.minFall};
+    var o=REAL.orig[w.id], on=REAL.on;
+    w.dmg=on?t.d:o.dmg; w.head=on?t.h:o.head;
+    if(t.f!==undefined){ w.fullRange=on?t.f:o.fullRange; w.maxRange=on?t.m:o.maxRange; w.minFall=on?t.n:o.minFall; }
+    if(typeof WB!=='undefined'&&WB&&WB[w.id]) WB[w.id].dmg=w.dmg;
+  });
+}
+function rangeFall(w,dist){
+  if(!REAL.on||!w.fullRange||w.pellets) return 1;
+  var mn=w.minFall||0.4; return dist<=w.fullRange?1:Math.max(mn,1-(dist-w.fullRange)/Math.max(1,w.maxRange-w.fullRange)*(1-mn));
+}
+realApply();
+function realLabel(){ var b=$('pReal'); if(b) b.textContent='REALISTIC DAMAGE: '+(REAL.on?'ON':'OFF'); }
+realLabel(); $('pReal').addEventListener('click',function(){ REAL.on=!REAL.on; try{ localStorage.setItem('halo-real',REAL.on?'1':'0'); }catch(e){} realApply(); realLabel(); try{ sfx.click(); showToast('REALISTIC DAMAGE '+(REAL.on?'ON':'OFF')); }catch(e){} });
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
 /* a straight line against the solid boxes (tree trunks, racks, walls) so they hide things like the terrain does */
 function segBox(from,to){
@@ -8996,13 +9028,13 @@ function fireWeapon(w,muzzleObj,inVeh){
   if(w.cov){ if(w.beam) covBeamFx(tmpMuzzle.clone(),end); else covPlasmaFx(tmpMuzzle.clone(),end,w.sfx==='cpist'?'g':false); } else if(w.cg) covPlasmaFx(tmpMuzzle.clone(),end,true); else if(w.needle){} else if(w.spike) spikeFx(tmpMuzzle.clone(),end); else spawnTracer(tmpMuzzle.clone(),end);
   mpFx(burstSnd?(w.id==='salt'?'salt':(w.sfx==='smg'?'ar':w.sfx)):'none',tmpMuzzle,end);
   if(w.needle){ needleSpawn(tmpMuzzle.clone(),dist>4?end.clone().sub(tmpMuzzle).normalize():dir,hit); }
-  else if(hit && hit.object.userData.mp){ mpHitUD(hit.object.userData,w.dmg*(hit.object.userData.head?w.head:1),!!hit.object.userData.head); }
+  else if(hit && hit.object.userData.mp){ mpHitUD(hit.object.userData,w.dmg*(hit.object.userData.head?w.head:1)*rangeFall(w,dist),!!hit.object.userData.head); }
   else if(hit && hit.object.userData.enemy){
     var e=hit.object.userData.enemy, head=!!hit.object.userData.head;
     if(e.hunter&&!hit.object.userData.weak){ spawnSpark(end); gsfx.tink(dist); }
     else{
     enemyHitFx(e,end,head);
-    var dmgT=w.dmg*(head?w.head:1);
+    var dmgT=w.dmg*(head?w.head:1)*rangeFall(w,dist);
     /* the golden triangle: plasma tears shields down, ballistic rounds finish the body underneath */
     if(!w.sword&&!w.rocket&&!w.laser){ var pl=/PLASMA|NEEDLER|BEAM|SPIKER|FUEL|CARBINE/.test(w.name||''); if(e.shield>0) dmgT*=pl?1.4:0.8; else dmgT*=pl?0.85:1.15; }
     var killed=damageEnemy(e,dmgT);
