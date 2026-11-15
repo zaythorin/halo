@@ -9446,8 +9446,8 @@ function updateWeapon(dt){
 
 /* ---------- grenades: frag bounces and goes off quickly, plasma sticks and goes off a little later ---------- */
 var GDEF={
-  frag:{n:'FRAG',stick:false,fuse:1.6,speed:21,r:0.11,rest:0.28,R:14,inner:3,dmg:190,direct:0},
-  plasma:{n:'PLASMA',stick:true,fuse:2.5,speed:18.5,r:0.13,rest:0,R:11,inner:2.5,dmg:150,direct:175,stickMin:1.2}
+  frag:{n:'FRAG',stick:false,fuse:1.6,speed:21,r:0.11,rest:0.28,R:14,inner:3,dmg:190,direct:0,kill:5.5},   /* kill = inside this many metres a grenade is a one-hit kill (with REALISTIC DAMAGE on) */
+  plasma:{n:'PLASMA',stick:true,fuse:2.5,speed:18.5,r:0.13,rest:0,R:11,inner:2.5,dmg:150,direct:175,stickMin:1.2,kill:4}
 };
 var gren={frag:3,plasma:0}, GMAX={frag:8,plasma:0}, GGRAV=15, THROW_DUR=0.55, THROW_REL=0.36;
 var grens=[], throwT=0, throwKind='frag', throwDone=true, shakeT=0, shakeAmp=0;
@@ -9720,6 +9720,7 @@ function blast(g){
     var dm=falloff(dist,d);
     if(!direct&&dist>0.6&&!hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(e.x,cy,e.z))) dm*=0.3;
     if(direct) dm=Math.max(dm,d.direct);
+    if(d.kill&&REAL.on&&dist<d.kill&&(direct||hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(e.x,cy,e.z)))) dm=Math.max(dm,999);
     if(e.hunter&&!behindE(e,P.x,P.z)) dm*=0.4;
     if(dm<=0) continue;
     var hd=Math.hypot(dx,dz)||1, killed=damageEnemy(e,dm);
@@ -9747,10 +9748,11 @@ function blast(g){
   if(!p.inVeh||GN.on){
     var pdx=p.x-P.x, pdy=p.y+1.0-P.y, pdz=p.z-P.z, pd=Math.sqrt(pdx*pdx+pdy*pdy+pdz*pdz);
     if(pd<R){
-      var pm=falloff(pd,d)*0.45, lethal=(d===RKT||d===MSL);
+      var gk=!!(d.kill&&REAL.on), pm=falloff(pd,d)*(gk?1:0.45), lethal=(d===RKT||d===MSL);
       var los=!(pd>0.6&&!hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(p.x,p.y+1.0,p.z)));
       if(!los) pm*=tmModelOn()?0:0.3;
       if(lethal&&los&&pd<R*0.8) pm=999;
+      if(gk&&los&&pd<d.kill) pm=999;   /* a grenade next to you kills you outright */
       if(pm>1){ hitDir.x=pdx; hitDir.z=pdz; hurt(pm); }
       if(!p.inVeh&&state==='play'&&(d===GDEF.frag||d===GDEF.plasma||lethal)){   /* the blast throws you */
         var kf=Math.max(0,1-pd/R)*(los?1:0.35), hl2=Math.hypot(pdx,pdz)||1, up0=Math.max(0.35,Math.min(1,pdy/(pd||1)+0.5));
@@ -13589,9 +13591,10 @@ function tmBlastDamage(P,R,d){
     var Q=pe.rem; if(!Q.al||!pe.avatar||!pe.avatar.visible) continue;
     var od=Math.sqrt((Q.x-P.x)*(Q.x-P.x)+(Q.y+1-P.y)*(Q.y+1-P.y)+(Q.z-P.z)*(Q.z-P.z));
     if(od<R){
-      var om=falloff(od,d)*0.6, olos=!(od>0.6&&!hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(Q.x,Q.y+1.0,Q.z)));
+      var gk2=!!(d.kill&&REAL.on), om=falloff(od,d)*(gk2?1:0.6), olos=!(od>0.6&&!hasLOS(_la.set(P.x,P.y+0.25,P.z),_lb.set(Q.x,Q.y+1.0,Q.z)));
       if(!olos&&!d.pierce) om*=tmModelOn()?0:0.3;
       if((d===RKT||d===MSL)&&olos&&od<R*0.8) om=TM.sky?Math.round(420*(1-od/R*0.6)):999;
+      if(gk2&&olos&&od<d.kill) om=999;
       if(om>1) mpSend({t:'hit',n:Math.round(om),dx:Q.x-P.x,dz:Q.z-P.z,w:bw},pe.id);
     }
   }
