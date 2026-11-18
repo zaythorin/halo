@@ -4504,13 +4504,164 @@ function bayoUpdate(dt){
   }
 }
 /* ---------- DEAD WOOD: night trenches in an abandoned forest. Almost no light: you have a torch on your gun (H switches it). ---------- */
-/* Dead Wood has no buildings: just open spawn areas at each end of the valley */
+/* ---------- Dead Wood: a long labyrinth of trenches, timber-lined, with covered tunnels. The same maze is built on every machine (fixed seed). ---------- */
+var MZ={W:3.2,P:9,D:2.7,SW:1.5,NX:20,NZ:12,X0:-90,Z0:-54,R:1,gx0:-104,gz0:-76,gnx:208,gnz:152,field:null,open:null,cov:null,roofs:[],sq:[],cn:[],exits:[],ramps:[]};
+function dwdCut(x,z){   /* how far below the normal ground the trenches take it here (zero or negative) */
+  if(!MZ.field) return 0;
+  var u=(x-MZ.gx0)/MZ.R, v=(z-MZ.gz0)/MZ.R, i=Math.floor(u), j=Math.floor(v); if(i<0||j<0||i>=MZ.gnx-1||j>=MZ.gnz-1) return 0;
+  var fu=u-i, fv=v-j, F=MZ.field, k=j*MZ.gnx+i, W=MZ.gnx;
+  return -((F[k]*(1-fu)+F[k+1]*fu)*(1-fv)+(F[k+W]*(1-fu)+F[k+W+1]*fu)*fv)*smooth(7,13,Math.hypot(x,z));   /* the middle of the map is an open square */
+}
+function dwdMask(x,z){ return smooth(-100,-92,x)*(1-smooth(92,100,x))*smooth(-70,-58,z)*(1-smooth(58,70,z)); }
+function mzCx(i){ return MZ.X0+MZ.P*(i+0.5); }
+function mzCz(j){ return MZ.Z0+MZ.P*(j+0.5); }
+function mzPaint(x0,x1,z0,z1){   /* a trench: full depth inside the rectangle, a steep bank around it */
+  var R=MZ.R, SW=MZ.SW, D=MZ.D, F=MZ.field, gnx=MZ.gnx, i0=Math.max(0,Math.floor((x0-SW-MZ.gx0)/R)), i1=Math.min(gnx-1,Math.ceil((x1+SW-MZ.gx0)/R)), j0=Math.max(0,Math.floor((z0-SW-MZ.gz0)/R)), j1=Math.min(MZ.gnz-1,Math.ceil((z1+SW-MZ.gz0)/R)), i, j;
+  for(j=j0;j<=j1;j++) for(i=i0;i<=i1;i++){
+    var x=MZ.gx0+i*R, z=MZ.gz0+j*R, dx=Math.max(x0-x,0,x-x1), dz=Math.max(z0-z,0,z-z1), d=Math.hypot(dx,dz), v=D*Math.max(0,1-d/SW), k=j*gnx+i;
+    if(v>F[k]) F[k]=v;
+  }
+}
+function mzRamp(sx,sz,dx,dz,len,hw){   /* a way out of the trench: it climbs gently from its floor to the ground */
+  var R=MZ.R, SW=MZ.SW, D=MZ.D, F=MZ.field, gnx=MZ.gnx, ex=sx+dx*len, ez=sz+dz*len, bx0=Math.min(sx,ex)-hw-SW, bx1=Math.max(sx,ex)+hw+SW, bz0=Math.min(sz,ez)-hw-SW, bz1=Math.max(sz,ez)+hw+SW, i, j;
+  var i0=Math.max(0,Math.floor((bx0-MZ.gx0)/R)), i1=Math.min(gnx-1,Math.ceil((bx1-MZ.gx0)/R)), j0=Math.max(0,Math.floor((bz0-MZ.gz0)/R)), j1=Math.min(MZ.gnz-1,Math.ceil((bz1-MZ.gz0)/R));
+  for(j=j0;j<=j1;j++) for(i=i0;i<=i1;i++){
+    var x=MZ.gx0+i*R, z=MZ.gz0+j*R, t=((x-sx)*dx+(z-sz)*dz)/len, lat=Math.abs((x-sx)*dz-(z-sz)*dx);
+    if(t<0||t>1) continue; var v=D*(1-t)*Math.max(0,1-Math.max(0,lat-hw)/SW), k=j*gnx+i; if(v>F[k]) F[k]=v;
+  }
+}
+function mzBuild(){
+  var s=20261117, r=function(){ s=(Math.imul(s,1664525)+1013904223)|0; return ((s>>>8)&0xffffff)/0x1000000; };
+  var NX=MZ.NX, NZ=MZ.NZ, N=NX*NZ, W=MZ.W, P=MZ.P, open=new Uint8Array(N*4), seen=new Uint8Array(N), st=[], DX=[1,0,-1,0], DZ=[0,1,0,-1], c, d, i, j;
+  st.push((NZ>>1)*NX+(NX>>1)); seen[st[0]]=1;
+  while(st.length){
+    c=st[st.length-1]; var ci=c%NX, cj=(c/NX)|0, op=[];
+    for(d=0;d<4;d++){ var ni=ci+DX[d], nj=cj+DZ[d]; if(ni>=0&&nj>=0&&ni<NX&&nj<NZ&&!seen[nj*NX+ni]) op.push(d); }
+    if(!op.length){ st.pop(); continue; }
+    d=op[(r()*op.length)|0]; var n2=(cj+DZ[d])*NX+ci+DX[d]; open[c*4+d]=1; open[n2*4+((d+2)&3)]=1; seen[n2]=1; st.push(n2);
+  }
+  function link(c,d){ var ci=c%NX, cj=(c/NX)|0, ni=ci+DX[d], nj=cj+DZ[d]; if(ni<0||nj<0||ni>=NX||nj>=NZ||open[c*4+d]) return false; open[c*4+d]=1; open[(nj*NX+ni)*4+((d+2)&3)]=1; return true; }
+  for(c=0;c<N;c++){ var cnt=open[c*4]+open[c*4+1]+open[c*4+2]+open[c*4+3]; if(cnt===1&&r()<0.5){ for(var t=0;t<6;t++) if(link(c,(r()*4)|0)) break; } }   /* dead ends become loops */
+  for(c=0;c<N;c++){ if(r()<0.07) link(c,0); if(r()<0.07) link(c,1); }
+  MZ.open=open; MZ.exits=[]; [2,6,10,14,17].forEach(function(col){ MZ.exits.push({i:col,j:0,dx:0,dz:-1}); MZ.exits.push({i:col,j:NZ-1,dx:0,dz:1}); });
+  /* the trenches, painted into a height grid */
+  MZ.field=new Float32Array(MZ.gnx*MZ.gnz); MZ.sq=[]; MZ.cn=[]; MZ.ramps=[];
+  for(j=0;j<NZ;j++) for(i=0;i<NX;i++){
+    c=j*NX+i; var cx=mzCx(i), cz=mzCz(j), h=W/2;
+    MZ.sq.push({c:c,i:i,j:j,x:cx,z:cz});
+    mzPaint(cx-h,cx+h,cz-h,cz+h);
+    if(open[c*4+0]){ mzPaint(cx+h,mzCx(i+1)-h,cz-h,cz+h); MZ.cn.push({a:c,b:c+1,x0:cx+h,x1:mzCx(i+1)-h,z0:cz-h,z1:cz+h,ew:true}); }
+    if(open[c*4+1]){ mzPaint(cx-h,cx+h,cz+h,mzCz(j+1)-h); MZ.cn.push({a:c,b:c+NX,x0:cx-h,x1:cx+h,z0:cz+h,z1:mzCz(j+1)-h,ew:false}); }
+    for(d=0;d<4;d++) if(!open[c*4+d]&&r()<0.1){   /* a ramp up into the thick earth between two trenches */
+      var ni=i+DX[d], nj=j+DZ[d]; if(ni<0||nj<0||ni>=NX||nj>=NZ) continue;
+      mzRamp(cx+DX[d]*h,cz+DZ[d]*h,DX[d],DZ[d],4.2,1.2); MZ.ramps.push([cx,cz,DX[d],DZ[d]]);
+    }
+  }
+  MZ.exits.forEach(function(e){   /* the way in from each end of the valley: a straight trench, then a long ramp up to the open ground */
+    var cx=mzCx(e.i), cz=mzCz(e.j), h=W/2, z1=cz+e.dz*(h+11);
+    mzPaint(cx-h,cx+h,Math.min(cz+e.dz*h,z1),Math.max(cz+e.dz*h,z1));
+    mzRamp(cx,z1,0,e.dz,8,h);
+  });
+  /* tunnels: chains of covered trench, walked out from random cells */
+  MZ.cov=new Uint8Array(N); var cl={}; MZ.roofs=[];
+  for(var ch=0;ch<9;ch++){
+    var cur=(r()*N)|0, len=7+((r()*6)|0), k;
+    for(k=0;k<len;k++){
+      MZ.cov[cur]=1; var ops=[]; for(d=0;d<4;d++) if(open[cur*4+d]) ops.push(d); if(!ops.length) break;
+      d=ops[(r()*ops.length)|0]; var nx2=cur+DX[d]+DZ[d]*NX; cl[Math.min(cur,nx2)+'_'+Math.max(cur,nx2)]=1; cur=nx2;
+    }
+    MZ.cov[cur]=1;
+  }
+  var RW=W/2+MZ.SW;   /* a roof covers the trench and its banks, level with the ground */
+  MZ.sq.forEach(function(q){ if(MZ.cov[q.c]) MZ.roofs.push([q.x-RW,q.x+RW,q.z-RW,q.z+RW]); });
+  MZ.cn.forEach(function(n){ if(!cl[Math.min(n.a,n.b)+'_'+Math.max(n.a,n.b)]) return; var xm=(n.x0+n.x1)/2, zm=(n.z0+n.z1)/2; MZ.roofs.push(n.ew?[n.x0,n.x1,zm-RW,zm+RW]:[xm-RW,xm+RW,n.z0,n.z1]); });
+  MZ.on=true;
+}
+/* the covered parts are floors you can walk on (and ceilings you can't walk through): the game's own structure collision, fed with the roof slabs */
+function mzRoofFloors(){
+  var L=[]; MZ.roofs.forEach(function(q){
+    [0.12,-0.12].forEach(function(y){ var A=[q[0],y,q[2]], B=[q[1],y,q[2]], C=[q[1],y,q[3]], Dd=[q[0],y,q[3]]; L.push([A,B,C],false,[A,C,Dd],false); });
+  });
+  return L;
+}
+/* the timber: boards up the trench walls, posts, duckboards on the floor, and the roofs over the tunnels */
+function mzPlankTex(){
+  var c=document.createElement('canvas'); c.width=c.height=256; var g=c.getContext('2d'), x=0, k;
+  g.fillStyle='#3a2d1f'; g.fillRect(0,0,256,256);
+  while(x<256){ var w=20+((x*7)%9), sh=0.78+((x*13)%7)/22; g.fillStyle='rgb('+Math.round(86*sh)+','+Math.round(66*sh)+','+Math.round(44*sh)+')'; g.fillRect(x,0,w-2,256); g.fillStyle='rgba(0,0,0,0.4)'; g.fillRect(x+w-2,0,2,256);
+    for(k=0;k<14;k++){ g.fillStyle='rgba(24,14,6,'+(0.08+((k*x)%5)/40)+')'; g.fillRect(x+((k*5)%w),(k*37+x*3)%256,1,14+(k*3)%30); } x+=w; }
+  var t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t;
+}
+function mzG(){ return {p:[],n:[],u:[],c:[],i:[],v:0}; }
+function mzQuad(G,a,b,c2,d,nx,ny,nz,u0,v0,u1,v1,col){
+  var f=function(q,u,v){ G.p.push(q[0],q[1],q[2]); G.n.push(nx,ny,nz); G.u.push(u,v); G.c.push(col[0],col[1],col[2]); };
+  /* wind the quad so that the side the normal points to is the front */
+  var ex=b[0]-a[0], ey=b[1]-a[1], ez=b[2]-a[2], fx=c2[0]-a[0], fy=c2[1]-a[1], fz=c2[2]-a[2];
+  var gx=ey*fz-ez*fy, gy=ez*fx-ex*fz, gz=ex*fy-ey*fx;
+  if(gx*nx+gy*ny+gz*nz>=0){ f(a,u0,v0); f(b,u1,v0); f(c2,u1,v1); f(d,u0,v1); }
+  else{ f(a,u0,v0); f(d,u0,v1); f(c2,u1,v1); f(b,u1,v0); }
+  G.i.push(G.v,G.v+1,G.v+2,G.v,G.v+2,G.v+3); G.v+=4;
+}
+function mzBox(G,cx,cy,cz,sx,sy,sz,ry,col){
+  var cs=Math.cos(ry), sn=Math.sin(ry), hx=sx/2, hy=sy/2, hz=sz/2;
+  var P=function(x,y,z){ return [cx+x*cs+z*sn,cy+y,cz-x*sn+z*cs]; }, N=function(x,y,z){ return [x*cs+z*sn,y,-x*sn+z*cs]; };
+  var F=[[[-hx,-hy,hz],[hx,-hy,hz],[hx,hy,hz],[-hx,hy,hz],[0,0,1]],[[hx,-hy,-hz],[-hx,-hy,-hz],[-hx,hy,-hz],[hx,hy,-hz],[0,0,-1]],[[-hx,hy,hz],[hx,hy,hz],[hx,hy,-hz],[-hx,hy,-hz],[0,1,0]],[[-hx,-hy,-hz],[hx,-hy,-hz],[hx,-hy,hz],[-hx,-hy,hz],[0,-1,0]],[[hx,-hy,hz],[hx,-hy,-hz],[hx,hy,-hz],[hx,hy,hz],[1,0,0]],[[-hx,-hy,-hz],[-hx,-hy,hz],[-hx,hy,hz],[-hx,hy,-hz],[-1,0,0]]];
+  F.forEach(function(f){ var n=N(f[4][0],f[4][1],f[4][2]); mzQuad(G,P(f[0][0],f[0][1],f[0][2]),P(f[1][0],f[1][1],f[1][2]),P(f[2][0],f[2][1],f[2][2]),P(f[3][0],f[3][1],f[3][2]),n[0],n[1],n[2],0,0,1,1,col); });
+}
+function mzMesh(G,mat){
+  var geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(G.p),3)); geo.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(G.n),3));
+  geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(G.u),2)); geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(G.c),3));
+  geo.setIndex(new THREE.BufferAttribute(new Uint32Array(G.i),1)); return new THREE.Mesh(geo,mat);
+}
+function dwdMazeDecor(){
+  var W=MZ.W, h=W/2, D=MZ.D, SW=MZ.SW, T=mzG(), B=mzG(), Cv=mzG(), wood=[0.2,0.15,0.1], dirt=[0.16,0.14,0.1], white=[1,1,1], open=MZ.open, NX=MZ.NX, NZ=MZ.NZ, DX=[1,0,-1,0], DZ=[0,1,0,-1];
+  var exitSide={}; MZ.exits.forEach(function(e){ exitSide[(e.j*NX+e.i)*4+(e.dz<0?3:1)]=1; });
+  var panel=function(ax,az,bx,bz,ox,oz){   /* a board wall up the bank, from the foot of the trench wall (a to b along it) out to the rim */
+    var mx=(ax+bx)/2, mz=(az+bz)/2, fh=tmH(mx-ox*0.3,mz-oz*0.3), len=Math.hypot(bx-ax,bz-az), y0=fh+0.05, y1=fh+D-0.05, o=-0.1;
+    var A=[ax+ox*o,y0,az+oz*o], Bp=[bx+ox*o,y0,bz+oz*o], C=[bx+ox*(SW+o),y1,bz+oz*(SW+o)], Dp=[ax+ox*(SW+o),y1,az+oz*(SW+o)];
+    var sl=Math.hypot(SW,y1-y0), ny=SW/sl, nh=(y1-y0)/sl;
+    mzQuad(T,A,Bp,C,Dp,-ox*nh,ny,-oz*nh,0,0,len/2.5,sl/2.5,white);
+    /* posts every couple of metres at the foot, and a rail along the top edge */
+    var n=Math.max(1,Math.round(len/2.4)), k;
+    for(k=0;k<=n;k++){ var f=k/n, px=ax+(bx-ax)*f-ox*0.08, pz=az+(bz-az)*f-oz*0.08; mzBox(B,px,fh+(D+0.3)/2,pz,0.2,D+0.3,0.2,0,wood); }
+    mzBox(B,mx+ox*(SW+o),fh+D+0.04,mz+oz*(SW+o),Math.abs(bx-ax)>0.01?len:0.18,0.14,Math.abs(bz-az)>0.01?len:0.18,0,wood);
+  };
+  MZ.sq.forEach(function(q){
+    var d, c=q.c; for(d=0;d<4;d++){ if(open[c*4+d]||exitSide[c*4+d]) continue;
+      if(d===0) panel(q.x+h,q.z-h,q.x+h,q.z+h,1,0); else if(d===2) panel(q.x-h,q.z-h,q.x-h,q.z+h,-1,0); else if(d===1) panel(q.x-h,q.z+h,q.x+h,q.z+h,0,1); else panel(q.x-h,q.z-h,q.x+h,q.z-h,0,-1); }
+    var fh=tmH(q.x,q.z)+0.07; mzQuad(T,[q.x-1.1,fh,q.z-1.1],[q.x+1.1,fh,q.z-1.1],[q.x+1.1,fh,q.z+1.1],[q.x-1.1,fh,q.z+1.1],0,1,0,0,0,1,1,white);
+  });
+  MZ.cn.forEach(function(n){
+    var fh=tmH((n.x0+n.x1)/2,(n.z0+n.z1)/2)+0.07;
+    if(n.ew){ panel(n.x0,n.z0,n.x1,n.z0,0,-1); panel(n.x0,n.z1,n.x1,n.z1,0,1); var zc=(n.z0+n.z1)/2; mzQuad(T,[n.x0,fh,zc-0.7],[n.x1,fh,zc-0.7],[n.x1,fh,zc+0.7],[n.x0,fh,zc+0.7],0,1,0,0,0,(n.x1-n.x0)/2.5,1.4/2.5,white); }
+    else{ panel(n.x0,n.z0,n.x0,n.z1,-1,0); panel(n.x1,n.z0,n.x1,n.z1,1,0); var xc=(n.x0+n.x1)/2; mzQuad(T,[xc-0.7,fh,n.z0],[xc+0.7,fh,n.z0],[xc+0.7,fh,n.z1],[xc-0.7,fh,n.z1],0,1,0,0,0,1.4/2.5,(n.z1-n.z0)/2.5,white); }
+  });
+  MZ.exits.forEach(function(e){   /* the straight trench in from the open ground */
+    var cx=mzCx(e.i), cz=mzCz(e.j), z0=cz+e.dz*h, z1=cz+e.dz*(h+11), lo=Math.min(z0,z1), hi=Math.max(z0,z1);
+    panel(cx-h,lo,cx-h,hi,-1,0); panel(cx+h,lo,cx+h,hi,1,0);
+    var fh=tmH(cx,(lo+hi)/2)+0.07; mzQuad(T,[cx-0.7,fh,lo],[cx+0.7,fh,lo],[cx+0.7,fh,hi],[cx-0.7,fh,hi],0,1,0,0,0,1.4/2.5,(hi-lo)/2.5,white);
+  });
+  /* the roofs: earth on timber, level with the ground; beams show underneath */
+  MZ.roofs.forEach(function(q){
+    var w=q[1]-q[0], l=q[3]-q[2], cx=(q[0]+q[1])/2, cz=(q[2]+q[3])/2, k;
+    mzBox(B,cx,0.0,cz,w,0.24,l,0,dirt); mzBox(Cv,cx,0.0,cz,w,0.24,l,0,white);
+    var alongX=w>l, span=alongX?l:w, run=alongX?w:l, nb=Math.max(2,Math.round(run/1.6));
+    for(k=0;k<nb;k++){ var f=(k+0.5)/nb, bx=alongX?q[0]+run*f:cx, bz=alongX?cz:q[2]+run*f; mzBox(B,bx,-0.3,bz,alongX?0.22:span,0.22,alongX?span:0.22,0,wood); }
+  });
+  var tex=mzPlankTex(), mT=new THREE.MeshLambertMaterial({map:tex,vertexColors:true,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}), mB=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
+  var mesh1=mzMesh(T,mT), mesh2=mzMesh(B,mB), cover=mzMesh(Cv,new THREE.MeshBasicMaterial({visible:false}));
+  [mesh1,mesh2].forEach(function(m){ scene.add(m); TM.objs.push(m); }); scene.add(cover); TM.objs.push(cover); coverMeshes.push(cover);
+}
+/* Dead Wood has no buildings: open spawn areas at each end of the valley, and between them the trench labyrinth */
 function dwdBases(){
-  TM.fl=[]; TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.spawns=[[],[]];
+  mzBuild();
+  TM.fl=mzRoofFloors(); TM.doors=[]; TM.gates=[]; TM.decks=[]; TM.spawns=[[],[]];
   [0,1].forEach(function(t){ var s=t===0?-1:1, Z=s*TM.BZ, dz=-s, q;
     for(q=0;q<4;q++) TM.spawns[t].push({x:-10.5+7*q,z:Z+dz*38});
     TM.home[t]={r:{x:-33,z:Z+dz*42,h:t===0?Math.PI:0},j:{x:33,z:Z+dz*42,yaw:t===0?Math.PI:0}};
   });
+  tmFinishBases();   /* builds the walkable roofs of the tunnels into the structure collision */
 }
 var DWD={spot:null,tgt:null,on:true,hint:0,base:4.2,flick:0,nextFlick:14,btn:null,tOld:null,hid:[],lines:[]};
 function dwdAtmosphere(){
@@ -4581,21 +4732,21 @@ function dwdScenery(rnd,pick,clear){
   var logs=pick(30,16,0.45,-0.4,function(it){ return clear(it,3.4); });
   logs.forEach(function(t){
     var len=3+rnd()*3.6, r=0.26+rnd()*0.15, g=new THREE.Group(), m=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.1,len,7),logM);
-    m.rotation.z=Math.PI/2; g.add(m); g.rotation.y=rnd()*Math.PI; g.position.set(t.x,t.y+r*0.8,t.z); scene.add(g);
+    m.rotation.z=Math.PI/2; g.add(m); g.rotation.y=rnd()*Math.PI; g.position.set(t.x,t.y+r*0.8,t.z); scene.add(g); TM.objs.push(g);
   });
   var stumps=pick(40,12,0.5,-0.4,function(it){ return clear(it,2.4); });
-  stumps.forEach(function(t){ var r=0.38+rnd()*0.25, h=0.5+rnd()*0.7, m=new THREE.Mesh(new THREE.CylinderGeometry(r*0.9,r*1.15,h,8),logM); m.position.set(t.x,t.y+h/2-0.05,t.z); scene.add(m); boxes.push({minx:t.x-r,maxx:t.x+r,minz:t.z-r,maxz:t.z+r,h:t.y+h}); });
+  stumps.forEach(function(t){ var r=0.38+rnd()*0.25, h=0.5+rnd()*0.7, m=new THREE.Mesh(new THREE.CylinderGeometry(r*0.9,r*1.15,h,8),logM); m.position.set(t.x,t.y+h/2-0.05,t.z); scene.add(m); TM.objs.push(m); boxes.push({minx:t.x-r,maxx:t.x+r,minz:t.z-r,maxz:t.z+r,h:t.y+h}); });
   var tries=0, pts=[]; while(pts.length<170&&tries<9000){ tries++;
-    var x=(rnd()*2-1)*112, z=(rnd()*2-1)*186; if(tmE(x,z)>0.78||tmRd(x,z)<10) continue;
-    var c=tmCuts(x,z)+tmCuts(-x,-z); if(c>-0.45||c<-1.3) continue;   /* the slope at the lip of a trench */
+    var x=(rnd()*2-1)*112, z=(rnd()*2-1)*186; if(tmE(x,z)>0.78||Math.abs(z)>56) continue;
+    var c=dwdCut(x,z); if(c>-0.05||c<-0.9) continue;   /* the lip of a trench */
     pts.push([x,z,tmH(x,z)]);
   }
   var bagM=new THREE.MeshLambertMaterial({color:0x5b5640,flatShading:true}), plankM=new THREE.MeshLambertMaterial({color:0x3f3326,flatShading:true}), postM=new THREE.MeshLambertMaterial({color:0x2f261c,flatShading:true});
-  scatter(new THREE.BoxGeometry(0.75,0.3,0.4),bagM,pts.length*3,function(k,d){ var p=pts[(k/3)|0], o=k%3; d.position.set(p[0]+(o-1)*0.7+(rnd()-0.5)*0.2,p[2]+0.15+(o===1?0.28:0),p[1]+(rnd()-0.5)*0.3); d.rotation.set(0,rnd()*0.5-0.25+((k/3|0)%7)*0.45,0); d.scale.set(0.9+rnd()*0.2,1,1); });
-  scatter(new THREE.CylinderGeometry(0.07,0.09,1.5,5),postM,pts.length,function(k,d){ var p=pts[k]; d.position.set(p[0]+(rnd()-0.5)*2.2,p[2]+0.55,p[1]+(rnd()-0.5)*2.2); d.rotation.set((rnd()-0.5)*0.4,0,(rnd()-0.5)*0.5); });
-  scatter(new THREE.BoxGeometry(2.4,0.05,0.26),plankM,pts.length,function(k,d){ var p=pts[k]; d.position.set(p[0]+(rnd()-0.5)*3,p[2]+0.12+rnd()*0.3,p[1]+(rnd()-0.5)*3); d.rotation.set((rnd()-0.5)*0.25,rnd()*3.1,(rnd()-0.5)*0.3); });
+  TM.objs.push(scatter(new THREE.BoxGeometry(0.75,0.3,0.4),bagM,pts.length*3,function(k,d){ var p=pts[(k/3)|0], o=k%3; d.position.set(p[0]+(o-1)*0.7+(rnd()-0.5)*0.2,p[2]+0.15+(o===1?0.28:0),p[1]+(rnd()-0.5)*0.3); d.rotation.set(0,rnd()*0.5-0.25+((k/3|0)%7)*0.45,0); d.scale.set(0.9+rnd()*0.2,1,1); }));
+  TM.objs.push(scatter(new THREE.CylinderGeometry(0.07,0.09,1.5,5),postM,pts.length,function(k,d){ var p=pts[k]; d.position.set(p[0]+(rnd()-0.5)*2.2,p[2]+0.55,p[1]+(rnd()-0.5)*2.2); d.rotation.set((rnd()-0.5)*0.4,0,(rnd()-0.5)*0.5); }));
+  TM.objs.push(scatter(new THREE.BoxGeometry(2.4,0.05,0.26),plankM,pts.length,function(k,d){ var p=pts[k]; d.position.set(p[0]+(rnd()-0.5)*3,p[2]+0.12+rnd()*0.3,p[1]+(rnd()-0.5)*3); d.rotation.set((rnd()-0.5)*0.25,rnd()*3.1,(rnd()-0.5)*0.3); }));
   var barrels=pick(26,16,0.4,-0.4,function(it){ return clear(it,2); });
-  scatter(new THREE.CylinderGeometry(0.3,0.3,0.9,9),new THREE.MeshLambertMaterial({color:0x5a2f22,flatShading:true}),barrels.length,function(k,d){ var t=barrels[k]; d.position.set(t.x,t.y+0.43,t.z); d.rotation.set(0,rnd()*6,(k%4===0)?1.45:0); });
+  TM.objs.push(scatter(new THREE.CylinderGeometry(0.3,0.3,0.9,9),new THREE.MeshLambertMaterial({color:0x5a2f22,flatShading:true}),barrels.length,function(k,d){ var t=barrels[k]; d.position.set(t.x,t.y+0.43,t.z); d.rotation.set(0,rnd()*6,(k%4===0)?1.45:0); }));
   barrels.forEach(function(t){ boxes.push({minx:t.x-0.32,maxx:t.x+0.32,minz:t.z-0.32,maxz:t.z+0.32,h:t.y+0.9}); });
 }
 /* ---------- firing styles: the gun is held tilted, on its side, or across the body while it fires, and a new style is picked for each burst ---------- */
@@ -11596,8 +11747,9 @@ function tmH(x,z){
   if(TM.desert) h+=(1.7*Math.sin(x*0.045+z*0.02+1)+1.2*Math.sin(z*0.05-x*0.03)+0.5*Math.sin(x*0.12+z*0.09)+1.5*(1-Math.abs(Math.sin(x*0.052+z*0.03+2.4*vnoise(x*0.02+3,z*0.02))))-0.9+0.25*Math.sin(x*0.5+z*0.3+vnoise(x*0.1,z*0.1)*6))*smooth(14,30,Math.hypot(x,z));
   var m=smooth(0,12,tmRd(x,z)), mb=smooth(6,22,tmRd(x,z));
   h*=m;
+  if(TM.dwd) h*=1-0.85*dwdMask(x,z);   /* flat ground where the labyrinth is */
   if(TM.ship){ var es=tmE(x,z); return 6*smooth(0.84,1.0,es)+55*smooth(0.98,1.1,es)+25*smooth(1.08,1.3,es); }
-  if(!TM.noTr) h+=(tmCuts(x,z)+tmCuts(-x,-z))*mb;
+  if(TM.dwd){ if(!TM.noTr) h+=dwdCut(x,z); } else if(!TM.noTr) h+=(tmCuts(x,z)+tmCuts(-x,-z))*mb;
   var e=tmE(x,z);
   return h+6*smooth(0.84,1.0,e)+55*smooth(0.98,1.1,e)+25*smooth(1.08,1.3,e);
 }
@@ -13335,7 +13487,7 @@ function tmEnter(team){
   }else{ if(TM.dwd) dwdBases(); else{ tmBase(0); tmBase(1); tmFinishBases(); } TM.sn=EM_NAV; EM_NAV=null; packSpots.push([40,0,60],[-40,0,-60]); }
   spawnPacks(); tmLoose();
   TM.mesh=(TM.ship||TM.mom||TM.isl||TM.snb||TM.sky)?new THREE.Group():tmBuildTerrain(); scene.add(TM.mesh);
-  if(TM.ship) tmShip(); else if(TM.mom) tmMombasa(); else if(TM.isl) tmIsland(); else if(TM.sky) skyWorld(); else if(TM.snb){ if(!TM.rcb) tmSnowInit(); } else{ tmScatter(); tmSnowInit(); if(TM.dwd){ try{ tmWire(); }catch(e){ console.error('wire',e); } } }
+  if(TM.ship) tmShip(); else if(TM.mom) tmMombasa(); else if(TM.isl) tmIsland(); else if(TM.sky) skyWorld(); else if(TM.snb){ if(!TM.rcb) tmSnowInit(); } else{ tmScatter(); tmSnowInit(); if(TM.dwd){ try{ dwdMazeDecor(); }catch(e){ console.error('maze decor',e); } } }
   TM.wx={bg:scene.background.clone(),fog:scene.fog.color.clone(),fn:scene.fog.near,ff:scene.fog.far,hi:hemi.intensity,hc:hemi.color.clone(),hg:hemi.groundColor.clone(),si:sun.intensity,sc:sun.color.clone(),sk:skyDome?skyDome.material.color.clone():null};
   scene.background.setHex(0xc6d0da); scene.fog.color.setHex(0xc6d0da); scene.fog.near=18; scene.fog.far=300;
   hemi.intensity=0.8; hemi.color.setHex(0xdfe8f2); hemi.groundColor.setHex(0xaab6c4); sun.intensity=0.55; if(skyDome) skyDome.material.color.setRGB(0.72,0.77,0.83);
