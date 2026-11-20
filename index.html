@@ -890,6 +890,24 @@ body.hurt2 #dmgFeed b{animation:dfBl 1s steps(1) infinite}
 #autoRing{position:fixed;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border:2px solid #ff5a3c;border-radius:50%;box-shadow:0 0 10px rgba(255,90,60,.7);pointer-events:none;z-index:8;display:none;animation:autoPulse .5s ease-in-out infinite alternate}
 @keyframes autoPulse{from{transform:scale(1)}to{transform:scale(.82)}}
 svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+/* ---- customise tab: plate carrier ---- */
+#hmPlates .plL{position:absolute;left:clamp(14px,5vw,96px);top:clamp(80px,14vh,140px);bottom:clamp(40px,7vh,70px);width:min(540px,50vw);overflow:auto;color:#fff;font-family:var(--font-ui)}
+#hmPlates small{letter-spacing:.3em;color:#bdbdbd;font-size:11px}
+#hmPlates h2{margin:2px 0 12px;letter-spacing:.2em;font-size:clamp(18px,3.4vh,26px);font-weight:700}
+.plRow{display:flex;align-items:center;gap:8px;background:rgba(14,14,14,.58);border:1px solid rgba(255,255,255,.18);padding:8px 10px;margin-bottom:8px}
+.plRow .nm{flex:1;min-width:0}.plRow .nm b{display:block;letter-spacing:.16em;font-size:clamp(11px,1.9vh,14px)}.plRow .nm i{font-style:normal;font-size:clamp(9px,1.5vh,11px);color:#aaa;letter-spacing:.05em}
+.plOpt{font:700 11px var(--font-ui);letter-spacing:.12em;color:#ddd;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);padding:7px 9px;cursor:pointer;min-width:62px;text-align:center}
+.plOpt small{display:block;font-size:9px;letter-spacing:.05em;color:#aaa;margin-top:2px}
+.plOpt:hover{background:rgba(255,255,255,.18)}.plOpt.on{background:#f4f4f4;color:#111;border-color:#fff}.plOpt.on small{color:#444}
+.plPre{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.plPre .plOpt{padding:9px 12px}
+#hmPlates .plR{position:absolute;right:clamp(14px,4vw,80px);top:clamp(80px,14vh,140px);bottom:clamp(40px,7vh,70px);width:min(380px,38vw);display:flex;flex-direction:column;gap:10px;color:#fff;font-family:var(--font-ui);overflow:auto}
+#plFig svg{width:100%;height:auto;max-height:38vh;display:block}
+#plStats{background:rgba(14,14,14,.58);border:1px solid rgba(255,255,255,.18);padding:10px 12px;font-size:clamp(11px,1.8vh,13px);letter-spacing:.1em}
+#plStats .plBig{font-size:clamp(20px,3.4vh,28px);font-weight:700;letter-spacing:.12em}#plStats .plBig span{font-size:11px;color:#aaa;letter-spacing:.2em}
+#plStats .plBig2{margin:2px 0 3px;letter-spacing:.2em}#plStats .plBig2 b{color:#ffd27a}
+.plBar{height:6px;background:rgba(255,255,255,.15);margin:3px 0 8px}.plBar i{display:block;height:100%;background:#f1f1f1}
+.plNote{font-size:10px;color:#a8a8a8;letter-spacing:.04em;line-height:1.4;margin-top:4px}
+
 /* ---- night vision in the scope (Dead Wood, only while your torch is on) ---- */
 #scNV{position:absolute;inset:0;display:none;pointer-events:none;-webkit-backdrop-filter:brightness(3.6) contrast(1.1) sepia(1) hue-rotate(52deg) saturate(3.2);backdrop-filter:brightness(3.6) contrast(1.1) sepia(1) hue-rotate(52deg) saturate(3.2);background:radial-gradient(ellipse at center,rgba(40,255,90,.08) 0,rgba(0,20,0,0) 50%,rgba(0,0,0,.5) 100%)}
 #scNV::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0,rgba(0,0,0,.2) 1px,transparent 1px,transparent 3px)}
@@ -968,6 +986,7 @@ svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:current
   <div id="menuShade"></div>
   <div id="hmTabs"><i class="hk">Q</i>
     <button type="button" class="hmTab on" data-tab="play">PLAY</button>
+    <button type="button" class="hmTab" data-tab="plates">CUSTOMISE</button>
     <button type="button" class="hmTab" data-tab="friends">FRIENDS<b id="hmReqDot" hidden></b></button>
     <button type="button" class="hmTab" data-tab="settings">SETTINGS</button><i class="hk">E</i></div>
   <div id="hmNet"><span id="hmNetDot"></span><span id="hmNetTxt">OFFLINE</span></div>
@@ -1001,6 +1020,10 @@ svg.ico{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:current
       <p class="cuDesc" id="cuDesc"></p>
     </div>
     <div id="cuPrevWrap"><canvas id="cuPrev"></canvas><div class="cuHint">DRAG TO TURN</div></div>
+  </div>
+  <div class="hmPane" id="hmPlates">
+    <div class="plL"><small>CUSTOMISE</small><h2>PLATE CARRIER</h2><div id="plRows"></div><div class="plPre" id="plPre"></div></div>
+    <div class="plR"><div id="plFig"></div><div id="plStats"></div></div>
   </div>
   <div class="hmPane" id="hmFriends">
     <div class="frCol frMe">
@@ -4817,6 +4840,80 @@ function hudsUpdate(dt){
   el.classList.toggle('low',f<0.35); el.classList.toggle('crit',f<0.2); el.classList.toggle('hit',HUDS.hitT>0);
   var w=weapons[cur]; if(w&&HUDS.wn!==w){ HUDS.wn=w; $('wtxt').textContent=w.name; }
 }
+/* ---------- plate carrier: helmet, chest, back, side and backside plates. Heavier plates stop more and slow you down. ---------- */
+var PLATE={
+  helmet:  {n:'HELMET',        d:'stops head shots',                     w:[0,1.1,1.9], r:[0,0.38,0.58], h:[0,90,150]},
+  chest:   {n:'CHEST PLATE',   d:'covers shots from the front',          w:[0,2.4,4.3], r:[0,0.40,0.62], h:[0,160,280]},
+  back:    {n:'BACK PLATE',    d:'covers shots from behind (upper back)', w:[0,2.4,4.3], r:[0,0.40,0.62], h:[0,160,280]},
+  sides:   {n:'SIDE PLATES',   d:'covers shots from the left and right', w:[0,1.4,2.6], r:[0,0.32,0.52], h:[0,120,220]},
+  backside:{n:'BACKSIDE PLATE',d:'covers shots to the lower back',       w:[0,1.0,2.0], r:[0,0.30,0.50], h:[0,90,170]}
+}, PORD=['helmet','chest','back','sides','backside'], PGR=['NONE','LIGHT','HEAVY'];
+var PLT={cfg:{helmet:1,chest:1,back:1,sides:0,backside:0},hp:{},kg:0,speed:1,head:false,tk:0};
+try{ var _pl=JSON.parse(localStorage.getItem('halo-plates')||'null'); if(_pl) PORD.forEach(function(k){ if(_pl[k]===0||_pl[k]===1||_pl[k]===2) PLT.cfg[k]=_pl[k]; }); }catch(e){}
+function armorCompute(){
+  var kg=0; PORD.forEach(function(k){ kg+=PLATE[k].w[PLT.cfg[k]]; });
+  PLT.kg=kg; PLT.speed=Math.max(0.78,1-0.0125*kg);   /* every kilo costs a little speed */
+}
+function armorReset(){ PORD.forEach(function(k){ PLT.hp[k]=PLATE[k].h[PLT.cfg[k]]; }); armorCompute(); }
+function armorHit(n){
+  if(n>=900) return n;   /* nukes, being run over, and other things no plate stops */
+  var zone=null, hx=hitDir.x, hz=hitDir.z;
+  if(PLT.head) zone='helmet';
+  else if(hx||hz){
+    var l=Math.hypot(hx,hz)||1, fx=-Math.sin(p.yaw), fz=-Math.cos(p.yaw), dot=(-hx*fx-hz*fz)/l;   /* +1 = the shot came from in front of you */
+    zone=dot>0.5?'chest':(dot<-0.5?(Math.random()<0.65?'back':'backside'):'sides');
+  }
+  if(!zone) return n;
+  var g=PLT.cfg[zone]; if(!g||PLT.hp[zone]<=0) return n;
+  var ab=Math.min(n*PLATE[zone].r[g],PLT.hp[zone]); PLT.hp[zone]-=ab;
+  if(PLT.hp[zone]<=0){ PLT.hp[zone]=0; try{ showToast(PLATE[zone].n+' BROKEN'); sfx.shieldBreak(); }catch(e){} }
+  else if(tAcc-PLT.tk>0.12){ PLT.tk=tAcc; try{ gsfx.tink(2); }catch(e){} }
+  return n-ab;
+}
+function plVis(){   /* the carrier, seen from the front and the back, coloured by what you have fitted */
+  var C=function(k){ var g=PLT.cfg[k]; return g===0?['rgba(255,255,255,.07)','rgba(255,255,255,.28)']:(g===1?['#b49a6a','#e6d3a2']:['#59616c','#c4ccd6']); };
+  var P=function(k,shape){ var c=C(k); return shape.replace('FILL',c[0]).replace('STR',c[1]); };
+  var body="<g fill='rgba(255,255,255,.1)' stroke='rgba(255,255,255,.25)' stroke-width='1.5'><circle cx='80' cy='44' r='15'/><rect x='52' y='64' width='56' height='72' rx='7'/><rect x='34' y='66' width='15' height='66' rx='6'/><rect x='111' y='66' width='15' height='66' rx='6'/><rect x='56' y='138' width='22' height='86' rx='6'/><rect x='82' y='138' width='22' height='86' rx='6'/></g>";
+  var F="<g transform='translate(0,0)'>"+body+
+    P('helmet',"<path d='M63 44a17 17 0 0 1 34 0v3H63z' fill='FILL' stroke='STR' stroke-width='2'/>")+
+    P('chest',"<rect x='60' y='70' width='40' height='44' rx='5' fill='FILL' stroke='STR' stroke-width='2'/>")+
+    P('sides',"<rect x='53' y='74' width='6' height='34' rx='2' fill='FILL' stroke='STR' stroke-width='2'/><rect x='101' y='74' width='6' height='34' rx='2' fill='FILL' stroke='STR' stroke-width='2'/>")+
+    "<text x='80' y='246' text-anchor='middle' fill='#aaa' font-size='11' letter-spacing='3'>FRONT</text></g>";
+  var Bk="<g transform='translate(160,0)'>"+body+
+    P('helmet',"<path d='M63 44a17 17 0 0 1 34 0v8H63z' fill='FILL' stroke='STR' stroke-width='2'/>")+
+    P('back',"<rect x='60' y='70' width='40' height='44' rx='5' fill='FILL' stroke='STR' stroke-width='2'/>")+
+    P('backside',"<rect x='62' y='116' width='36' height='18' rx='4' fill='FILL' stroke='STR' stroke-width='2'/>")+
+    P('sides',"<rect x='53' y='74' width='6' height='34' rx='2' fill='FILL' stroke='STR' stroke-width='2'/><rect x='101' y='74' width='6' height='34' rx='2' fill='FILL' stroke='STR' stroke-width='2'/>")+
+    "<text x='80' y='246' text-anchor='middle' fill='#aaa' font-size='11' letter-spacing='3'>BACK</text></g>";
+  return "<svg viewBox='0 0 320 256' xmlns='http://www.w3.org/2000/svg'>"+F+Bk+"</svg>";
+}
+function plRender(){
+  armorCompute();
+  var rows=$('plRows'); rows.innerHTML='';
+  PORD.forEach(function(k){
+    var P=PLATE[k], row=document.createElement('div'); row.className='plRow';
+    row.innerHTML='<div class="nm"><b>'+P.n+'</b><i>'+P.d+'</i></div>';
+    for(var g=0;g<3;g++){ (function(g){
+      var b=document.createElement('button'); b.type='button'; b.className='plOpt'+(PLT.cfg[k]===g?' on':'');
+      b.innerHTML=PGR[g]+'<small>'+(g?P.w[g].toFixed(1)+' KG':'0 KG')+'</small>';
+      b.addEventListener('click',function(){ PLT.cfg[k]=g; try{ localStorage.setItem('halo-plates',JSON.stringify(PLT.cfg)); }catch(e){} try{ sfx.click(); }catch(e){} armorReset(); plRender(); });
+      row.appendChild(b);
+    })(g); }
+    rows.appendChild(row);
+  });
+  var rear=0.65*PLATE.back.r[PLT.cfg.back]+0.35*PLATE.backside.r[PLT.cfg.backside];
+  var pr=function(lab,v){ return '<div>'+lab+' <b>'+Math.round(v*100)+'%</b></div><div class="plBar"><i style="width:'+Math.round(v*100)+'%"></i></div>'; };
+  var slow=Math.round((1-PLT.speed)*100);
+  $('plFig').innerHTML=plVis();
+  $('plStats').innerHTML='<div class="plBig">'+PLT.kg.toFixed(1)+' KG <span>CARRIED</span></div><div class="plBig2">SPEED <b>'+(slow?'-'+slow+'%':'NORMAL')+'</b></div><div class="plBar"><i style="width:'+Math.round(PLT.speed*100)+'%"></i></div>'
+    +pr('HEAD',PLATE.helmet.r[PLT.cfg.helmet])+pr('FRONT',PLATE.chest.r[PLT.cfg.chest])+pr('BACK',rear)+pr('SIDES',PLATE.sides.r[PLT.cfg.sides])
+    +'<div class="plNote">Plates take the damage for you until they break (they come back each spawn). Heavier plates stop more and slow you down.</div>';
+}
+function plPreset(c){ PORD.forEach(function(k){ PLT.cfg[k]=c[k]; }); try{ localStorage.setItem('halo-plates',JSON.stringify(PLT.cfg)); }catch(e){} try{ sfx.click(); }catch(e){} armorReset(); plRender(); }
+[['NO ARMOUR',{helmet:0,chest:0,back:0,sides:0,backside:0}],['LIGHT',{helmet:1,chest:1,back:1,sides:0,backside:0}],['STANDARD',{helmet:1,chest:2,back:1,sides:1,backside:1}],['HEAVY',{helmet:2,chest:2,back:2,sides:2,backside:2}]].forEach(function(q){
+  var b=document.createElement('button'); b.type='button'; b.className='plOpt'; b.textContent=q[0]; b.addEventListener('click',function(){ plPreset(q[1]); }); $('plPre').appendChild(b);
+});
+armorReset();
 var GDEF_FOE={n:'PLASMA',stick:true,fuse:2.7,speed:0,r:0.13,rest:0,R:5.5,inner:1.6,dmg:120,direct:0,stickMin:1.6};
 /* a straight line against the solid boxes (tree trunks, racks, walls) so they hide things like the terrain does */
 function segBox(from,to){
@@ -6051,7 +6148,7 @@ function pgApplyLoadout(){
   mod(lo.pri,lo.ap); mod(lo.sec,lo.as);
   PSPEED=PS0*(lo.perk==='sprint'?1.08:1);
   gren.frag=Math.min(GMAX.frag,3+(lo.perk==='gren'?1:0)); gren.plasma=Math.min(GMAX.plasma,2+(lo.perk==='gren'?1:0));
-  slots=[lo.pri,lo.sec]; sel=0; setWeapon(0); swapT=0; pendingW=null; reloading=false; bayoReset();
+  slots=[lo.pri,lo.sec]; sel=0; setWeapon(0); swapT=0; pendingW=null; reloading=false; bayoReset(); armorReset();
   try{ aidCancel(); }catch(e){} WND.kits=2+(lo.perk==='scav'?1:0);
 }
 /* ---------- radio chatter and the damaged-feed look ---------- */
@@ -6773,6 +6870,7 @@ function hurt(n){
   if(state!=='play') return;
   if(p.air){ damageJet(n*0.7); return; }
   if(p.inVeh&&!GN.on&&!MG.seat){ damageVehicle(n*0.8); return; }
+  n=armorHit(n);   /* plates take part of it */
   MA.flinch=1; MA.flx=Math.random()<0.5?-1:1; p.lastHit=tAcc; try{ stumble(hitDir.x,hitDir.z,Math.min(1,0.25+n/60)); addStress(0.25); }catch(e){} var shAbs=p.shield>0; vigT=(p.shield>=n)?0.1:0.55; sfx.hurt(); muffle(Math.min(1,0.3+n/50)); rumble(220,0.9,0.7); try{ radio('hit',6); }catch(e){} if(WND.aid>0) aidCancel('FIRST AID INTERRUPTED');
   if(hitDir.x||hitDir.z){ var ax=-hitDir.x, az=-hitDir.z, al=Math.hypot(ax,az)||1; ax/=al; az/=al; var sn0=Math.sin(p.yaw), cs0=Math.cos(p.yaw); dmgAng=Math.atan2(ax*cs0-az*sn0,-ax*sn0-az*cs0)*57.2958; dmgT=0.9; dmgSh=shAbs&&p.shield>=n; }
   if(p.health-Math.max(0,n-p.shield-(p.ov||0))<85||n>=18){ try{ bloodSplat((hitDir.x||hitDir.z)?dmgAng:Math.random()*360,n); }catch(e){} }
@@ -7186,7 +7284,7 @@ function updatePlayer(dt){
   CR+=((((keys.KeyC||ctrl.crouchTouch)&&!p.inVeh)?1:0)-CR)*Math.min(1,dt*12);
   MA.want=sprintHeld&&mz>0.3&&!zoomed&&!ctrl.fire&&p.onGround&&CR<0.3&&woundK()<0.6&&WND.aid<=0;
   if(ctrl.sprintTouch&&len<0.12){ MA.sprIdle=(MA.sprIdle||0)+dt; if(MA.sprIdle>0.2){ ctrl.sprintTouch=false; $('bSprint').classList.remove('on'); } } else MA.sprIdle=0;
-  var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(WSPD[weapons[cur].id]||(/FUEL ROD/.test(weapons[cur].name||'')?0.84:1))*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1)*(TM.on&&TM.ship?1.5:1);
+  var s=Math.sin(p.yaw), c=Math.cos(p.yaw), sp=PSPEED*PLT.speed*((weapons[cur].id==='mmg'&&!weapons[cur].mounted)?0.78:1)*(WSPD[weapons[cur].id]||(/FUEL ROD/.test(weapons[cur].name||'')?0.84:1))*(zoomed?((weapons[cur].scope||weapons[cur].lscope)?0.45:0.7):1)*(MA.want?1.4:1)*(TM.on&&TM.ship?1.5:1);
   try{ footTick(dt,len*sp); }catch(e){}
   sp*=1-0.45*CR; sp*=1-0.3*woundK(); if(WND.aid>0) sp*=0.5;
   if(TM.on&&TM.wire&&!p.inVeh){
@@ -14501,7 +14599,7 @@ function mpRecv(m){
     case 'hit': case 'hurt':
       if(state==='play'&&tAcc>mp.inv){
         if(mp.mode==='dm'&&m.t==='hit'&&m.f!==undefined){ if(mpTeamOf(m.f)===mp.team) break; mp.lastBy=m.f; mp.lastHow=m.w; mp.lastByT=tAcc; }
-        hitDir.x=m.dx; hitDir.z=m.dz; if(m.em&&p.shield>0){ p.shield=0; sfx.shieldBreak(); shHitT=0.4; SHFX.brk=0.7; } hurt(m.n);
+        hitDir.x=m.dx; hitDir.z=m.dz; if(m.em&&p.shield>0){ p.shield=0; sfx.shieldBreak(); shHitT=0.4; SHFX.brk=0.7; } PLT.head=(m.w||'').indexOf('HEADSHOT')>=0; hurt(m.n); PLT.head=false;
       }
       break;
     case 'dead':
@@ -14933,10 +15031,11 @@ window.devWave=devWave;
    Friends use the same free PeerJS broker as online play. While the menu is open you are "online" under the id halofps-u-<username>, so a friend can send a request, see you are on, and invite you with a room code. There is no account server: a username is yours only while you are online with it, and the friends list lives in this browser. */
 var HM={tab:'play'};
 function hmTab(t){
-  HM.tab=t; var ids={play:'hmPlay',custom:'hmCustom',friends:'hmFriends',settings:'hmSettings'};
+  HM.tab=t; var ids={play:'hmPlay',plates:'hmPlates',custom:'hmCustom',friends:'hmFriends',settings:'hmSettings'};
   document.querySelectorAll('.hmTab').forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-tab')===t); });
   for(var k in ids){ var e=$(ids[k]); if(e) e.classList.toggle('on',k===t); }
   if(t==='friends'){ frStart(); frRender(); }
+  if(t==='plates') plRender();
   if(t==='custom'&&window.__cuR) window.__cuR();
   if(t==='custom'||t==='play'||t==='settings'){ var f=document.querySelector('#'+ids[t]+' .hmItem.sel'); if(f&&!coarsePtr){ try{ f.focus({preventScroll:true}); }catch(e){} } }
 }
@@ -14952,8 +15051,8 @@ document.addEventListener('keydown',function(ev){
   if(state!=='menu'||$('menu').hidden||ev.repeat) return;
   var tg=ev.target&&ev.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA') return;
   if(document.querySelectorAll('.overlay:not(#menu):not([hidden])').length) return;
-  var order=['play','friends','settings'], i=Math.max(0,order.indexOf(HM.tab));
-  if(ev.code==='KeyQ') hmTab(order[(i+2)%3]); else if(ev.code==='KeyE') hmTab(order[(i+1)%3]);
+  var order=['play','plates','friends','settings'], i=Math.max(0,order.indexOf(HM.tab)), nT=order.length;
+  if(ev.code==='KeyQ') hmTab(order[(i+nT-1)%nT]); else if(ev.code==='KeyE') hmTab(order[(i+1)%nT]);
 });
 $('hmNews').innerHTML='<h3>WARZONE ALPHA UPDATE</h3><div class="dt">5 NOVEMBER 2026</div>'+
   '<h4>NEW DIRECTION</h4><ul><li>The game is now Warzone Alpha</li><li>All sci-fi weapons and plasma grenades are removed. Fresh gun models are on the way</li></ul>'+
